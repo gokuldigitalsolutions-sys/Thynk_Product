@@ -1,0 +1,2443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Thynk CRM - Agency Operating System</title>
+  
+  <!-- CDNs for CSS styling -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/main.min.css" rel="stylesheet">
+  <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+  
+  <!-- Custom Styling -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ================= AUTHENTICATION OVERLAY ================= -->
+  <div id="login-screen">
+    <div class="login-card text-center" data-aos="zoom-in">
+      <div class="mb-4">
+        <img src="img/logo.png" alt="Thynk Digital Solution Logo" class="mb-3" style="width: 100px; height: 100px; object-fit: contain;">
+        <div class="login-logo mb-1">Thynk<span>Digital</span></div>
+        <p class="text-muted text-uppercase fw-bold tracking-wide" style="font-size: 0.75rem;">Agency CRM & HRMS Operating System</p>
+      </div>
+      
+      <form id="login-form">
+        <div class="form-floating mb-3">
+          <input type="email" class="form-control" id="login-email" placeholder="name@example.com" value="admin@thynkdigital.in" required>
+          <label for="login-email">Email Address</label>
+        </div>
+        <div class="form-floating mb-3">
+          <input type="password" class="form-control" id="login-password" placeholder="Password" value="admin123" required>
+          <label for="login-password">Password</label>
+        </div>
+        
+        <div class="d-flex justify-between align-items-center mb-4 text-start">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="" id="remember-me" checked>
+            <label class="form-check-label text-muted" for="remember-me" style="font-size: 0.82rem;">Remember Me</label>
+          </div>
+          <a href="#" class="text-decoration-none ms-auto text-danger fw-semibold" id="forgot-password-link" style="font-size: 0.82rem;">Forgot Password?</a>
+        </div>
+        
+        <button type="submit" class="btn btn-danger w-100 py-3 rounded-3 fw-bold mb-2 shadow" style="background-color: var(--thynk-primary-dark); border: none;">
+          Sign In
+        </button>
+      </form>
+      <div class="mt-4 pt-3 border-top text-center text-muted" style="font-size: 0.75rem;">
+        &copy; 2026 Thynk Digital Solution. All rights reserved.
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MAIN APP SHELL ================= -->
+  <div id="app-wrapper" class="d-none">
+    
+    <!-- LEFT SIDEBAR -->
+    <aside id="sidebar">
+      <div class="sidebar-header">
+        <a href="#" class="sidebar-brand" id="logo-refresh">
+          <div class="sidebar-brand-logo" style="background: none;"><img src="img/logo.png" alt="Logo" style="width: 28px; height: 28px; object-fit: contain;"></div>
+          <span class="sidebar-brand-name">Thynk Digital</span>
+        </a>
+        <button class="sidebar-toggle-btn d-none d-lg-flex" id="sidebar-toggle">
+          <i class="fa-solid fa-chevron-left" id="toggle-icon"></i>
+        </button>
+        <button class="sidebar-toggle-btn d-lg-none" id="sidebar-close-mobile">
+          <i class="fa-solid fa-times"></i>
+        </button>
+      </div>
+
+      <div class="sidebar-menu">
+        <div class="sidebar-category">Main</div>
+        <a href="#" class="sidebar-item active" data-view="dashboard">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Dashboard</span>
+        </a>
+
+        <div class="sidebar-category">CRM</div>
+        <a href="#" class="sidebar-item" data-view="leads">
+          <i class="fa-solid fa-bullhorn"></i>
+          <span>Leads Pipeline</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="clients">
+          <i class="fa-solid fa-users"></i>
+          <span>Clients List</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="followups">
+          <i class="fa-solid fa-phone-volume"></i>
+          <span>Follow-ups</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="notes">
+          <i class="fa-solid fa-note-sticky"></i>
+          <span>Notes Directory</span>
+        </a>
+
+        <div class="sidebar-category">Core Ops</div>
+        <a href="#" class="sidebar-item" data-view="services">
+          <i class="fa-solid fa-cube"></i>
+          <span>All Services</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="domain-hosting">
+          <i class="fa-solid fa-server"></i>
+          <span>Domain & Hosting</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="canva">
+          <i class="fa-solid fa-palette"></i>
+          <span>Canva Premium</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="billing-software">
+          <i class="fa-solid fa-file-invoice"></i>
+          <span>Billing Software</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="meta-ads">
+          <i class="fa-brands fa-facebook"></i>
+          <span>Meta Ads Campaigns</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="google-ads">
+          <i class="fa-brands fa-google"></i>
+          <span>Google Ads Campaigns</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="seo">
+          <i class="fa-solid fa-magnifying-glass-chart"></i>
+          <span>SEO Campaigns</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="projects">
+          <i class="fa-solid fa-diagram-project"></i>
+          <span>Website Projects</span>
+        </a>
+
+        <div class="sidebar-category">Billing & Reminders</div>
+        <a href="#" class="sidebar-item" data-view="payments">
+          <i class="fa-solid fa-money-bill-transfer"></i>
+          <span>Payments Ledger</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="invoices">
+          <i class="fa-solid fa-file-invoice-dollar"></i>
+          <span>Invoices</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="reminders">
+          <i class="fa-solid fa-bell"></i>
+          <span>Reminders</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="calendar">
+          <i class="fa-solid fa-calendar-days"></i>
+          <span>Schedule Calendar</span>
+        </a>
+
+        <div class="sidebar-category">HRMS & Tasks</div>
+        <a href="#" class="sidebar-item" data-view="employees">
+          <i class="fa-solid fa-user-tie"></i>
+          <span>Employees HRMS</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="attendance">
+          <i class="fa-solid fa-clipboard-user"></i>
+          <span>Attendance Panel</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="leave">
+          <i class="fa-solid fa-calendar-minus"></i>
+          <span>Leave Management</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="my-tasks">
+          <i class="fa-solid fa-circle-check"></i>
+          <span>My Tasks Board</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="employee-tasks">
+          <i class="fa-solid fa-list-check"></i>
+          <span>Employee Tasks List</span>
+        </a>
+
+        <div class="sidebar-category">Analytics & Logs</div>
+        <a href="#" class="sidebar-item" data-view="reports">
+          <i class="fa-solid fa-file-contract"></i>
+          <span>Reports Studio</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="timeline">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span>Timeline Logs</span>
+        </a>
+        <a href="#" class="sidebar-item" data-view="settings">
+          <i class="fa-solid fa-sliders"></i>
+          <span>Settings</span>
+        </a>
+      </div>
+
+      <div class="sidebar-footer p-3 border-top border-secondary border-opacity-10 text-center">
+        <a href="#" class="btn btn-outline-danger btn-sm w-100 fw-semibold" id="logout-btn">
+          <i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Logout
+        </a>
+      </div>
+    </aside>
+
+    <!-- RIGHT MAIN PANEL -->
+    <div id="main-container">
+      
+      <!-- TOP BAR -->
+      <header id="topbar">
+        <div class="d-flex align-items-center gap-3">
+          <button class="btn btn-light d-lg-none" id="sidebar-toggle-mobile">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="search-bar">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input type="text" id="global-search-input" placeholder="Search everywhere (clients, domains, invoices, tasks)...">
+            <!-- Search Results Popup -->
+            <div id="search-results-popup" class="d-none position-absolute top-100 left-0 w-100 bg-white border border-light-subtle rounded-3 shadow-lg p-2 mt-1" style="z-index: 10000; max-height: 300px; overflow-y: auto;"></div>
+          </div>
+        </div>
+
+        <div class="topbar-actions">
+          
+          <!-- QUICK ADD DROPDOWN -->
+          <div class="dropdown">
+            <button class="btn btn-danger btn-sm rounded-pill px-3 fw-semibold dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background-color: var(--thynk-primary); border: none;">
+              <i class="fa-solid fa-circle-plus"></i> Quick Add
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-light">
+              <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#addLeadModal"><i class="fa-solid fa-bullhorn text-danger me-2"></i>New Lead</a></li>
+              <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#addClientModal"><i class="fa-solid fa-user-plus text-danger me-2"></i>New Client</a></li>
+              <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#/crm/services/new"><i class="fa-solid fa-cube text-danger me-2"></i>New Service</a></li>
+              <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#addPaymentModal"><i class="fa-solid fa-receipt text-danger me-2"></i>Log Payment</a></li>
+              <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#addTaskModal"><i class="fa-solid fa-list-check text-danger me-2"></i>Assign Task</a></li>
+              <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#addReminderModal"><i class="fa-solid fa-bell text-danger me-2"></i>Create Reminder</a></li>
+              <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#addNoteModal"><i class="fa-solid fa-note-sticky text-danger me-2"></i>Write Note</a></li>
+              <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#addMetaCampaignModal"><i class="fa-brands fa-facebook text-danger me-2"></i>New Meta Campaign</a></li>
+            </ul>
+          </div>
+
+          <!-- NOTIFICATIONS BELL -->
+          <div class="dropdown">
+            <button class="topbar-btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="notifications-bell-btn">
+              <i class="fa-regular fa-bell"></i>
+              <span class="topbar-badge" id="notifications-badge"></span>
+            </button>
+            <div class="dropdown-menu dropdown-menu-end shadow border-light p-0" style="width: 320px; border-radius: 12px; overflow: hidden;">
+              <div class="p-3 bg-danger text-white d-flex justify-content-between align-items-center" style="background-color: var(--thynk-primary-dark) !important;">
+                <h6 class="mb-0 fw-bold">System Alerts</h6>
+                <span class="badge bg-white text-danger fw-bold rounded-pill" id="notifications-count-badge">3</span>
+              </div>
+              <div id="notifications-list" style="max-height: 250px; overflow-y: auto;">
+                <!-- Dynamically Rendered Notifications -->
+              </div>
+              <div class="p-2 text-center border-top bg-light">
+                <a href="#" class="text-danger fw-semibold text-decoration-none" style="font-size: 0.8rem;" id="clear-notifications-btn">Dismiss All Alerts</a>
+              </div>
+            </div>
+          </div>
+
+          <!-- USER MENU -->
+          <div class="dropdown">
+            <div class="user-profile-menu dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+              <div class="user-avatar" id="user-avatar-element">A</div>
+              <span class="user-name d-none d-md-inline" id="user-name-element">Administrator</span>
+            </div>
+            <ul class="dropdown-menu dropdown-menu-end shadow border-light">
+              <li><a class="dropdown-item" href="#" id="view-profile-settings"><i class="fa-solid fa-user me-2 text-muted"></i>My Profile</a></li>
+              <li><a class="dropdown-item" href="#" id="view-system-settings"><i class="fa-solid fa-sliders me-2 text-muted"></i>System Settings</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger fw-semibold" href="#" id="logout-menu-btn"><i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Sign Out</a></li>
+            </ul>
+          </div>
+
+        </div>
+      </header>
+
+      <!-- DYNAMIC WORKSPACE BODY -->
+      <main id="content-workspace">
+        <!-- Rendered view content goes here -->
+      </main>
+
+    </div>
+  </div>
+
+  <!-- ================= FLOATING ACTION BUTTON (FAB) ================= -->
+  <div class="fab-container d-none" id="global-fab">
+    <button class="fab-btn" data-bs-toggle="dropdown" aria-expanded="false" title="Quick Add Options">
+      <i class="fa-solid fa-plus"></i>
+    </button>
+    <ul class="dropdown-menu dropdown-menu-end shadow-lg border-light mb-2">
+      <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#addLeadModal"><i class="fa-solid fa-bullhorn text-danger me-2"></i>Create Lead</a></li>
+      <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#addClientModal"><i class="fa-solid fa-user-plus text-danger me-2"></i>Create Client</a></li>
+      <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#addPaymentModal"><i class="fa-solid fa-receipt text-danger me-2"></i>Log Payment</a></li>
+      <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#addTaskModal"><i class="fa-solid fa-list-check text-danger me-2"></i>Assign Task</a></li>
+    </ul>
+  </div>
+
+  <!-- ================= MODALS WORKSPACE ================= -->
+
+  <!-- MODAL: ADD LEAD -->
+  <div class="modal fade" id="addLeadModal" tabindex="-1" aria-labelledby="addLeadModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addLeadModalLabel"><i class="fa-solid fa-bullhorn me-2"></i>Create New Lead</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="add-lead-form">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Company Name</label>
+              <input type="text" class="form-control rounded-3" id="lead-company" required placeholder="e.g. Zenith Tech Labs">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Contact Person</label>
+              <input type="text" class="form-control rounded-3" id="lead-contact" placeholder="e.g. Rahul Sen">
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Mobile Number</label>
+                <input type="tel" class="form-control rounded-3" id="lead-mobile" placeholder="e.g. 9876543210">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Email Address</label>
+                <input type="email" class="form-control rounded-3" id="lead-email" placeholder="e.g. contact@domain.com">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Lead Source</label>
+                <select class="form-select rounded-3" id="lead-source">
+                  <option value="" selected>Select Source...</option>
+                  <option value="Website Inquiry">Website Inquiry</option>
+                  <option value="Instagram DM">Instagram DM</option>
+                  <option value="LinkedIn Outreach">LinkedIn Outreach</option>
+                  <option value="Google Search">Google Search</option>
+                  <option value="Referral">Referral</option>
+                  <option value="Cold Call">Cold Call</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Est. Deal Value (₹)</label>
+                <input type="number" class="form-control rounded-3" id="lead-value" placeholder="e.g. 45000">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Status Priority</label>
+                <select class="form-select rounded-3" id="lead-status">
+                  <option value="" selected>Select Status...</option>
+                  <option value="Hot">Hot (High Intent)</option>
+                  <option value="Warm">Warm (Interested)</option>
+                  <option value="Cold">Cold (Contacted)</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Assigned Employee</label>
+                <select class="form-select rounded-3" id="lead-assigned-employee">
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Internal Notes</label>
+              <textarea class="form-control rounded-3" id="lead-notes" rows="3" placeholder="Additional details..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Lead</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD CLIENT -->
+  <div class="modal fade" id="addClientModal" tabindex="-1" aria-labelledby="addClientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addClientModalLabel"><i class="fa-solid fa-user-plus me-2"></i>Create New Client Profile</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="add-client-form">
+          <div class="modal-body py-4">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Company Name</label>
+                <input type="text" class="form-control rounded-3" id="client-company" required placeholder="e.g. Zenith Tech Labs">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Client Name</label>
+                <input type="text" class="form-control rounded-3" id="client-name" required placeholder="e.g. Rahul Sen">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Mobile Phone</label>
+                <input type="tel" class="form-control rounded-3" id="client-mobile" required placeholder="e.g. 9876501234">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">WhatsApp Number</label>
+                <input type="tel" class="form-control rounded-3" id="client-whatsapp" placeholder="e.g. Same as Mobile">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Email Address</label>
+                <input type="email" class="form-control rounded-3" id="client-email" required placeholder="e.g. rahul@domain.com">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Website URL</label>
+                <input type="url" class="form-control rounded-3" id="client-website" placeholder="e.g. https://www.website.com">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Business Category</label>
+                <input type="text" class="form-control rounded-3" id="client-category" required placeholder="e.g. IT Services / Wellness">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">GST Number (Optional)</label>
+                <input type="text" class="form-control rounded-3" id="client-gst" placeholder="e.g. 27AAAAA1111A1Z1">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Client Source</label>
+                <select class="form-select rounded-3" id="client-source" required>
+                  <option value="Google Ads">Google Ads</option>
+                  <option value="Instagram Outreach">Instagram Outreach</option>
+                  <option value="LinkedIn">LinkedIn</option>
+                  <option value="Referral">Referral</option>
+                  <option value="Website Inquiry">Website Inquiry</option>
+                  <option value="Cold Call">Cold Call</option>
+                </select>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Priority Level</label>
+                <select class="form-select rounded-3" id="client-priority" required>
+                  <option value="High">High Priority</option>
+                  <option value="Medium">Medium Priority</option>
+                  <option value="Low">Low Priority</option>
+                </select>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Assigned Employee</label>
+                <select class="form-select rounded-3" id="client-assigned-employee" required>
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Address Line</label>
+              <input type="text" class="form-control rounded-3" id="client-address" placeholder="Flat/Office, Building, Street">
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">City</label>
+                <input type="text" class="form-control rounded-3" id="client-city" placeholder="Mumbai">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">State</label>
+                <input type="text" class="form-control rounded-3" id="client-state" placeholder="Maharashtra">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Country</label>
+                <input type="text" class="form-control rounded-3" id="client-country" value="India">
+              </div>
+            </div>
+
+            <!-- Optional Domain & Hosting Integration Checkbox -->
+            <div class="form-check mb-3 mt-2">
+              <input class="form-check-input" type="checkbox" id="client-add-domain-hosting" data-bs-toggle="collapse" data-bs-target="#client-domain-hosting-fields">
+              <label class="form-check-label fw-semibold text-danger animate-pulse" for="client-add-domain-hosting">
+                <i class="fa-solid fa-server me-1"></i>Add Domain & Hosting details for this client
+              </label>
+            </div>
+
+            <!-- Collapsible Domain & Hosting Fields -->
+            <div class="collapse" id="client-domain-hosting-fields">
+              <div class="p-3 bg-light rounded-3 mb-3 border border-light-subtle">
+                <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="fa-solid fa-globe me-2 text-danger"></i>Domain & Hosting Properties</h6>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-semibold">Domain Registrar</label>
+                    <input type="text" class="form-control rounded-3" id="client-domain-registrar" value="GoDaddy">
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-semibold">Hosting Provider</label>
+                    <input type="text" class="form-control rounded-3" id="client-hosting-provider" value="Hostinger">
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label fw-semibold">Purchased Date</label>
+                    <input type="text" class="form-control rounded-3 flatpickr-date" id="client-domain-purchased" placeholder="Select Date">
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label fw-semibold">Renewal Date</label>
+                    <input type="text" class="form-control rounded-3 flatpickr-date" id="client-domain-expiry" placeholder="Select Date">
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <label class="form-label fw-semibold">Domain Price (₹)</label>
+                    <input type="number" class="form-control rounded-3" id="client-domain-cost" value="1200" placeholder="e.g. 1200">
+                  </div>
+                </div>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-semibold">Hosting Price (₹)</label>
+                    <input type="number" class="form-control rounded-3" id="client-hosting-cost" value="2500" placeholder="e.g. 2500">
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-semibold">DNS Status</label>
+                    <select class="form-select rounded-3" id="client-domain-dns">
+                      <option value="OK">OK</option>
+                      <option value="Suspended">Suspended</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Client</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT CLIENT -->
+  <div class="modal fade" id="editClientModal" tabindex="-1" aria-labelledby="editClientModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="editClientModalLabel"><i class="fa-solid fa-user-pen me-2"></i>Edit Client Profile</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="edit-client-form">
+          <input type="hidden" id="edit-client-id-hidden">
+          <div class="modal-body py-4">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Company Name</label>
+                <input type="text" class="form-control rounded-3" id="edit-client-company" required placeholder="e.g. Zenith Tech Labs">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Client Name</label>
+                <input type="text" class="form-control rounded-3" id="edit-client-name" required placeholder="e.g. Rahul Sen">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Mobile Phone</label>
+                <input type="tel" class="form-control rounded-3" id="edit-client-mobile" required placeholder="e.g. 9876501234">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">WhatsApp Number</label>
+                <input type="tel" class="form-control rounded-3" id="edit-client-whatsapp" placeholder="e.g. Same as Mobile">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Email Address</label>
+                <input type="email" class="form-control rounded-3" id="edit-client-email" required placeholder="e.g. rahul@domain.com">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Website URL</label>
+                <input type="url" class="form-control rounded-3" id="edit-client-website" placeholder="e.g. https://www.website.com">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Business Category</label>
+                <input type="text" class="form-control rounded-3" id="edit-client-category" required placeholder="e.g. IT Services / Wellness">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">GST Number (Optional)</label>
+                <input type="text" class="form-control rounded-3" id="edit-client-gst" placeholder="e.g. 27AAAAA1111A1Z1">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-3 mb-3">
+                <label class="form-label fw-semibold">Client Source</label>
+                <select class="form-select rounded-3" id="edit-client-source" required>
+                  <option value="Google Ads">Google Ads</option>
+                  <option value="Instagram Outreach">Instagram Outreach</option>
+                  <option value="LinkedIn">LinkedIn</option>
+                  <option value="Referral">Referral</option>
+                  <option value="Website Inquiry">Website Inquiry</option>
+                  <option value="Cold Call">Cold Call</option>
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label fw-semibold">Priority Level</label>
+                <select class="form-select rounded-3" id="edit-client-priority" required>
+                  <option value="High">High Priority</option>
+                  <option value="Medium">Medium Priority</option>
+                  <option value="Low">Low Priority</option>
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label fw-semibold">Client Status</label>
+                <select class="form-select rounded-3" id="edit-client-status" required>
+                  <option value="Active">Active</option>
+                  <option value="Inactive">Inactive</option>
+                  <option value="Suspended">Suspended</option>
+                </select>
+              </div>
+              <div class="col-md-3 mb-3">
+                <label class="form-label fw-semibold">Assigned Employee</label>
+                <select class="form-select rounded-3" id="edit-client-assigned-employee">
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Address Line</label>
+              <input type="text" class="form-control rounded-3" id="edit-client-address" placeholder="Flat/Office, Building, Street">
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">City</label>
+                <input type="text" class="form-control rounded-3" id="edit-client-city" placeholder="Mumbai">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">State</label>
+                <input type="text" class="form-control rounded-3" id="edit-client-state" placeholder="Maharashtra">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Country</label>
+                <input type="text" class="form-control rounded-3" id="edit-client-country" value="India">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+  <!-- MODAL: ADD SERVICE -->
+  <div class="modal fade" id="addServiceModal" tabindex="-1" aria-labelledby="addServiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addServiceModalLabel"><i class="fa-solid fa-cube me-2"></i>Add New Service Contract</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="add-service-form">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Client Company</label>
+              <select class="form-select rounded-3" id="service-client-id" required>
+                <!-- Populate via JS -->
+              </select>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Service Type</label>
+                <select class="form-select rounded-3" id="service-name" required>
+                  <option value="" disabled selected hidden>Select Service Type...</option>
+                  <option value="Meta Ads Management">Meta Ads Management</option>
+                  <option value="Google Ads Management">Google Ads Management</option>
+                  <option value="SEO Management">SEO Management</option>
+                  <option value="Social Media Management">Social Media Management</option>
+                  <option value="Website Development">Website Development</option>
+                  <option value="Domain & Hosting">Domain & Hosting</option>
+                  <option value="Custom Service">Custom Service</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Package Name</label>
+                <input type="text" class="form-control rounded-3" id="service-package" placeholder="e.g. Monthly Standard">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Start Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="service-start" placeholder="Select Date">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Expiry / Renewal Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="service-end" placeholder="Select Date">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Cost (₹)</label>
+                <input type="number" class="form-control rounded-3" id="service-cost" placeholder="e.g. 50000">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Discount (₹)</label>
+                <input type="number" class="form-control rounded-3" id="service-discount" value="0" placeholder="e.g. 2000">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Assigned Account Manager</label>
+                <select class="form-select rounded-3" id="service-assigned-employee">
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+            </div>
+            
+            <!-- DOMAIN DETAILS EXTRA INFO (Hidden dynamically) -->
+            <div id="domain-extra-fields" class="p-3 bg-light rounded-3 mb-3 d-none">
+              <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="fa-solid fa-globe me-2 text-danger"></i>Domain Properties</h6>
+              <div class="row">
+                <div class="col-md-6 mb-2">
+                  <label class="form-label small fw-semibold">Registrar Portal</label>
+                  <input type="text" class="form-control form-control-sm rounded-2" id="domain-registrar" value="GoDaddy">
+                </div>
+                <div class="col-md-6 mb-2">
+                  <label class="form-label small fw-semibold">DNS Status</label>
+                  <select class="form-select form-select-sm rounded-2" id="domain-dns-status">
+                    <option value="OK">OK</option>
+                    <option value="Suspended">Suspended</option>
+                  </select>
+                </div>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small fw-semibold">Nameservers</label>
+                <input type="text" class="form-control form-control-sm rounded-2" id="domain-nameservers" value="ns1.dns.com, ns2.dns.com">
+              </div>
+            </div>
+            
+            <!-- HOSTING DETAILS EXTRA INFO (Hidden dynamically) -->
+            <div id="hosting-extra-fields" class="p-3 bg-light rounded-3 mb-3 d-none">
+              <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="fa-solid fa-server me-2 text-danger"></i>Hosting Properties</h6>
+              <div class="mb-2">
+                <label class="form-label small fw-semibold">Hosting Provider</label>
+                <input type="text" class="form-control form-control-sm rounded-2" id="hosting-provider" value="AWS Lightsail">
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Additional Contract Rules</label>
+              <textarea class="form-control rounded-3" id="service-notes" rows="2" placeholder="Brief scope description..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Activate Service</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT SERVICE -->
+  <div class="modal fade" id="editServiceModal" tabindex="-1" aria-labelledby="editServiceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="editServiceModalLabel"><i class="fa-solid fa-cube me-2"></i>Edit Service Contract</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="edit-service-form">
+          <input type="hidden" id="edit-service-id-hidden">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Client Company</label>
+              <select class="form-select rounded-3" id="edit-service-client-id" disabled>
+                <!-- Keep disabled to prevent shifting clients after contract activation -->
+              </select>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Service Type</label>
+                <select class="form-select rounded-3" id="edit-service-name" required>
+                  <option value="Meta Ads Management">Meta Ads Management</option>
+                  <option value="Google Ads Management">Google Ads Management</option>
+                  <option value="SEO Management">SEO Management</option>
+                  <option value="Social Media Management">Social Media Management</option>
+                  <option value="Website Development">Website Development</option>
+                  <option value="Domain & Hosting">Domain & Hosting</option>
+                  <option value="Custom Service">Custom Service</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Package Name</label>
+                <input type="text" class="form-control rounded-3" id="edit-service-package" placeholder="e.g. Monthly Standard">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Start Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-service-start" placeholder="Select Date">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Expiry / Renewal Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-service-end" placeholder="Select Date">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Cost (₹)</label>
+                <input type="number" class="form-control rounded-3" id="edit-service-cost" placeholder="e.g. 50000">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Discount (₹)</label>
+                <input type="number" class="form-control rounded-3" id="edit-service-discount" placeholder="e.g. 2000">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Assigned Account Manager</label>
+                <select class="form-select rounded-3" id="edit-service-assigned-employee">
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-12 mb-3">
+                <label class="form-label fw-semibold">Contract Status</label>
+                <select class="form-select rounded-3" id="edit-service-status" required>
+                  <option value="Running">Running / Active</option>
+                  <option value="Suspended">Suspended</option>
+                  <option value="Expired">Expired</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Additional Contract Rules</label>
+              <textarea class="form-control rounded-3" id="edit-service-notes" rows="2" placeholder="Brief scope description..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD PAYMENT -->
+  <div class="modal fade" id="addPaymentModal" tabindex="-1" aria-labelledby="addPaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addPaymentModalLabel"><i class="fa-solid fa-receipt me-2"></i>Log Payment Collection</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="add-payment-form">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Invoice Selection</label>
+              <select class="form-select rounded-3" id="payment-invoice-id" required>
+                <!-- Populate via JS -->
+              </select>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Payment Amount (₹)</label>
+                <input type="number" class="form-control rounded-3" id="payment-amount" required placeholder="e.g. 25000">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Payment Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="payment-date" required placeholder="Select Date">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Payment Mode</label>
+                <select class="form-select rounded-3" id="payment-mode" required>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="UPI / GPay">UPI / GPay</option>
+                  <option value="UPI / PhonePe">UPI / PhonePe</option>
+                  <option value="Cash">Cash payment</option>
+                  <option value="Cheque">Cheque</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Transaction ID / Ref No</label>
+                <input type="text" class="form-control rounded-3" id="payment-ref" required placeholder="e.g. TXN987654321A">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Recorded By (Employee)</label>
+              <select class="form-select rounded-3" id="payment-received-by" required>
+                <!-- Populate via JS -->
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Remarks</label>
+              <input type="text" class="form-control rounded-3" id="payment-remarks" placeholder="Milestone / Final Settlement notes">
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Record Payment</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD TASK -->
+  <div class="modal fade" id="addTaskModal" tabindex="-1" aria-labelledby="addTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addTaskModalLabel"><i class="fa-solid fa-list-check me-2"></i>Create & Assign Task</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="add-task-form">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Task Title</label>
+              <input type="text" class="form-control rounded-3" id="task-title" required placeholder="e.g. Optimize Facebook Ad creatives">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Task Description</label>
+              <textarea class="form-control rounded-3" id="task-desc" rows="3" required placeholder="Provide instructions..."></textarea>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Related Client</label>
+                <select class="form-select rounded-3" id="task-client-id" required>
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Related Service Contract</label>
+                <select class="form-select rounded-3" id="task-service-id" required>
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Assign Developer/Marketer</label>
+                <select class="form-select rounded-3" id="task-assigned-employee" required>
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Priority Level</label>
+                <select class="form-select rounded-3" id="task-priority" required>
+                  <option value="High">High</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Low">Low</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Start Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="task-start" required placeholder="Select Date">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Due Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="task-due" required placeholder="Select Date">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Estimated Work Hours</label>
+                <input type="number" class="form-control rounded-3" id="task-hours" required value="8" placeholder="e.g. 8">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Initial Board Status</label>
+                <select class="form-select rounded-3" id="task-status" required>
+                  <option value="To Do">To Do</option>
+                  <option value="In Progress">In Progress</option>
+                  <option value="Review">Review</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Task</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD REMINDER -->
+  <div class="modal fade" id="addReminderModal" tabindex="-1" aria-labelledby="addReminderModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addReminderModalLabel"><i class="fa-solid fa-bell me-2"></i>Configure New Reminder</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="add-reminder-form">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Reminder Alert Title</label>
+              <input type="text" class="form-control rounded-3" id="reminder-title" required placeholder="e.g. Follow-up Call - Priya Nair">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Alert Description</label>
+              <textarea class="form-control rounded-3" id="reminder-desc" rows="2" placeholder="Detail notes..."></textarea>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Related Client</label>
+                <select class="form-select rounded-3" id="reminder-client-id" required>
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Account Manager</label>
+                <select class="form-select rounded-3" id="reminder-assigned-employee" required>
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Trigger Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="reminder-date" required placeholder="Select Date">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Trigger Time</label>
+                <input type="text" class="form-control rounded-3 flatpickr-time" id="reminder-time" required placeholder="Select Time">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Reminder Priority</label>
+                <select class="form-select rounded-3" id="reminder-priority" required>
+                  <option value="High">High Alert</option>
+                  <option value="Medium">Medium Alert</option>
+                  <option value="Low">Low Alert</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Linking Service Contract (Optional)</label>
+                <select class="form-select rounded-3" id="reminder-service-id">
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Reminder</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD NOTE -->
+  <div class="modal fade" id="addNoteModal" tabindex="-1" aria-labelledby="addNoteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addNoteModalLabel"><i class="fa-solid fa-note-sticky me-2"></i>Write Internal Note</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="add-note-form">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Target Client Profile</label>
+              <select class="form-select rounded-3" id="note-client-id" required>
+                <!-- Populate via JS -->
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Note Title</label>
+              <input type="text" class="form-control rounded-3" id="note-title" required placeholder="e.g. Landing Page Design requirements">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Note Description</label>
+              <textarea class="form-control rounded-3" id="note-desc" rows="3" required placeholder="Write detail notes..."></textarea>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Topic Tags</label>
+                <input type="text" class="form-control rounded-3" id="note-tags" placeholder="e.g. Design, Ads, SEO (comma separated)">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Written By (Employee)</label>
+                <select class="form-select rounded-3" id="note-created-by" required>
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+            </div>
+            <div class="form-check form-switch mt-2">
+              <input class="form-check-input" type="checkbox" role="switch" id="note-pin">
+              <label class="form-check-label fw-semibold text-dark" for="note-pin">Pin this note to top of Client's profile</label>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Note</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD META CAMPAIGN -->
+  <div class="modal fade" id="addMetaCampaignModal" tabindex="-1" aria-labelledby="addMetaCampaignModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addMetaCampaignModalLabel"><i class="fa-brands fa-facebook me-2"></i>Add Meta Ads Campaign</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="add-meta-campaign-form" novalidate>
+          <input type="hidden" id="meta-campaign-id-hidden">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Client Name</label>
+              <input type="text" class="form-control rounded-3" id="meta-client-name" required placeholder="e.g. Rig Earthing Solutions">
+              <div class="invalid-feedback">Client Name is required.</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Campaign Name</label>
+              <input type="text" class="form-control rounded-3" id="meta-campaign-name" required placeholder="e.g. Earthing Leads">
+              <div class="invalid-feedback">Campaign Name is required.</div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Objective</label>
+                <select class="form-select rounded-3" id="meta-campaign-objective" required>
+                  <!-- Populate via JS -->
+                </select>
+                <div class="invalid-feedback">Please select an Objective.</div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Status</label>
+                <select class="form-select rounded-3" id="meta-campaign-status" required>
+                  <!-- Populate via JS -->
+                </select>
+                <div class="invalid-feedback">Please select a Status.</div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Campaign Start</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="meta-campaign-start" required placeholder="Select Date">
+                <div class="invalid-feedback">Start Date is required.</div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Campaign End / Renewal</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="meta-campaign-end" required placeholder="Select Date">
+                <div class="invalid-feedback">End Date must be greater than or equal to Start Date.</div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Ad Budget (₹)</label>
+              <input type="number" class="form-control rounded-3" id="meta-campaign-ad-budget" required min="1" placeholder="e.g. 10000">
+              <div class="invalid-feedback">Budget must be greater than 0.</div>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Campaign</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD DAILY PERFORMANCE DATA -->
+  <div class="modal fade" id="addCampaignDailyPerformanceModal" tabindex="-1" aria-labelledby="addCampaignDailyPerformanceModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addCampaignDailyPerformanceModalLabel"><i class="fa-solid fa-chart-line me-2"></i>Add Daily Performance Log</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="add-campaign-daily-performance-form">
+          <div class="modal-body py-4">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="daily-perf-date" required placeholder="Select Date">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Ad Spend (₹)</label>
+                <input type="number" step="any" class="form-control rounded-3" id="daily-perf-spend" required placeholder="e.g. 350">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Reach</label>
+                <input type="number" class="form-control rounded-3" id="daily-perf-reach" required placeholder="e.g. 2850">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Clicks</label>
+                <input type="number" class="form-control rounded-3" id="daily-perf-clicks" required placeholder="e.g. 78">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Leads</label>
+              <input type="number" class="form-control rounded-3" id="daily-perf-leads" required placeholder="e.g. 6">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Remarks</label>
+              <input type="text" class="form-control rounded-3" id="daily-perf-remarks" placeholder="e.g. Good Response / CPL stable">
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Daily Log</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: DAILY PERFORMANCE ENTRIES DASHBOARD -->
+  <div class="modal fade" id="dailyPerformanceEntriesModal" tabindex="-1" aria-labelledby="dailyPerformanceEntriesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-dialog-scrollable">
+      <div class="modal-content border-0 rounded-4 shadow-lg">
+        <div class="modal-header bg-danger text-white border-0 py-3">
+          <h5 class="modal-title fw-bold" id="dailyPerformanceEntriesModalLabel">
+            <i class="fa-solid fa-chart-line me-2"></i>Daily Performance Entries - <span id="meta-daily-modal-campaign-name">Campaign</span>
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body bg-light py-4">
+          <!-- 1. SUMMARY CARDS -->
+          <div class="row row-cols-2 row-cols-sm-3 row-cols-md-5 g-3 mb-4">
+            <div class="col">
+              <div class="p-3 bg-white rounded-3 shadow-sm border border-light-subtle text-center h-100">
+                <div class="text-secondary small fw-semibold"><i class="fa-solid fa-wallet text-danger me-1"></i>Spend</div>
+                <h4 class="fw-bold mt-1 mb-0 text-danger" id="meta-daily-summary-spend">₹0</h4>
+              </div>
+            </div>
+            <div class="col">
+              <div class="p-3 bg-white rounded-3 shadow-sm border border-light-subtle text-center h-100">
+                <div class="text-secondary small fw-semibold"><i class="fa-solid fa-eye text-primary me-1"></i>Reach</div>
+                <h4 class="fw-bold mt-1 mb-0 text-dark" id="meta-daily-summary-reach">0</h4>
+              </div>
+            </div>
+            <div class="col">
+              <div class="p-3 bg-white rounded-3 shadow-sm border border-light-subtle text-center h-100">
+                <div class="text-secondary small fw-semibold"><i class="fa-solid fa-arrow-pointer text-primary me-1"></i>Clicks</div>
+                <h4 class="fw-bold mt-1 mb-0 text-dark" id="meta-daily-summary-clicks">0</h4>
+              </div>
+            </div>
+            <div class="col">
+              <div class="p-3 bg-white rounded-3 shadow-sm border border-light-subtle text-center h-100">
+                <div class="text-secondary small fw-semibold"><i class="fa-solid fa-user-plus text-success me-1"></i>Leads</div>
+                <h4 class="fw-bold mt-1 mb-0 text-success" id="meta-daily-summary-leads">0</h4>
+              </div>
+            </div>
+            <div class="col">
+              <div class="p-3 bg-white rounded-3 shadow-sm border border-light-subtle text-center h-100">
+                <div class="text-secondary small fw-semibold"><i class="fa-solid fa-tags text-danger me-1"></i>Avg CPL</div>
+                <h4 class="fw-bold mt-1 mb-0 text-danger" id="meta-daily-summary-cpl">₹0.00</h4>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2. ENTRY FORM & CHARTS ROW -->
+          <div class="row g-4">
+            <!-- Left Column: Form -->
+            <div class="col-lg-4">
+              <div class="card border-0 rounded-3 shadow-sm p-4 h-100">
+                <h5 class="fw-bold text-dark mb-3" id="meta-daily-form-title"><i class="fa-solid fa-circle-plus text-danger me-2"></i>Add Daily Log</h5>
+                <form id="meta-daily-entry-form" novalidate>
+                  <input type="hidden" id="meta-daily-camp-id">
+                  <input type="hidden" id="meta-daily-edit-index">
+                  <div class="mb-3">
+                    <label class="form-label fw-semibold">Date</label>
+                    <input type="text" class="form-control rounded-3 flatpickr-date" id="meta-daily-date" required placeholder="Select Date">
+                    <div class="invalid-feedback">Date is required.</div>
+                  </div>
+                  <div class="row">
+                    <div class="col-6 mb-3">
+                      <label class="form-label fw-semibold">Ad Spend (₹)</label>
+                      <input type="number" step="any" min="0" class="form-control rounded-3" id="meta-daily-spend" required placeholder="0.00">
+                      <div class="invalid-feedback">Must be ≥ 0.</div>
+                    </div>
+                    <div class="col-6 mb-3">
+                      <label class="form-label fw-semibold">Leads</label>
+                      <input type="number" min="0" class="form-control rounded-3" id="meta-daily-leads" required placeholder="0">
+                      <div class="invalid-feedback">Must be ≥ 0.</div>
+                    </div>
+                  </div>
+                  <div class="row">
+                    <div class="col-6 mb-3">
+                      <label class="form-label fw-semibold">Reach</label>
+                      <input type="number" min="0" class="form-control rounded-3" id="meta-daily-reach" required placeholder="0">
+                      <div class="invalid-feedback">Must be ≥ 0.</div>
+                    </div>
+                    <div class="col-6 mb-3">
+                      <label class="form-label fw-semibold">Clicks</label>
+                      <input type="number" min="0" class="form-control rounded-3" id="meta-daily-clicks" required placeholder="0">
+                      <div class="invalid-feedback">Must be ≥ 0.</div>
+                    </div>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label fw-semibold">CPL (₹) <span class="text-muted small fw-normal">(Auto Calculated)</span></label>
+                    <input type="text" class="form-control rounded-3 bg-light font-monospace" id="meta-daily-cpl" readonly value="₹0.00">
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label fw-semibold">Remarks</label>
+                    <textarea class="form-control rounded-3" id="meta-daily-remarks" rows="2" placeholder="e.g. Optimized targeting"></textarea>
+                  </div>
+                  <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-light rounded-3 px-3 fw-semibold flex-grow-1" id="meta-daily-cancel-btn">Reset</button>
+                    <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold flex-grow-1" style="background-color: var(--thynk-primary); border: none;" id="meta-daily-submit-btn">Save Entry</button>
+                  </div>
+                </form>
+              </div>
+            </div>
+
+            <!-- Right Column: Charts -->
+            <div class="col-lg-8">
+              <div class="card border-0 rounded-3 shadow-sm p-4 h-100">
+                <ul class="nav nav-tabs border-bottom mb-3" id="metaDailyChartsTabs" role="tablist">
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link active text-danger fw-semibold" id="spend-chart-tab" data-bs-toggle="tab" data-bs-target="#spend-chart-pane" type="button" role="tab" aria-controls="spend-chart-pane" aria-selected="true">Ad Spend vs Date</button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link text-danger fw-semibold" id="leads-chart-tab" data-bs-toggle="tab" data-bs-target="#leads-chart-pane" type="button" role="tab" aria-controls="leads-chart-pane" aria-selected="false">Leads vs Date</button>
+                  </li>
+                  <li class="nav-item" role="presentation">
+                    <button class="nav-link text-danger fw-semibold" id="clicks-reach-chart-tab" data-bs-toggle="tab" data-bs-target="#clicks-reach-chart-pane" type="button" role="tab" aria-controls="clicks-reach-chart-pane" aria-selected="false">Clicks vs Reach</button>
+                  </li>
+                </ul>
+                <div class="tab-content" id="metaDailyChartsTabContent">
+                  <div class="tab-pane fade show active" id="spend-chart-pane" role="tabpanel" aria-labelledby="spend-chart-tab" tabindex="0">
+                    <div id="meta-daily-spend-chart" style="min-height: 280px;"></div>
+                  </div>
+                  <div class="tab-pane fade" id="leads-chart-pane" role="tabpanel" aria-labelledby="leads-chart-tab" tabindex="0">
+                    <div id="meta-daily-leads-chart" style="min-height: 280px;"></div>
+                  </div>
+                  <div class="tab-pane fade" id="clicks-reach-chart-pane" role="tabpanel" aria-labelledby="clicks-reach-chart-tab" tabindex="0">
+                    <div id="meta-daily-clicks-reach-chart" style="min-height: 280px;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 3. ENTRIES TABLE -->
+          <div class="card border-0 rounded-3 shadow-sm p-4 mt-4">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+              <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-list text-danger me-2"></i>Daily performance history</h5>
+              <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary btn-sm rounded-3" id="meta-daily-export-excel-btn">
+                  <i class="fa-solid fa-file-excel me-1"></i>Excel (.xlsx)
+                </button>
+                <button class="btn btn-outline-secondary btn-sm rounded-3" id="meta-daily-export-pdf-btn">
+                  <i class="fa-solid fa-file-pdf me-1"></i>PDF Report
+                </button>
+              </div>
+            </div>
+            <div class="table-responsive">
+              <table class="table thynk-table text-nowrap align-middle" id="meta-daily-entries-table-modal">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Ad Spend (₹)</th>
+                    <th>Reach</th>
+                    <th>Clicks</th>
+                    <th>Leads</th>
+                    <th>CPL (₹)</th>
+                    <th>Remarks</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="meta-daily-modal-tbody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD CAMPAIGN PAYMENT -->
+  <div class="modal fade" id="addCampaignPaymentModal" tabindex="-1" aria-labelledby="addCampaignPaymentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addCampaignPaymentModalLabel"><i class="fa-solid fa-receipt me-2"></i>Record Campaign Payment</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="add-campaign-payment-form">
+          <div class="modal-body py-4">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Payment Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="campaign-payment-date" required placeholder="Select Date">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Amount (₹)</label>
+                <input type="number" class="form-control rounded-3" id="campaign-payment-amount" required placeholder="e.g. 5000">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Payment Mode</label>
+                <select class="form-select rounded-3" id="campaign-payment-mode" required>
+                  <option value="UPI">UPI / GPay</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                  <option value="Cash">Cash</option>
+                  <option value="Credit Card">Credit Card</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Transaction ID</label>
+                <input type="text" class="form-control rounded-3" id="campaign-payment-ref" required placeholder="e.g. TXN123">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Remarks</label>
+              <input type="text" class="form-control rounded-3" id="campaign-payment-remarks" placeholder="e.g. Milestone / Advance payment">
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Record Payment</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD CAMPAIGN NOTE -->
+  <div class="modal fade" id="addCampaignNoteModal" tabindex="-1" aria-labelledby="addCampaignNoteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addCampaignNoteModalLabel"><i class="fa-solid fa-note-sticky me-2"></i>Create Campaign Note</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="add-campaign-note-form">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Note Title</label>
+              <input type="text" class="form-control rounded-3" id="campaign-note-title" required placeholder="e.g. Creatives Approved">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Description</label>
+              <textarea class="form-control rounded-3" id="campaign-note-desc" rows="3" required placeholder="Details..."></textarea>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Priority</label>
+                <select class="form-select rounded-3" id="campaign-note-priority" required>
+                  <option value="Low">Low</option>
+                  <option value="Medium">Medium</option>
+                  <option value="High">High</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Tags</label>
+                <input type="text" class="form-control rounded-3" id="campaign-note-tags" placeholder="e.g. Budget, Creative">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Note</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD CAMPAIGN FOLLOW-UP -->
+  <div class="modal fade" id="addCampaignFollowupModal" tabindex="-1" aria-labelledby="addCampaignFollowupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addCampaignFollowupModalLabel"><i class="fa-solid fa-phone me-2"></i>Log Campaign Follow-up</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="add-campaign-followup-form">
+          <div class="modal-body py-4">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Contact Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="campaign-followup-date" required placeholder="Select Date">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Next Follow-up</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="campaign-followup-next" required placeholder="Select Date">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Type</label>
+                <select class="form-select rounded-3" id="campaign-followup-type" required>
+                  <option value="WhatsApp">WhatsApp</option>
+                  <option value="Phone Call">Phone Call</option>
+                  <option value="Email">Email</option>
+                  <option value="Meeting">Meeting</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Status</label>
+                <select class="form-select rounded-3" id="campaign-followup-status" required>
+                  <option value="Pending">Pending</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Assigned Employee</label>
+              <select class="form-select rounded-3" id="campaign-followup-employee" required>
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Discussion Summary</label>
+              <input type="text" class="form-control rounded-3" id="campaign-followup-summary" required placeholder="e.g. Sent onboarding details / Checked reports status">
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Record Follow-up</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD CANVA PREMIUM -->
+  <div class="modal fade" id="addCanvaModal" tabindex="-1" aria-labelledby="addCanvaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addCanvaModalLabel"><i class="fa-solid fa-palette me-2"></i>Add Canva Premium Subscription</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="add-canva-form">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Client (From Directory)</label>
+              <select class="form-select rounded-3" id="canva-client-id">
+                <!-- Populate via JS -->
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Or Custom Account / Client Name</label>
+              <input type="text" class="form-control rounded-3" id="canva-client-name" placeholder="e.g. Sowmiya">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Account Mail ID</label>
+              <input type="email" class="form-control rounded-3" id="canva-email" required placeholder="e.g. sowmiya.thynkdigital@gmail.com">
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Price (₹)</label>
+                <input type="number" class="form-control rounded-3" id="canva-price" required value="499" placeholder="499">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Purchased Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="canva-purchase-date" required placeholder="Select Date">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Renewal Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="canva-renewal-date" required placeholder="Select Date">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Internal Notes</label>
+              <textarea class="form-control rounded-3" id="canva-notes" rows="2" placeholder="Account logins or access notes..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Account</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD BILLING SOFTWARE -->
+  <div class="modal fade" id="addBillingSoftwareModal" tabindex="-1" aria-labelledby="addBillingSoftwareModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addBillingSoftwareModalLabel"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Add Billing Software License</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="add-billing-software-form">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Company (From Directory)</label>
+              <select class="form-select rounded-3" id="billing-software-client-id">
+                <!-- Populate via JS -->
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Or Custom Company Name</label>
+              <input type="text" class="form-control rounded-3" id="billing-software-company-name" placeholder="e.g. Sree Balaji Textile Spares">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Client Contact Name</label>
+              <input type="text" class="form-control rounded-3" id="billing-software-client-name" placeholder="e.g. Hasmi">
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Software Price (₹)</label>
+                <input type="number" class="form-control rounded-3" id="billing-software-price" required value="3500" placeholder="e.g. 3500">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Yearly Maintenance / AMC (₹)</label>
+                <input type="number" class="form-control rounded-3" id="billing-software-maintenance" required value="2500" placeholder="e.g. 2500">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Purchased Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="billing-software-purchase-date" required placeholder="Select Date">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Renewal Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="billing-software-renewal-date" required placeholder="Select Date">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Internal Notes</label>
+              <textarea class="form-control rounded-3" id="billing-software-notes" rows="2" placeholder="Version details, database logs..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Record</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: VIEW INVOICE DETAILED -->
+  <div class="modal fade" id="invoiceDetailsModal" tabindex="-1" aria-labelledby="invoiceDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="invoiceDetailsModalLabel"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Invoice Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body py-4" id="invoice-modal-content">
+          <!-- Dynamically Loaded Printable Invoice -->
+        </div>
+        <div class="modal-footer border-top-0 pt-0">
+          <button type="button" class="btn btn-light rounded-3 px-3 fw-semibold" data-bs-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-outline-danger rounded-3 px-3 fw-semibold" id="invoice-print-btn"><i class="fa-solid fa-print me-2"></i>Print Invoice</button>
+          <button type="button" class="btn btn-danger rounded-3 px-3 fw-semibold" id="invoice-download-pdf-btn" style="background-color: var(--thynk-primary); border: none;"><i class="fa-solid fa-file-pdf me-2"></i>Download PDF (Mock)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT DOMAIN -->
+  <div class="modal fade" id="editDomainModal" tabindex="-1" aria-labelledby="editDomainModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="editDomainModalLabel"><i class="fa-solid fa-globe me-2"></i>Edit Domain Record</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="edit-domain-form">
+          <input type="hidden" id="edit-domain-id-hidden">
+          <div class="modal-body py-4">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Client Company</label>
+                <select class="form-select rounded-3" id="edit-domain-client-id" required>
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Domain Name</label>
+                <input type="text" class="form-control rounded-3" id="edit-domain-name" required placeholder="e.g. rigearthing.com">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Registrar</label>
+                <input type="text" class="form-control rounded-3" id="edit-domain-registrar" required placeholder="e.g. GoDaddy, Hostinger">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Purchased Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-domain-purchased" required placeholder="Select Date">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Renewal Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-domain-expiry" required placeholder="Select Date">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Renewal Cost (₹)</label>
+                <input type="number" class="form-control rounded-3" id="edit-domain-cost" required placeholder="e.g. 1200">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">DNS Status</label>
+                <select class="form-select rounded-3" id="edit-domain-dns" required>
+                  <option value="OK">OK</option>
+                  <option value="Suspended">Suspended</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Domain Status</label>
+                <select class="form-select rounded-3" id="edit-domain-status" required>
+                  <option value="Active">Active</option>
+                  <option value="Expiring Soon">Expiring Soon</option>
+                  <option value="Expired">Expired</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Nameservers</label>
+                <input type="text" class="form-control rounded-3" id="edit-domain-nameservers" placeholder="e.g. ns1.godaddy.com">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Domain Credentials Placeholder / Notes</label>
+              <input type="text" class="form-control rounded-3" id="edit-domain-credentials" placeholder="Username / Password placeholders...">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Additional Remarks / Notes</label>
+              <textarea class="form-control rounded-3" id="edit-domain-notes" rows="2" placeholder="Any comments..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT HOSTING -->
+  <div class="modal fade" id="editHostingModal" tabindex="-1" aria-labelledby="editHostingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="editHostingModalLabel"><i class="fa-solid fa-server me-2"></i>Edit Hosting Record</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="edit-hosting-form">
+          <input type="hidden" id="edit-hosting-id-hidden">
+          <div class="modal-body py-4">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Client Company</label>
+                <select class="form-select rounded-3" id="edit-hosting-client-id" required>
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Hosting Provider</label>
+                <input type="text" class="form-control rounded-3" id="edit-hosting-provider" required placeholder="e.g. AWS Lightsail, Hostinger">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Hosting Plan Name</label>
+                <input type="text" class="form-control rounded-3" id="edit-hosting-plan" required placeholder="e.g. Cloud Startup, VPS 4GB">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Purchased Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-hosting-purchased" required placeholder="Select Date">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Renewal Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-hosting-expiry" required placeholder="Select Date">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Renewal Cost (₹)</label>
+                <input type="number" class="form-control rounded-3" id="edit-hosting-cost" required placeholder="e.g. 24000">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Backup Status</label>
+                <input type="text" class="form-control rounded-3" id="edit-hosting-backup" placeholder="e.g. Daily Auto, Weekly Auto">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-12 mb-3">
+                <label class="form-label fw-semibold">Hosting Status</label>
+                <select class="form-select rounded-3" id="edit-hosting-status" required>
+                  <option value="Active">Active</option>
+                  <option value="Expiring Soon">Expiring Soon</option>
+                  <option value="Expired">Expired</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Additional Remarks / Notes</label>
+              <textarea class="form-control rounded-3" id="edit-hosting-notes" rows="2" placeholder="Any database details, backup paths..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT FOLLOW-UP -->
+  <div class="modal fade" id="editFollowupModal" tabindex="-1" aria-labelledby="editFollowupModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow-lg">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="editFollowupModalLabel"><i class="fa-solid fa-phone me-2"></i>Update Follow-up Status</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="edit-followup-form">
+          <input type="hidden" id="edit-followup-id-hidden">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Client Company</label>
+              <input type="text" class="form-control rounded-3" id="edit-followup-client-name" readonly disabled>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Method</label>
+                <select class="form-select rounded-3" id="edit-followup-type" required>
+                  <option value="Phone Call">Phone Call</option>
+                  <option value="WhatsApp">WhatsApp</option>
+                  <option value="Email">Email</option>
+                  <option value="Meeting">Meeting</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Status</label>
+                <select class="form-select rounded-3" id="edit-followup-status" required>
+                  <option value="Pending">Pending</option>
+                  <option value="Completed">Completed</option>
+                  <option value="Postponed">Postponed</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Last Contact Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-followup-last" required placeholder="Select Date">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Next Follow-up Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-followup-next" required placeholder="Select Date">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Remarks / Tasks</label>
+              <textarea class="form-control rounded-3" id="edit-followup-remarks" rows="3" required placeholder="Describe follow-up details..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT SEO CAMPAIGN -->
+  <div class="modal fade" id="editSeoModal" tabindex="-1" aria-labelledby="editSeoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content rounded-4 border-0 shadow-lg">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="editSeoModalLabel"><i class="fa-solid fa-magnifying-glass-chart me-2"></i>Edit SEO Campaign</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="edit-seo-form">
+          <input type="hidden" id="edit-seo-id-hidden">
+          <div class="modal-body py-4">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Client Name</label>
+                <select class="form-select rounded-3" id="edit-seo-client-id" required>
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Website URL</label>
+                <input type="url" class="form-control rounded-3" id="edit-seo-url" required placeholder="https://example.com">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Campaign Name</label>
+                <input type="text" class="form-control rounded-3" id="edit-seo-campaign-name" required placeholder="e.g. Zenith Labs SEO">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">SEO Package</label>
+                <select class="form-select rounded-3" id="edit-seo-package" required>
+                  <option value="Bronze">Bronze Package</option>
+                  <option value="Silver">Silver Package</option>
+                  <option value="Gold">Gold Package</option>
+                  <option value="Platinum">Platinum Package</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Campaign Start Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-seo-start-date" required placeholder="Select Start Date">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Campaign End Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-seo-end-date" required placeholder="Select End Date">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Monthly Budget ($)</label>
+                <input type="number" class="form-control rounded-3" id="edit-seo-budget" required min="0" placeholder="e.g. 5000">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Campaign Status</label>
+                <select class="form-select rounded-3" id="edit-seo-status" required>
+                  <option value="Active">Active</option>
+                  <option value="Completed">Completed</option>
+                  <option value="On Hold">On Hold</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">SEO Strategist</label>
+                <select class="form-select rounded-3" id="edit-seo-employee">
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Report Due Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-seo-report-date" required placeholder="Select Date">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Report Frequency</label>
+                <select class="form-select rounded-3" id="edit-seo-frequency" required>
+                  <option value="Weekly">Weekly</option>
+                  <option value="Monthly">Monthly</option>
+                  <option value="Custom">Custom</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Add Keywords (Additional)</label>
+              <textarea class="form-control rounded-3" id="edit-seo-keywords" rows="2" placeholder="Enter additional keywords separated by commas or newlines..."></textarea>
+              <div class="form-text small text-muted">Any keywords entered here will be added to the campaign's tracked keywords list.</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Audit Notes</label>
+              <textarea class="form-control rounded-3" id="edit-seo-notes" rows="3" placeholder="Latest audit notes..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD SEO CAMPAIGN -->
+  <div class="modal fade" id="addSeoModal" tabindex="-1" aria-labelledby="addSeoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content rounded-4 border-0 shadow-lg">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addSeoModalLabel"><i class="fa-solid fa-magnifying-glass-chart me-2"></i>Add SEO Campaign</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="add-seo-form">
+          <div class="modal-body py-4">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Client Name</label>
+                <select class="form-select rounded-3" id="add-seo-client-id" required>
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Website URL</label>
+                <input type="url" class="form-control rounded-3" id="add-seo-url" required placeholder="https://example.com">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Campaign Name</label>
+                <input type="text" class="form-control rounded-3" id="add-seo-campaign-name" required placeholder="e.g. Zenith Labs SEO">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">SEO Package</label>
+                <select class="form-select rounded-3" id="add-seo-package" required>
+                  <option value="Bronze">Bronze Package</option>
+                  <option value="Silver" selected>Silver Package</option>
+                  <option value="Gold">Gold Package</option>
+                  <option value="Platinum">Platinum Package</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Campaign Start Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="add-seo-start-date" required placeholder="Select Start Date">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Campaign End Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="add-seo-end-date" required placeholder="Select End Date">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Monthly Budget ($)</label>
+                <input type="number" class="form-control rounded-3" id="add-seo-budget" required min="0" placeholder="e.g. 5000">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Campaign Status</label>
+                <select class="form-select rounded-3" id="add-seo-status" required>
+                  <option value="Active" selected>Active</option>
+                  <option value="Completed">Completed</option>
+                  <option value="On Hold">On Hold</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">SEO Strategist</label>
+                <select class="form-select rounded-3" id="add-seo-employee">
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Report Due Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="add-seo-report-date" required placeholder="Select Date">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Report Frequency</label>
+                <select class="form-select rounded-3" id="add-seo-frequency" required>
+                  <option value="Weekly">Weekly</option>
+                  <option value="Monthly" selected>Monthly</option>
+                  <option value="Custom">Custom</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Add Keywords</label>
+              <textarea class="form-control rounded-3" id="add-seo-keywords" rows="2" placeholder="Enter keywords separated by commas or newlines..."></textarea>
+              <div class="form-text small text-muted">You can add multiple keywords. Example: cloud services, best seo agency, it company</div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Initial Audit Notes</label>
+              <textarea class="form-control rounded-3" id="add-seo-notes" rows="3" placeholder="Latest audit notes..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Add Campaign</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD/EDIT KEYWORD -->
+  <div class="modal fade" id="addKeywordModal" tabindex="-1" aria-labelledby="addKeywordModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow-lg">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addKeywordModalLabel"><i class="fa-solid fa-key me-2"></i>Track Keyword</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="keyword-form">
+          <input type="hidden" id="kw-id-hidden">
+          <input type="hidden" id="kw-campaign-id-hidden">
+          <div class="modal-body py-4">
+            <div class="mb-3" id="kw-campaign-select-wrapper">
+              <label class="form-label fw-semibold">Select SEO Campaign</label>
+              <select class="form-select rounded-3" id="kw-input-campaign-id">
+                <!-- Populate dynamically -->
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Keyword Phrase(s)</label>
+              <textarea class="form-control rounded-3" id="kw-input-name" required placeholder="Enter single or multiple keywords (comma-separated or one per line)" rows="3"></textarea>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Priority</label>
+              <select class="form-select rounded-3" id="kw-input-priority" required>
+                <option value="Low">Low</option>
+                <option value="Medium" selected>Medium</option>
+                <option value="High">High</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Target URL</label>
+              <input type="url" class="form-control rounded-3" id="kw-input-target-url" required placeholder="https://example.com/landing">
+            </div>
+            <div class="row">
+              <div class="col-6 mb-3">
+                <label class="form-label fw-semibold">Search Engine</label>
+                <select class="form-select rounded-3" id="kw-input-engine" required>
+                  <option value="Google" selected>Google</option>
+                  <option value="Bing">Bing</option>
+                  <option value="Yahoo">Yahoo</option>
+                </select>
+              </div>
+              <div class="col-6 mb-3">
+                <label class="form-label fw-semibold">Device Focus</label>
+                <select class="form-select rounded-3" id="kw-input-device" required>
+                  <option value="Desktop" selected>Desktop</option>
+                  <option value="Mobile">Mobile</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-6 mb-3">
+                <label class="form-label fw-semibold">Target Location</label>
+                <input type="text" class="form-control rounded-3" id="kw-input-location" required placeholder="e.g. US, Global" value="Global">
+              </div>
+              <div class="col-6 mb-3">
+                <label class="form-label fw-semibold">Keyword Status</label>
+                <select class="form-select rounded-3" id="kw-input-status" required>
+                  <option value="Improved">Improved</option>
+                  <option value="No Change" selected>No Change</option>
+                  <option value="Dropped">Dropped</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-6 mb-3">
+                <label class="form-label fw-semibold">Current Rank</label>
+                <input type="number" class="form-control rounded-3" id="kw-input-curr-rank" required min="1" value="10">
+              </div>
+              <div class="col-6 mb-3">
+                <label class="form-label fw-semibold">Previous Rank</label>
+                <input type="number" class="form-control rounded-3" id="kw-input-prev-rank" required min="1" value="10">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-6 mb-3">
+                <label class="form-label fw-semibold">Search Volume (Optional)</label>
+                <input type="number" class="form-control rounded-3" id="kw-input-volume" min="0" placeholder="e.g. 1500">
+              </div>
+              <div class="col-6 mb-3">
+                <label class="form-label fw-semibold">Difficulty % (Optional)</label>
+                <input type="number" class="form-control rounded-3" id="kw-input-difficulty" min="0" max="100" placeholder="e.g. 45">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Notes</label>
+              <textarea class="form-control rounded-3" id="kw-input-notes" rows="2" placeholder="Strategic notes or keywords context..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Keyword</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD WEEKLY RANK UPDATE -->
+  <div class="modal fade" id="addWeeklyRankModal" tabindex="-1" aria-labelledby="addWeeklyRankModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow-lg">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addWeeklyRankModalLabel"><i class="fa-solid fa-chart-line me-2"></i>Log Weekly Rank</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="weekly-rank-form">
+          <input type="hidden" id="weekly-campaign-id-hidden">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Date of Update</label>
+              <input type="text" class="form-control rounded-3 flatpickr-date" id="weekly-input-date" required placeholder="Select Date">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Select Keyword</label>
+              <select class="form-select rounded-3" id="weekly-input-keyword-id" required>
+                <!-- Populate dynamically via JS -->
+              </select>
+            </div>
+            <div class="row">
+              <div class="col-6 mb-3">
+                <label class="form-label fw-semibold">Search Engine</label>
+                <select class="form-select rounded-3" id="weekly-input-engine" required>
+                  <option value="Google" selected>Google</option>
+                  <option value="Bing">Bing</option>
+                  <option value="Yahoo">Yahoo</option>
+                </select>
+              </div>
+              <div class="col-6 mb-3">
+                <label class="form-label fw-semibold">Device Focus</label>
+                <select class="form-select rounded-3" id="weekly-input-device" required>
+                  <option value="Desktop" selected>Desktop</option>
+                  <option value="Mobile">Mobile</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-6 mb-3">
+                <label class="form-label fw-semibold">Previous Rank</label>
+                <input type="number" class="form-control rounded-3" id="weekly-input-prev-rank" readonly required value="10">
+              </div>
+              <div class="col-6 mb-3">
+                <label class="form-label fw-semibold">New Current Rank</label>
+                <input type="number" class="form-control rounded-3" id="weekly-input-curr-rank" required min="1" value="10">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Remarks</label>
+              <textarea class="form-control rounded-3" id="weekly-input-remarks" rows="2" placeholder="e.g. Core algorithm update, competitor dropped backlink."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Weekly Rank</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: UPLOAD SEO REPORT (GA4/GSC) -->
+  <div class="modal fade" id="uploadSeoReportModal" tabindex="-1" aria-labelledby="uploadSeoReportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow-lg">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="uploadSeoReportModalLabel"><i class="fa-solid fa-file-arrow-up me-2"></i>Upload Analytics Report</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="upload-seo-report-form">
+          <input type="hidden" id="upload-campaign-id-hidden">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Report Source</label>
+              <select class="form-select rounded-3" id="upload-report-type" required>
+                <option value="ga4" selected>Google Analytics 4 (GA4)</option>
+                <option value="gsc">Google Search Console (GSC)</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Report File (Excel, CSV, PDF)</label>
+              <input type="file" class="form-control rounded-3" id="upload-report-file" required accept=".csv,.xlsx,.xls,.pdf">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Report Display Name</label>
+              <input type="text" class="form-control rounded-3" id="upload-report-name" required placeholder="e.g. GA4 Acquisition Traffic May 2026">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Upload Notes</label>
+              <textarea class="form-control rounded-3" id="upload-report-notes" rows="2" placeholder="Brief summary of what this report highlights..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Upload Report</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT WEB PROJECT -->
+  <div class="modal fade" id="editProjectModal" tabindex="-1" aria-labelledby="editProjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow-lg">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="editProjectModalLabel"><i class="fa-solid fa-laptop-code me-2"></i>Edit Web Project</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="edit-project-form">
+          <input type="hidden" id="edit-project-id-hidden">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Project Name</label>
+              <input type="text" class="form-control rounded-3" id="edit-project-name" required>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Website Type</label>
+                <input type="text" class="form-control rounded-3" id="edit-project-type" required placeholder="e.g. Real Estate Portal">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Assigned Developer</label>
+                <select class="form-select rounded-3" id="edit-project-developer">
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Start Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-project-start" required placeholder="Select Date">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Delivery Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-project-end" required placeholder="Select Date">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Milestone Progress (%)</label>
+                <input type="number" class="form-control rounded-3" id="edit-project-progress" required min="0" max="100" value="0">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Project Status</label>
+                <select class="form-select rounded-3" id="edit-project-status" required>
+                  <option value="Running">Running</option>
+                  <option value="Suspended">Suspended</option>
+                  <option value="Completed">Completed</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Linked Domain</label>
+                <input type="text" class="form-control rounded-3" id="edit-project-domain">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Hosting Node</label>
+                <input type="text" class="form-control rounded-3" id="edit-project-hosting">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Developer Notes</label>
+              <textarea class="form-control rounded-3" id="edit-project-notes" rows="3" placeholder="Latest development notes..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT GOOGLE ADS CAMPAIGN -->
+  <div class="modal fade" id="editGoogleModal" tabindex="-1" aria-labelledby="editGoogleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow-lg">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="editGoogleModalLabel"><i class="fa-solid fa-square-envelope me-2"></i>Edit Google Ads Campaign</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="edit-google-form">
+          <input type="hidden" id="edit-google-id-hidden">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Campaign Name</label>
+              <input type="text" class="form-control rounded-3" id="edit-google-name" required>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Objective</label>
+                <input type="text" class="form-control rounded-3" id="edit-google-objective" required placeholder="e.g. Sales / Signups">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Ad Budget (₹)</label>
+                <input type="number" class="form-control rounded-3" id="edit-google-budget" required value="0">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Start Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-google-start" required placeholder="Select Date">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">End Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-google-end" required placeholder="Select Date">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Impressions / Reach</label>
+                <input type="number" class="form-control rounded-3" id="edit-google-reach" required value="0">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Clicks</label>
+                <input type="number" class="form-control rounded-3" id="edit-google-clicks" required value="0">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Conversions</label>
+                <input type="number" class="form-control rounded-3" id="edit-google-leads" required value="0">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">ROAS Goal (x)</label>
+                <input type="number" step="0.1" class="form-control rounded-3" id="edit-google-roas" required value="1.0">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Status</label>
+                <select class="form-select rounded-3" id="edit-google-status" required>
+                  <option value="Running">Running</option>
+                  <option value="Paused">Paused</option>
+                  <option value="Expired">Expired</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Campaign Analyst</label>
+              <select class="form-select rounded-3" id="edit-google-employee">
+                <!-- Populate via JS -->
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Campaign Notes</label>
+              <textarea class="form-control rounded-3" id="edit-google-notes" rows="3" placeholder="Latest optimization notes..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+
+
+
+
+
+  <!-- CDNs for JS dependencies -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+  <!-- App JS & Data Modules -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="js/mockData.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
