@@ -1763,7 +1763,7 @@ document.addEventListener("DOMContentLoaded", () => {
                                   <i class="fa-solid fa-pen-to-square"></i>
                                 </button>
                                 <button class="btn btn-sm btn-outline-danger delete-profile-service-btn" data-id="${srv.id}" title="Delete Service">
-                                  <i class="fa-solid fa-trash-can text-danger"></i>
+                                  <i class="fa-solid fa-trash-can"></i>
                                 </button>
                               </td>
                             </tr>
@@ -2060,7 +2060,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <i class="fa-solid fa-pen-to-square"></i>
                       </button>
                       <button class="btn btn-sm btn-outline-danger delete-followup-btn" data-id="${flw.id}">
-                        <i class="fa-solid fa-trash-can text-danger"></i>
+                        <i class="fa-solid fa-trash-can"></i>
                       </button>
                     </td>
                   </tr>
@@ -2218,12 +2218,12 @@ document.addEventListener("DOMContentLoaded", () => {
                     </td>
                     <td class="fw-bold">${(srv.finalAmount !== null && srv.finalAmount !== undefined && !isNaN(srv.finalAmount)) ? '₹' + srv.finalAmount.toLocaleString() : "--"}</td>
                     <td><span class="badge-status ${badge}">${srv.status}</span></td>
-                    <td class="text-end">
-                      <button class="btn btn-sm btn-outline-danger edit-service-btn me-2" data-id="${srv.id}" title="Edit Service">
+                    <td class="text-end text-nowrap">
+                      <button class="btn btn-sm btn-outline-primary edit-service-btn me-1" data-id="${srv.id}" title="Edit Service">
                         <i class="fa-solid fa-pen-to-square"></i>
                       </button>
-                      <button class="btn btn-sm btn-outline-secondary delete-service-btn" data-id="${srv.id}" title="Delete Service">
-                        <i class="fa-solid fa-trash-can text-danger"></i>
+                      <button class="btn btn-sm btn-outline-danger delete-service-btn" data-id="${srv.id}" title="Delete Service">
+                        <i class="fa-solid fa-trash-can"></i>
                       </button>
                     </td>
                   </tr>
@@ -2542,12 +2542,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         <td class="fw-semibold text-dark">${dom.expiryDate}</td>
                         <td class="fw-semibold text-end">₹${dom.renewalCost.toLocaleString()}</td>
                         <td><span class="badge-status ${badge}">${dom.status}</span></td>
-                        <td class="text-end">
-                          <button class="btn btn-sm btn-outline-danger edit-domain-btn me-1" data-id="${dom.id}" title="Edit Domain">
+                        <td class="text-end text-nowrap">
+                          <button class="btn btn-sm btn-outline-primary edit-domain-btn me-1" data-id="${dom.id}" title="Edit Domain">
                             <i class="fa-solid fa-pen-to-square"></i>
                           </button>
-                          <button class="btn btn-sm btn-outline-secondary delete-domain-btn" data-id="${dom.id}" title="Delete Domain">
-                            <i class="fa-solid fa-trash-can text-danger"></i>
+                          <button class="btn btn-sm btn-outline-danger delete-domain-btn" data-id="${dom.id}" title="Delete Domain">
+                            <i class="fa-solid fa-trash-can"></i>
                           </button>
                         </td>
                       </tr>
@@ -2590,12 +2590,12 @@ document.addEventListener("DOMContentLoaded", () => {
                         <td class="fw-bold text-dark">${hst.expiryDate}</td>
                         <td class="fw-semibold text-end">₹${hst.renewalCost.toLocaleString()}</td>
                         <td><span class="badge-status ${badge}">${hst.status}</span></td>
-                        <td class="text-end">
-                          <button class="btn btn-sm btn-outline-danger edit-hosting-btn me-1" data-id="${hst.id}" title="Edit Hosting">
+                        <td class="text-end text-nowrap">
+                          <button class="btn btn-sm btn-outline-primary edit-hosting-btn me-1" data-id="${hst.id}" title="Edit Hosting">
                             <i class="fa-solid fa-pen-to-square"></i>
                           </button>
-                          <button class="btn btn-sm btn-outline-secondary delete-hosting-btn" data-id="${hst.id}" title="Delete Hosting">
-                            <i class="fa-solid fa-trash-can text-danger"></i>
+                          <button class="btn btn-sm btn-outline-danger delete-hosting-btn" data-id="${hst.id}" title="Delete Hosting">
+                            <i class="fa-solid fa-trash-can"></i>
                           </button>
                         </td>
                       </tr>
