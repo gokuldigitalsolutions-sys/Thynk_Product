@@ -242,6 +242,25 @@ document.addEventListener("DOMContentLoaded", () => {
   const contentWorkspace = document.getElementById("content-workspace");
   const globalFab = document.getElementById("global-fab");
 
+  // Password visibility toggle
+  const togglePasswordBtn = document.getElementById("toggle-password");
+  const loginPasswordInput = document.getElementById("login-password");
+  const togglePasswordIcon = document.getElementById("toggle-password-icon");
+
+  if (togglePasswordBtn && loginPasswordInput && togglePasswordIcon) {
+    togglePasswordBtn.addEventListener("click", () => {
+      const isPassword = loginPasswordInput.getAttribute("type") === "password";
+      loginPasswordInput.setAttribute("type", isPassword ? "text" : "password");
+      if (isPassword) {
+        togglePasswordIcon.classList.remove("fa-eye");
+        togglePasswordIcon.classList.add("fa-eye-slash");
+      } else {
+        togglePasswordIcon.classList.remove("fa-eye-slash");
+        togglePasswordIcon.classList.add("fa-eye");
+      }
+    });
+  }
+
   const checkAuth = () => {
     if (state.authenticated) {
       loginScreen.classList.add("hidden");
@@ -1143,6 +1162,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // VIEW: LEADS PIPELINE
   const renderLeads = () => {
+    // 1. Calculate leads pipeline metrics
+    const totalLeads = state.leads.length;
+    const hotLeads = state.leads.filter(l => l.status === "Hot").length;
+    const warmLeads = state.leads.filter(l => l.status === "Warm").length;
+    const coldLeads = state.leads.filter(l => l.status === "Cold" || !l.status).length;
+    
+    const totalPipelineValue = state.leads.reduce((sum, lead) => {
+      const val = parseFloat(lead.value);
+      return sum + (isNaN(val) ? 0 : val);
+    }, 0);
+
     contentWorkspace.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -1159,6 +1189,38 @@ document.addEventListener("DOMContentLoaded", () => {
         </button>
       </div>
 
+      <!-- LEADS PIPELINE METRICS ROW -->
+      <div class="row leads-kpi-container">
+        <div class="col-md-6 col-lg-3 mb-3">
+          <div class="thynk-card kpi-card leads-kpi-card kpi-total h-100 mb-0">
+            <div class="kpi-icon bg-light text-primary"><i class="fa-solid fa-users"></i></div>
+            <div class="kpi-value">${totalLeads}</div>
+            <div class="kpi-label">Total Active Leads</div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+          <div class="thynk-card kpi-card leads-kpi-card kpi-value h-100 mb-0">
+            <div class="kpi-icon bg-light text-success"><i class="fa-solid fa-indian-rupee-sign"></i></div>
+            <div class="kpi-value">₹${totalPipelineValue.toLocaleString()}</div>
+            <div class="kpi-label">Pipeline Est. Value</div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+          <div class="thynk-card kpi-card leads-kpi-card kpi-hot h-100 mb-0">
+            <div class="kpi-icon bg-light text-danger"><i class="fa-solid fa-fire"></i></div>
+            <div class="kpi-value">${hotLeads}</div>
+            <div class="kpi-label">Hot (High Intent)</div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-3">
+          <div class="thynk-card kpi-card leads-kpi-card kpi-warm h-100 mb-0">
+            <div class="kpi-icon bg-light text-warning"><i class="fa-solid fa-circle-half-stroke"></i></div>
+            <div class="kpi-value">${warmLeads} <span class="fs-6 text-muted font-normal">/ ${coldLeads} Cold</span></div>
+            <div class="kpi-label">Warm / Cold Leads</div>
+          </div>
+        </div>
+      </div>
+
       <div class="thynk-card">
         <div class="table-responsive">
           <table class="table thynk-table" id="leads-datatable">
@@ -1171,35 +1233,92 @@ document.addEventListener("DOMContentLoaded", () => {
                 <th>Est. Value</th>
                 <th>Priority</th>
                 <th>Assigned To</th>
-                <th class="text-end">Actions</th>
+                <th class="text-center">Actions</th>
               </tr>
             </thead>
             <tbody>
               ${state.leads.map(lead => {
-                let badgeClass = "badge-low";
-                if (lead.status === "Hot") badgeClass = "badge-high";
-                if (lead.status === "Warm") badgeClass = "badge-pending";
+                let badgeClass = "priority-cold";
+                if (lead.status === "Hot") badgeClass = "priority-hot";
+                else if (lead.status === "Warm") badgeClass = "priority-warm";
+                else if (lead.status === "Cold") badgeClass = "priority-cold";
+                else badgeClass = "priority-default";
+
+                const empName = getEmployeeName(lead.assignedEmployeeId);
+                const empInitial = empName !== "Unassigned" ? empName.charAt(0).toUpperCase() : "?";
+                const empAvatarBg = empName !== "Unassigned" ? "bg-danger text-white" : "bg-light text-muted";
+
+                let sourceBadgeHTML = "";
+                const source = lead.source || "";
+                if (source === "Website Inquiry") {
+                  sourceBadgeHTML = `<span class="source-badge"><i class="fa-solid fa-globe text-primary"></i>Website</span>`;
+                } else if (source === "Instagram DM") {
+                  sourceBadgeHTML = `<span class="source-badge"><i class="fa-brands fa-instagram text-danger"></i>Instagram</span>`;
+                } else if (source === "LinkedIn Outreach") {
+                  sourceBadgeHTML = `<span class="source-badge"><i class="fa-brands fa-linkedin text-primary"></i>LinkedIn</span>`;
+                } else if (source === "Google Search") {
+                  sourceBadgeHTML = `<span class="source-badge"><i class="fa-brands fa-google text-warning"></i>Google</span>`;
+                } else if (source === "Referral") {
+                  sourceBadgeHTML = `<span class="source-badge"><i class="fa-solid fa-handshake text-success"></i>Referral</span>`;
+                } else if (source === "Cold Call") {
+                  sourceBadgeHTML = `<span class="source-badge"><i class="fa-solid fa-phone-volume text-secondary"></i>Cold Call</span>`;
+                } else if (source) {
+                  sourceBadgeHTML = `<span class="source-badge"><i class="fa-solid fa-hashtag text-secondary"></i>${source}</span>`;
+                } else {
+                  sourceBadgeHTML = `<span class="text-muted">--</span>`;
+                }
 
                 return `
                   <tr>
-                    <td><span class="fw-semibold text-dark">${lead.companyName}</span></td>
-                    <td>${lead.contactName || "--"}</td>
-                    <td>
-                      ${lead.email ? `<div>${lead.email}</div>` : ""}
-                      ${lead.mobile ? `<span class="text-muted small">${lead.mobile}</span>` : ""}
+                    <td class="align-middle">
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="company-avatar-initial">
+                          ${lead.companyName ? lead.companyName.charAt(0).toUpperCase() : "L"}
+                        </div>
+                        <div>
+                          <div class="fw-bold text-dark" style="font-size: 0.92rem;">${lead.companyName}</div>
+                          <div class="text-muted small">ID: ${lead.id}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td class="align-middle fw-semibold text-secondary">
+                      <div class="d-flex align-items-center gap-1">
+                        <i class="fa-regular fa-user text-muted" style="font-size: 0.8rem;"></i>
+                        <span>${lead.contactName || "--"}</span>
+                      </div>
+                    </td>
+                    <td class="align-middle">
+                      ${lead.email ? `<div class="d-flex align-items-center gap-1 mb-1 text-dark" style="font-size: 0.85rem;"><i class="fa-regular fa-envelope text-muted" style="font-size: 0.75rem;"></i>${lead.email}</div>` : ""}
+                      ${lead.mobile ? `<div class="d-flex align-items-center gap-1 text-muted" style="font-size: 0.8rem;"><i class="fa-solid fa-phone text-muted" style="font-size: 0.75rem;"></i>${lead.mobile}</div>` : ""}
                       ${!lead.email && !lead.mobile ? '<span class="text-muted">--</span>' : ""}
                     </td>
-                    <td>${lead.source || "--"}</td>
-                    <td class="fw-bold">${(lead.value !== null && lead.value !== undefined && !isNaN(lead.value)) ? '₹' + lead.value.toLocaleString() : "--"}</td>
-                    <td><span class="badge-status ${badgeClass}">${lead.status || "Cold"}</span></td>
-                    <td>${getEmployeeName(lead.assignedEmployeeId)}</td>
-                    <td class="text-end">
-                      <button class="btn btn-sm btn-success px-3 fw-semibold convert-lead-btn me-2" data-id="${lead.id}">
-                        <i class="fa-solid fa-arrows-spin me-1"></i>Convert Client
-                      </button>
-                      <button class="btn btn-sm btn-outline-danger delete-lead-btn" data-id="${lead.id}">
-                        <i class="fa-solid fa-trash-can"></i>
-                      </button>
+                    <td class="align-middle">${sourceBadgeHTML}</td>
+                    <td class="align-middle fw-bold text-dark">
+                      ${(lead.value !== null && lead.value !== undefined && !isNaN(lead.value)) ? '₹' + lead.value.toLocaleString() : "--"}
+                    </td>
+                    <td class="align-middle">
+                      <span class="leads-priority-badge ${badgeClass}">
+                        <i class="fa-solid fa-circle" style="font-size: 0.45rem; opacity: 0.85;"></i>
+                        ${lead.status || "Cold"}
+                      </span>
+                    </td>
+                    <td class="align-middle">
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="employee-avatar-circle ${empAvatarBg}">
+                          ${empInitial}
+                        </div>
+                        <span class="small fw-semibold text-secondary">${empName}</span>
+                      </div>
+                    </td>
+                    <td class="text-center align-middle leads-action-cell">
+                      <div class="leads-action-group">
+                        <button class="btn btn-sm btn-success convert-lead-btn" data-id="${lead.id}">
+                          <i class="fa-solid fa-arrows-spin"></i>Convert Client
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger delete-lead-btn" data-id="${lead.id}">
+                          <i class="fa-solid fa-trash-can"></i>Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 `;

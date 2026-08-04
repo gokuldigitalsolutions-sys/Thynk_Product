@@ -948,3 +948,127 @@ h1, h2, h3, h4, h5, h6 {
 .client-search-item:hover {
   background-color: rgba(211, 47, 47, 0.08) !important;
 }
+
+/* CRM Leads Action Column styling */
+.leads-action-cell {
+  vertical-align: middle !important;
+}
+
+.leads-action-group {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  width: 100%;
+}
+
+.leads-action-group .btn {
+  width: 135px !important;
+  height: 32px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  padding: 0 12px !important;
+  border-radius: 6px !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+}
+
+/* CRM Leads Refinement Styles */
+.leads-kpi-container {
+  margin-bottom: 24px;
+}
+
+.leads-kpi-card {
+  border-left: 4px solid transparent;
+  transition: transform var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+}
+
+.leads-kpi-card.kpi-total { border-left-color: var(--thynk-primary); }
+.leads-kpi-card.kpi-value { border-left-color: #2E7D32; }
+.leads-kpi-card.kpi-hot { border-left-color: #C62828; }
+.leads-kpi-card.kpi-warm { border-left-color: #EF6C00; }
+
+.company-avatar-initial {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.85rem;
+  border-radius: 8px;
+  background: rgba(211, 47, 47, 0.08);
+  color: var(--thynk-primary);
+  flex-shrink: 0;
+}
+
+.employee-avatar-circle {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.72rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.source-badge {
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 30px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.leads-priority-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-weight: 700;
+  font-size: 0.72rem;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.leads-priority-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.06);
+}
+
+.priority-hot {
+  background-color: #FFEBEE;
+  color: #C62828;
+  border: 1px solid #FFCDD2;
+}
+
+.priority-warm {
+  background-color: #FFF3E0;
+  color: #EF6C00;
+  border: 1px solid #FFE0B2;
+}
+
+.priority-cold {
+  background-color: #E0F2F1;
+  color: #00796B;
+  border: 1px solid #B2DFDB;
+}
+
+.priority-default {
+  background-color: #F5F5F5;
+  color: #616161;
+  border: 1px solid #E0E0E0;
+}
+
