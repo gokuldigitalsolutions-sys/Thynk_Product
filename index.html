@@ -1578,6 +1578,59 @@
     </div>
   </div>
 
+  <!-- MODAL: EDIT CANVA PREMIUM -->
+  <div class="modal fade" id="editCanvaModal" tabindex="-1" aria-labelledby="editCanvaModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="editCanvaModalLabel"><i class="fa-solid fa-palette me-2"></i>Edit Canva Premium Subscription</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="edit-canva-form">
+          <input type="hidden" id="edit-canva-id-hidden">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Client (From Directory)</label>
+              <select class="form-select rounded-3" id="edit-canva-client-id">
+                <!-- Populate via JS -->
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Or Custom Account / Client Name</label>
+              <input type="text" class="form-control rounded-3" id="edit-canva-client-name" placeholder="e.g. Sowmiya">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Account Mail ID</label>
+              <input type="email" class="form-control rounded-3" id="edit-canva-email" required placeholder="e.g. sowmiya.thynkdigital@gmail.com">
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Price (₹)</label>
+                <input type="number" class="form-control rounded-3" id="edit-canva-price" required placeholder="499">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Purchased Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-canva-purchase-date" required placeholder="Select Date">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Renewal Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-canva-renewal-date" required placeholder="Select Date">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Internal Notes</label>
+              <textarea class="form-control rounded-3" id="edit-canva-notes" rows="2" placeholder="Account logins or access notes..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: ADD BILLING SOFTWARE -->
   <div class="modal fade" id="addBillingSoftwareModal" tabindex="-1" aria-labelledby="addBillingSoftwareModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -1630,6 +1683,65 @@
           <div class="modal-footer border-top-0 pt-0">
             <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
             <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Record</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: EDIT BILLING SOFTWARE -->
+  <div class="modal fade" id="editBillingSoftwareModal" tabindex="-1" aria-labelledby="editBillingSoftwareModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="editBillingSoftwareModalLabel"><i class="fa-solid fa-file-invoice-dollar me-2"></i>Edit Billing Software License</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="edit-billing-software-form">
+          <input type="hidden" id="edit-billing-software-id-hidden">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Company (From Directory)</label>
+              <select class="form-select rounded-3" id="edit-billing-software-client-id">
+                <!-- Populate via JS -->
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Or Custom Company Name</label>
+              <input type="text" class="form-control rounded-3" id="edit-billing-software-company-name" placeholder="e.g. Sree Balaji Textile Spares">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Client Contact Name</label>
+              <input type="text" class="form-control rounded-3" id="edit-billing-software-client-name" placeholder="e.g. Hasmi">
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Software Price (₹)</label>
+                <input type="number" class="form-control rounded-3" id="edit-billing-software-price" required placeholder="e.g. 3500">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Yearly Maintenance / AMC (₹)</label>
+                <input type="number" class="form-control rounded-3" id="edit-billing-software-maintenance" required placeholder="e.g. 2500">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Purchased Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-billing-software-purchase-date" required placeholder="Select Date">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Renewal Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-billing-software-renewal-date" required placeholder="Select Date">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Internal Notes</label>
+              <textarea class="form-control rounded-3" id="edit-billing-software-notes" rows="2" placeholder="Version details, database logs..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Save Changes</button>
           </div>
         </form>
       </div>

@@ -443,7 +443,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 3. DROPDOWNS & MODALS FORM BUILDERS
   const populateModalDropdowns = () => {
     const employeeSelects = ["lead-assigned-employee", "client-assigned-employee", "service-assigned-employee", "payment-received-by", "task-assigned-employee", "reminder-assigned-employee", "note-created-by", "campaign-followup-employee", "edit-service-assigned-employee", "edit-client-assigned-employee", "edit-seo-employee", "edit-project-developer", "edit-google-employee", "add-seo-employee"];
-    const clientSelects = ["service-client-id", "task-client-id", "reminder-client-id", "note-client-id", "canva-client-id", "billing-software-client-id", "edit-service-client-id", "edit-domain-client-id", "edit-hosting-client-id", "edit-seo-client-id", "add-seo-client-id", "add-domain-client-id", "add-hosting-client-id"];
+    const clientSelects = ["service-client-id", "task-client-id", "reminder-client-id", "note-client-id", "canva-client-id", "billing-software-client-id", "edit-service-client-id", "edit-domain-client-id", "edit-hosting-client-id", "edit-seo-client-id", "add-seo-client-id", "add-domain-client-id", "add-hosting-client-id", "edit-canva-client-id", "edit-billing-software-client-id"];
     const invoiceSelect = document.getElementById("payment-invoice-id");
     const serviceSelect = document.getElementById("reminder-service-id");
     const taskServiceSelect = document.getElementById("task-service-id");
@@ -465,7 +465,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const el = document.getElementById(selectId);
       if (el) {
         let optionsHtml = state.clients.map(cli => `<option value="${cli.id}">${cli.companyName}</option>`).join("");
-        if (selectId === "service-client-id" || selectId === "canva-client-id" || selectId === "billing-software-client-id" || selectId === "edit-service-client-id" || selectId === "edit-domain-client-id" || selectId === "edit-hosting-client-id" || selectId === "edit-seo-client-id" || selectId === "add-seo-client-id" || selectId === "add-domain-client-id" || selectId === "add-hosting-client-id") {
+        if (selectId === "service-client-id" || selectId === "canva-client-id" || selectId === "billing-software-client-id" || selectId === "edit-service-client-id" || selectId === "edit-domain-client-id" || selectId === "edit-hosting-client-id" || selectId === "edit-seo-client-id" || selectId === "add-seo-client-id" || selectId === "add-domain-client-id" || selectId === "add-hosting-client-id" || selectId === "edit-canva-client-id" || selectId === "edit-billing-software-client-id") {
           optionsHtml = `<option value="" selected>Select Client...</option>` + optionsHtml;
         }
         el.innerHTML = optionsHtml;
@@ -2935,7 +2935,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td class="fw-semibold">${item.renewalDate}</td>
                     <td>${daysLeftText}</td>
                     <td><span class="badge-status ${item.badgeClass}">${item.status}</span></td>
-                    <td class="text-end">
+                    <td class="text-end text-nowrap">
+                      <button class="btn btn-sm btn-outline-primary edit-canva-btn me-1" data-id="${item.id}" title="Edit Account">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                      </button>
                       <button class="btn btn-sm btn-outline-danger delete-canva-btn" data-id="${item.id}" title="Delete License">
                         <i class="fa-solid fa-trash-can"></i>
                       </button>
@@ -2959,6 +2962,30 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
         const cid = link.getAttribute("data-client-id");
         renderClientProfile(cid);
+      });
+    });
+
+    // Edit Canva button handler
+    document.querySelectorAll(".edit-canva-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-id");
+        const account = state.canva.find(c => c.id === id);
+        if (!account) return;
+
+        document.getElementById("edit-canva-id-hidden").value = account.id;
+        document.getElementById("edit-canva-client-id").value = account.clientId || "";
+        document.getElementById("edit-canva-client-name").value = account.clientName || "";
+        document.getElementById("edit-canva-email").value = account.email || "";
+        document.getElementById("edit-canva-price").value = account.price !== undefined ? account.price : 499;
+        document.getElementById("edit-canva-purchase-date").value = account.purchaseDate || "";
+        document.getElementById("edit-canva-renewal-date").value = account.renewalDate || "";
+        document.getElementById("edit-canva-notes").value = account.notes || "";
+
+        flatpickr("#edit-canva-purchase-date", { dateFormat: "Y-m-d", allowInput: true });
+        flatpickr("#edit-canva-renewal-date", { dateFormat: "Y-m-d", allowInput: true });
+
+        const modalEl = bootstrap.Modal.getOrCreateInstance(document.getElementById("editCanvaModal"));
+        modalEl.show();
       });
     });
 
@@ -3136,7 +3163,10 @@ document.addEventListener("DOMContentLoaded", () => {
                     <td class="fw-semibold">${item.renewalDate}</td>
                     <td>${daysLeftText}</td>
                     <td><span class="badge-status ${item.badgeClass}">${item.status}</span></td>
-                    <td class="text-end">
+                    <td class="text-end text-nowrap">
+                      <button class="btn btn-sm btn-outline-primary edit-bs-btn me-1" data-id="${item.id}" title="Edit License">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                      </button>
                       <button class="btn btn-sm btn-outline-danger delete-bs-btn" data-id="${item.id}" title="Delete License">
                         <i class="fa-solid fa-trash-can"></i>
                       </button>
@@ -3160,6 +3190,31 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
         const cid = link.getAttribute("data-client-id");
         renderClientProfile(cid);
+      });
+    });
+
+    // Edit Billing Software button handler
+    document.querySelectorAll(".edit-bs-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const id = btn.getAttribute("data-id");
+        const license = state.billingSoftware.find(b => b.id === id);
+        if (!license) return;
+
+        document.getElementById("edit-billing-software-id-hidden").value = license.id;
+        document.getElementById("edit-billing-software-client-id").value = license.clientId || "";
+        document.getElementById("edit-billing-software-company-name").value = license.companyName || "";
+        document.getElementById("edit-billing-software-client-name").value = license.clientName || "";
+        document.getElementById("edit-billing-software-price").value = license.price !== undefined ? license.price : 3500;
+        document.getElementById("edit-billing-software-maintenance").value = license.maintenance !== undefined ? license.maintenance : 2500;
+        document.getElementById("edit-billing-software-purchase-date").value = license.purchaseDate || "";
+        document.getElementById("edit-billing-software-renewal-date").value = license.renewalDate || "";
+        document.getElementById("edit-billing-software-notes").value = license.notes || "";
+
+        flatpickr("#edit-billing-software-purchase-date", { dateFormat: "Y-m-d", allowInput: true });
+        flatpickr("#edit-billing-software-renewal-date", { dateFormat: "Y-m-d", allowInput: true });
+
+        const modalEl = bootstrap.Modal.getOrCreateInstance(document.getElementById("editBillingSoftwareModal"));
+        modalEl.show();
       });
     });
 
@@ -9271,6 +9326,58 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
+  // FORM: EDIT CANVA PREMIUM LICENSE
+  document.getElementById("edit-canva-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    
+    const canId = document.getElementById("edit-canva-id-hidden").value;
+    const canIndex = state.canva.findIndex(c => c.id === canId);
+    if (canIndex === -1) {
+      Swal.fire("Error", "Canva account record not found.", "error");
+      return;
+    }
+
+    const clientId = document.getElementById("edit-canva-client-id").value || "";
+    let clientName = document.getElementById("edit-canva-client-name").value.trim();
+    
+    // If client is selected from dropdown but name is not typed, get from client object
+    if (clientId && !clientName) {
+      clientName = getClientName(clientId);
+    }
+    
+    if (!clientName) {
+      Swal.fire("Error", "Please select a client or type a custom name.", "error");
+      return;
+    }
+    
+    const email = document.getElementById("edit-canva-email").value;
+    const price = parseInt(document.getElementById("edit-canva-price").value) || 499;
+    const purchaseDate = document.getElementById("edit-canva-purchase-date").value;
+    const renewalDate = document.getElementById("edit-canva-renewal-date").value;
+    const notes = document.getElementById("edit-canva-notes").value || "";
+
+    state.canva[canIndex].clientId = clientId;
+    state.canva[canIndex].clientName = clientName;
+    state.canva[canIndex].email = email;
+    state.canva[canIndex].price = price;
+    state.canva[canIndex].purchaseDate = purchaseDate;
+    state.canva[canIndex].renewalDate = renewalDate;
+    state.canva[canIndex].notes = notes;
+
+    addTimelineEvent("service", `Updated Canva Premium license for ${clientName} (${email})`, "fa-palette");
+    saveState();
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("editCanvaModal")).hide();
+    document.getElementById("edit-canva-form").reset();
+
+    Swal.fire("License Saved", "Canva Premium license successfully updated.", "success");
+
+    const activeView = document.querySelector(".sidebar-item.active")?.getAttribute("data-view") || "";
+    if (activeView === "canva") {
+      renderCanva();
+    }
+  });
+
   // FORM: ADD BILLING SOFTWARE LICENSE
   document.getElementById("add-billing-software-form").addEventListener("submit", (e) => {
     e.preventDefault();
@@ -9316,6 +9423,60 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("add-billing-software-form").reset();
 
     Swal.fire("License Saved", "Billing Software license successfully tracked.", "success");
+
+    const activeView = document.querySelector(".sidebar-item.active")?.getAttribute("data-view") || "";
+    if (activeView === "billing-software") {
+      renderBillingSoftware();
+    }
+  });
+
+  // FORM: EDIT BILLING SOFTWARE LICENSE
+  document.getElementById("edit-billing-software-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    
+    const bsId = document.getElementById("edit-billing-software-id-hidden").value;
+    const bsIndex = state.billingSoftware.findIndex(b => b.id === bsId);
+    if (bsIndex === -1) {
+      Swal.fire("Error", "Billing Software account record not found.", "error");
+      return;
+    }
+
+    const clientId = document.getElementById("edit-billing-software-client-id").value || "";
+    let companyName = document.getElementById("edit-billing-software-company-name").value.trim();
+    
+    // If company is selected from dropdown but name is not typed, get from client object
+    if (clientId && !companyName) {
+      companyName = getClientName(clientId);
+    }
+    
+    if (!companyName) {
+      Swal.fire("Error", "Please select a client or type a custom company name.", "error");
+      return;
+    }
+    
+    const clientName = document.getElementById("edit-billing-software-client-name").value.trim() || "";
+    const price = parseInt(document.getElementById("edit-billing-software-price").value) || 0;
+    const maintenance = parseInt(document.getElementById("edit-billing-software-maintenance").value) || 0;
+    const purchaseDate = document.getElementById("edit-billing-software-purchase-date").value;
+    const renewalDate = document.getElementById("edit-billing-software-renewal-date").value;
+    const notes = document.getElementById("edit-billing-software-notes").value || "";
+
+    state.billingSoftware[bsIndex].clientId = clientId;
+    state.billingSoftware[bsIndex].companyName = companyName;
+    state.billingSoftware[bsIndex].clientName = clientName;
+    state.billingSoftware[bsIndex].price = price;
+    state.billingSoftware[bsIndex].maintenance = maintenance;
+    state.billingSoftware[bsIndex].purchaseDate = purchaseDate;
+    state.billingSoftware[bsIndex].renewalDate = renewalDate;
+    state.billingSoftware[bsIndex].notes = notes;
+
+    addTimelineEvent("service", `Updated Billing Software license for ${companyName}`, "fa-file-invoice-dollar");
+    saveState();
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("editBillingSoftwareModal")).hide();
+    document.getElementById("edit-billing-software-form").reset();
+
+    Swal.fire("License Saved", "Billing Software license successfully updated.", "success");
 
     const activeView = document.querySelector(".sidebar-item.active")?.getAttribute("data-view") || "";
     if (activeView === "billing-software") {
