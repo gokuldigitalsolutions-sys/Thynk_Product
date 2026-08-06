@@ -4606,8 +4606,14 @@ document.addEventListener("DOMContentLoaded", () => {
                     <span class="text-danger small fw-semibold">${getClientName(camp.clientId)}</span>
                   </div>
                   <div class="d-flex gap-1 align-items-center">
+                    <button class="btn btn-sm btn-outline-info view-google-btn border-0" data-id="${camp.id}" title="View Details">
+                      <i class="fa-solid fa-eye"></i>
+                    </button>
                     <button class="btn btn-sm btn-outline-primary edit-google-btn border-0" data-id="${camp.id}" title="Edit Google Campaign">
                       <i class="fa-solid fa-pen-to-square"></i>
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger delete-google-btn border-0" data-id="${camp.id}" title="Delete Google Campaign">
+                      <i class="fa-solid fa-trash-can"></i>
                     </button>
                     <span class="badge-status ${badge}">${camp.status}</span>
                   </div>
@@ -4652,6 +4658,52 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
 
+    // View Details event handler
+    document.querySelectorAll(".view-google-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const googleId = btn.getAttribute("data-id");
+        const camp = state.googleAds.find(x => x.id === googleId);
+        if (!camp) return;
+
+        document.getElementById("view-google-name").innerText = camp.campaignName || "";
+        document.getElementById("view-google-client").innerText = getClientName(camp.clientId) || "";
+        document.getElementById("view-google-objective").innerText = camp.objective || "N/A";
+        document.getElementById("view-google-budget").innerText = `₹${(camp.adBudget || 0).toLocaleString('en-IN')}`;
+        document.getElementById("view-google-start").innerText = camp.startDate || "N/A";
+        document.getElementById("view-google-end").innerText = camp.endDate || "N/A";
+        document.getElementById("view-google-reach").innerText = (camp.reach || 0).toLocaleString();
+        document.getElementById("view-google-clicks").innerText = (camp.clicks || 0).toLocaleString();
+        document.getElementById("view-google-leads").innerText = camp.leads || 0;
+        
+        let calculatedCpa = 0;
+        if (camp.leads > 0) {
+          calculatedCpa = camp.adBudget / camp.leads;
+        } else if (camp.cpl) {
+          calculatedCpa = camp.cpl;
+        }
+        document.getElementById("view-google-cpa").innerText = calculatedCpa > 0 ? `₹${calculatedCpa.toFixed(2)}` : "₹0.00";
+        
+        document.getElementById("view-google-roas").innerText = camp.roas ? `${camp.roas}x` : "0x";
+        
+        const statusEl = document.getElementById("view-google-status");
+        statusEl.innerText = camp.status || "Running";
+        statusEl.className = "badge-status";
+        if (camp.status === "Expired") {
+          statusEl.classList.add("badge-expired");
+        } else if (camp.status === "Paused") {
+          statusEl.className = "badge bg-warning bg-opacity-10 text-warning px-2 py-1 rounded-3";
+        } else {
+          statusEl.classList.add("badge-active");
+        }
+        
+        document.getElementById("view-google-analyst").innerText = getEmployeeName(camp.assignedEmployeeId) || "Not assigned";
+        document.getElementById("view-google-notes").innerText = camp.notes || "No notes available.";
+
+        const modalEl = bootstrap.Modal.getOrCreateInstance(document.getElementById("viewGoogleModal"));
+        modalEl.show();
+      });
+    });
+
     document.querySelectorAll(".edit-google-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         const googleId = btn.getAttribute("data-id");
@@ -4677,6 +4729,43 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const modalEl = bootstrap.Modal.getOrCreateInstance(document.getElementById("editGoogleModal"));
         modalEl.show();
+      });
+    });
+
+    // Delete Google Ads Campaign event handler
+    document.querySelectorAll(".delete-google-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const googleId = btn.getAttribute("data-id");
+        const camp = state.googleAds.find(x => x.id === googleId);
+        if (!camp) return;
+
+        Swal.fire({
+          title: "Delete Campaign?",
+          text: `Are you sure you want to delete the Google Ads campaign '${camp.campaignName}'? This action cannot be undone.`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "var(--thynk-primary)",
+          cancelButtonColor: "#6c757d",
+          confirmButtonText: "Yes, delete campaign!"
+        }).then((result) => {
+          if (result.isConfirmed) {
+            Swal.fire({
+              title: "Deleting...",
+              allowOutsideClick: false,
+              didOpen: () => {
+                Swal.showLoading();
+              }
+            });
+
+            setTimeout(() => {
+              state.googleAds = state.googleAds.filter(x => x.id !== googleId);
+              addTimelineEvent("campaign", `Deleted Google Ads campaign '${camp.campaignName}'`, "fa-solid fa-rectangle-xmark");
+              saveState();
+              Swal.fire("Deleted!", "Google Ads campaign has been deleted.", "success");
+              renderGoogleAds();
+            }, 500);
+          }
+        });
       });
     });
   };
