@@ -443,7 +443,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 3. DROPDOWNS & MODALS FORM BUILDERS
   const populateModalDropdowns = () => {
     const employeeSelects = ["lead-assigned-employee", "client-assigned-employee", "service-assigned-employee", "payment-received-by", "task-assigned-employee", "reminder-assigned-employee", "note-created-by", "campaign-followup-employee", "edit-service-assigned-employee", "edit-client-assigned-employee", "edit-seo-employee", "edit-project-developer", "edit-google-employee", "add-seo-employee"];
-    const clientSelects = ["service-client-id", "task-client-id", "reminder-client-id", "note-client-id", "canva-client-id", "billing-software-client-id", "edit-service-client-id", "edit-domain-client-id", "edit-hosting-client-id", "edit-seo-client-id", "add-seo-client-id"];
+    const clientSelects = ["service-client-id", "task-client-id", "reminder-client-id", "note-client-id", "canva-client-id", "billing-software-client-id", "edit-service-client-id", "edit-domain-client-id", "edit-hosting-client-id", "edit-seo-client-id", "add-seo-client-id", "add-domain-client-id", "add-hosting-client-id"];
     const invoiceSelect = document.getElementById("payment-invoice-id");
     const serviceSelect = document.getElementById("reminder-service-id");
     const taskServiceSelect = document.getElementById("task-service-id");
@@ -465,7 +465,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const el = document.getElementById(selectId);
       if (el) {
         let optionsHtml = state.clients.map(cli => `<option value="${cli.id}">${cli.companyName}</option>`).join("");
-        if (selectId === "service-client-id" || selectId === "canva-client-id" || selectId === "billing-software-client-id" || selectId === "edit-service-client-id" || selectId === "edit-domain-client-id" || selectId === "edit-hosting-client-id" || selectId === "edit-seo-client-id" || selectId === "add-seo-client-id") {
+        if (selectId === "service-client-id" || selectId === "canva-client-id" || selectId === "billing-software-client-id" || selectId === "edit-service-client-id" || selectId === "edit-domain-client-id" || selectId === "edit-hosting-client-id" || selectId === "edit-seo-client-id" || selectId === "add-seo-client-id" || selectId === "add-domain-client-id" || selectId === "add-hosting-client-id") {
           optionsHtml = `<option value="" selected>Select Client...</option>` + optionsHtml;
         }
         el.innerHTML = optionsHtml;
@@ -2338,6 +2338,14 @@ document.addEventListener("DOMContentLoaded", () => {
               <li class="breadcrumb-item active" aria-current="page">Domain & Hosting</li>
             </ol>
           </nav>
+        </div>
+        <div class="d-flex gap-2">
+          <button class="btn btn-danger rounded-3" data-bs-toggle="modal" data-bs-target="#addDomainModal" style="background-color: var(--thynk-primary); border: none;">
+            <i class="fa-solid fa-circle-plus me-2"></i>Add Domain
+          </button>
+          <button class="btn btn-danger rounded-3" data-bs-toggle="modal" data-bs-target="#addHostingModal" style="background-color: var(--thynk-primary); border: none;">
+            <i class="fa-solid fa-circle-plus me-2"></i>Add Hosting
+          </button>
         </div>
       </div>
 
@@ -9439,6 +9447,92 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("edit-hosting-form").reset();
 
     Swal.fire("Changes Saved", "Hosting record updated successfully.", "success");
+
+    const activeView = document.querySelector(".sidebar-item.active")?.getAttribute("data-view") || "";
+    if (activeView === "domain-hosting") {
+      renderDomainHosting();
+    } else if (activeView === "dashboard") {
+      switchView(activeView);
+    }
+  });
+
+  // FORM: ADD DOMAIN
+  document.getElementById("add-domain-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    
+    const domainName = document.getElementById("add-domain-name").value;
+    const cost = parseInt(document.getElementById("add-domain-cost").value) || 0;
+    const clientId = document.getElementById("add-domain-client-id").value;
+    const registrationDate = document.getElementById("add-domain-purchased").value;
+    const expiryDate = document.getElementById("add-domain-expiry").value;
+
+    const newDom = {
+      id: "D" + (state.domains.length + 1).toString().padStart(3, "0"),
+      clientId: clientId,
+      domainName: domainName,
+      registrar: document.getElementById("add-domain-registrar").value,
+      registrationDate: registrationDate,
+      expiryDate: expiryDate,
+      renewalDate: expiryDate,
+      renewalCost: cost,
+      dnsStatus: document.getElementById("add-domain-dns").value,
+      status: document.getElementById("add-domain-status").value,
+      nameservers: document.getElementById("add-domain-nameservers").value || "",
+      credentialsPlaceholder: document.getElementById("add-domain-credentials").value || "",
+      notes: document.getElementById("add-domain-notes").value || ""
+    };
+
+    state.domains.push(newDom);
+
+    addTimelineEvent("domain", `Added domain record '${domainName}' for ${getClientName(clientId)}`, "fa-globe");
+    saveState();
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("addDomainModal")).hide();
+    document.getElementById("add-domain-form").reset();
+
+    Swal.fire("Success", "Domain record added successfully.", "success");
+
+    const activeView = document.querySelector(".sidebar-item.active")?.getAttribute("data-view") || "";
+    if (activeView === "domain-hosting") {
+      renderDomainHosting();
+    } else if (activeView === "dashboard") {
+      switchView(activeView);
+    }
+  });
+
+  // FORM: ADD HOSTING
+  document.getElementById("add-hosting-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    
+    const provider = document.getElementById("add-hosting-provider").value;
+    const cost = parseInt(document.getElementById("add-hosting-cost").value) || 0;
+    const clientId = document.getElementById("add-hosting-client-id").value;
+    const purchaseDate = document.getElementById("add-hosting-purchased").value;
+    const expiryDate = document.getElementById("add-hosting-expiry").value;
+
+    const newHst = {
+      id: "H" + (state.hostings.length + 1).toString().padStart(3, "0"),
+      clientId: clientId,
+      hostingProvider: provider,
+      hostingPlan: document.getElementById("add-hosting-plan").value,
+      purchaseDate: purchaseDate,
+      expiryDate: expiryDate,
+      renewalDate: expiryDate,
+      renewalCost: cost,
+      backupStatus: document.getElementById("add-hosting-backup").value || "",
+      status: document.getElementById("add-hosting-status").value,
+      notes: document.getElementById("add-hosting-notes").value || ""
+    };
+
+    state.hostings.push(newHst);
+
+    addTimelineEvent("hosting", `Added hosting record '${provider}' for ${getClientName(clientId)}`, "fa-server");
+    saveState();
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("addHostingModal")).hide();
+    document.getElementById("add-hosting-form").reset();
+
+    Swal.fire("Success", "Hosting record added successfully.", "success");
 
     const activeView = document.querySelector(".sidebar-item.active")?.getAttribute("data-view") || "";
     if (activeView === "domain-hosting") {

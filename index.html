@@ -1809,6 +1809,157 @@
     </div>
   </div>
 
+  <!-- MODAL: ADD DOMAIN -->
+  <div class="modal fade" id="addDomainModal" tabindex="-1" aria-labelledby="addDomainModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addDomainModalLabel"><i class="fa-solid fa-globe me-2"></i>Add Domain Record</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="add-domain-form">
+          <div class="modal-body py-4">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Client Company</label>
+                <select class="form-select rounded-3" id="add-domain-client-id" required>
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Domain Name</label>
+                <input type="text" class="form-control rounded-3" id="add-domain-name" required placeholder="e.g. rigearthing.com">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Registrar</label>
+                <input type="text" class="form-control rounded-3" id="add-domain-registrar" required placeholder="e.g. GoDaddy, Hostinger" value="GoDaddy">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Purchased Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="add-domain-purchased" required placeholder="Select Date">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Renewal Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="add-domain-expiry" required placeholder="Select Date">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Renewal Cost (₹)</label>
+                <input type="number" class="form-control rounded-3" id="add-domain-cost" required placeholder="e.g. 1200">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">DNS Status</label>
+                <select class="form-select rounded-3" id="add-domain-dns" required>
+                  <option value="OK" selected>OK</option>
+                  <option value="Suspended">Suspended</option>
+                </select>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Domain Status</label>
+                <select class="form-select rounded-3" id="add-domain-status" required>
+                  <option value="Active" selected>Active</option>
+                  <option value="Expiring Soon">Expiring Soon</option>
+                  <option value="Expired">Expired</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Nameservers</label>
+                <input type="text" class="form-control rounded-3" id="add-domain-nameservers" placeholder="e.g. ns1.godaddy.com">
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Domain Credentials Placeholder / Notes</label>
+              <input type="text" class="form-control rounded-3" id="add-domain-credentials" placeholder="Username / Password placeholders...">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Additional Remarks / Notes</label>
+              <textarea class="form-control rounded-3" id="add-domain-notes" rows="2" placeholder="Any comments..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Add Domain</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: ADD HOSTING -->
+  <div class="modal fade" id="addHostingModal" tabindex="-1" aria-labelledby="addHostingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 rounded-4 shadow">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="addHostingModalLabel"><i class="fa-solid fa-server me-2"></i>Add Hosting Record</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="add-hosting-form">
+          <div class="modal-body py-4">
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Client Company</label>
+                <select class="form-select rounded-3" id="add-hosting-client-id" required>
+                  <!-- Populate via JS -->
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Hosting Provider</label>
+                <input type="text" class="form-control rounded-3" id="add-hosting-provider" required placeholder="e.g. AWS Lightsail, Hostinger" value="Hostinger">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Hosting Plan Name</label>
+                <input type="text" class="form-control rounded-3" id="add-hosting-plan" required placeholder="e.g. Cloud Startup, VPS 4GB" value="Premium Hosting">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Purchased Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="add-hosting-purchased" required placeholder="Select Date">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Renewal Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="add-hosting-expiry" required placeholder="Select Date">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Renewal Cost (₹)</label>
+                <input type="number" class="form-control rounded-3" id="add-hosting-cost" required placeholder="e.g. 24000">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Backup Status</label>
+                <input type="text" class="form-control rounded-3" id="add-hosting-backup" placeholder="e.g. Daily Auto, Weekly Auto" value="Daily Auto">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-12 mb-3">
+                <label class="form-label fw-semibold">Hosting Status</label>
+                <select class="form-select rounded-3" id="add-hosting-status" required>
+                  <option value="Active" selected>Active</option>
+                  <option value="Expiring Soon">Expiring Soon</option>
+                  <option value="Expired">Expired</option>
+                </select>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Additional Remarks / Notes</label>
+              <textarea class="form-control rounded-3" id="add-hosting-notes" rows="2" placeholder="Any database details, backup paths..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">Add Hosting</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL: EDIT FOLLOW-UP -->
   <div class="modal fade" id="editFollowupModal" tabindex="-1" aria-labelledby="editFollowupModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -2445,6 +2596,6 @@
   <!-- App JS & Data Modules -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="js/mockData.js"></script>
-  <script src="js/app.js?v=3"></script>
+  <script src="js/app.js?v=4"></script>
 </body>
 </html>
