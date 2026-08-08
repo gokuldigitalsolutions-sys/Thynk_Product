@@ -36,6 +36,12 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem(stateKey, JSON.stringify(state));
   }
 
+  // Migration Hook: restore leads from seed data if empty
+  if (state && state.leads && state.leads.length === 0 && initialCRMData.leads.length > 0) {
+    state.leads = initialCRMData.leads;
+    localStorage.setItem(stateKey, JSON.stringify(state));
+  }
+
   // Migration Hook: check if metaAds has the old structure
   if (state && state.metaAds && (state.metaAds.length === 0 || !state.metaAds[0].campaignName)) {
     state.metaAds = initialCRMData.metaAds;
@@ -2415,6 +2421,11 @@ document.addEventListener("DOMContentLoaded", () => {
             <i class="fa-solid fa-server me-2"></i>Hosting Renewal Center
           </button>
         </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link px-4 py-2 rounded-3 fw-semibold border border-light-subtle" id="both-tab" data-bs-toggle="pill" data-bs-target="#both-pane" type="button" role="tab" aria-controls="both-pane" aria-selected="false">
+            <i class="fa-solid fa-layer-group me-2"></i>Domain &amp; Hosting
+          </button>
+        </li>
       </ul>
 
       <div class="tab-content" id="domain-hosting-tabContent">
@@ -2614,6 +2625,77 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
           </div>
         </div>
+
+        <!-- DOMAIN & HOSTING COMBINED TAB PANE -->
+        <div class="tab-pane fade" id="both-pane" role="tabpanel" aria-labelledby="both-tab" tabindex="0">
+          ${(() => {
+            const bothClients = state.clients.filter(cli => {
+              const hasDomain = state.domains.some(d => d.clientId === cli.id);
+              const hasHosting = state.hostings.some(h => h.clientId === cli.id);
+              return hasDomain && hasHosting;
+            });
+            if (bothClients.length === 0) {
+              return `<div class="thynk-card text-center py-5 text-muted"><i class="fa-solid fa-layer-group fs-1 mb-3 opacity-25"></i><p class="fw-bold mb-1">No clients with both Domain &amp; Hosting yet.</p><small>Clients who have purchased both will appear here automatically.</small></div>`;
+            }
+            return `
+              <div class="thynk-card border border-light-subtle">
+                <div class="table-responsive">
+                  <table class="table thynk-table" id="both-datatable">
+                    <thead>
+                      <tr>
+                        <th>Client Company</th>
+                        <th>Domain Name</th>
+                        <th>Registrar</th>
+                        <th>Domain Renewal</th>
+                        <th class="text-end">Domain Cost</th>
+                        <th>Hosting Provider</th>
+                        <th>Plan</th>
+                        <th>Hosting Renewal</th>
+                        <th class="text-end">Hosting Cost</th>
+                        <th class="text-end">Total Cost</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${bothClients.map(cli => {
+                        const dom = state.domains.find(d => d.clientId === cli.id);
+                        const hst = state.hostings.find(h => h.clientId === cli.id);
+                        const domCost = parseInt(dom?.renewalCost) || 0;
+                        const hstCost = parseInt(hst?.renewalCost) || 0;
+                        const totalCost = domCost + hstCost;
+                        const allStatuses = [dom?.status, hst?.status];
+                        let overallStatus = 'Active', badgeClass = 'badge-active';
+                        if (allStatuses.includes('Expired')) { overallStatus = 'Expired'; badgeClass = 'badge-expired'; }
+                        else if (allStatuses.includes('Expiring Soon')) { overallStatus = 'Expiring Soon'; badgeClass = 'badge-pending'; }
+                        return `
+                          <tr>
+                            <td><span class="fw-bold text-dark">${cli.companyName}</span><br><span class="text-secondary small">${cli.clientName}</span></td>
+                            <td class="fw-bold text-primary">${dom?.domainName || '--'}</td>
+                            <td>${dom?.registrar || '--'}</td>
+                            <td class="fw-semibold text-dark">${dom?.expiryDate || '--'}</td>
+                            <td class="fw-semibold text-end">₹${domCost.toLocaleString()}</td>
+                            <td><span class="badge bg-danger bg-opacity-10 text-danger">${hst?.hostingProvider || '--'}</span></td>
+                            <td class="fw-semibold">${hst?.hostingPlan || '--'}</td>
+                            <td class="fw-semibold text-dark">${hst?.expiryDate || '--'}</td>
+                            <td class="fw-semibold text-end">₹${hstCost.toLocaleString()}</td>
+                            <td class="fw-bold text-end text-danger">₹${totalCost.toLocaleString()}</td>
+                            <td><span class="badge-status ${badgeClass}">${overallStatus}</span></td>
+                            <td class="text-end text-nowrap">
+                              <button class="btn btn-sm btn-outline-primary edit-domain-btn me-1" data-id="${dom?.id || ''}" title="Edit Domain"><i class="fa-solid fa-globe"></i></button>
+                              <button class="btn btn-sm btn-outline-warning edit-hosting-btn" data-id="${hst?.id || ''}" title="Edit Hosting"><i class="fa-solid fa-server"></i></button>
+                            </td>
+                          </tr>
+                        `;
+                      }).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            `;
+          })()}
+        </div>
+
       </div>
     `;
 
@@ -2628,6 +2710,12 @@ document.addEventListener("DOMContentLoaded", () => {
     $("#hosting-datatable").DataTable({
       language: { search: "_INPUT_", searchPlaceholder: "Search Hostings..." }
     });
+
+    if (document.getElementById("both-datatable")) {
+      $("#both-datatable").DataTable({
+        language: { search: "_INPUT_", searchPlaceholder: "Search Domain & Hosting..." }
+      });
+    }
 
     // Edit domain listener
     document.querySelectorAll(".edit-domain-btn").forEach(btn => {

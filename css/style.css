@@ -497,7 +497,7 @@ h1, h2, h3, h4, h5, h6 {
 .table-responsive {
   border-radius: 12px;
   border: 1px solid var(--thynk-border-color);
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .thynk-table {
@@ -1071,4 +1071,43 @@ h1, h2, h3, h4, h5, h6 {
   color: #616161;
   border: 1px solid #E0E0E0;
 }
+
+/* Compact horizontal table action group */
+.table-action-group {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+}
+
+.table-action-group .btn {
+  height: 30px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+  padding: 0 10px !important;
+  border-radius: 6px !important;
+  gap: 4px !important;
+  white-space: nowrap !important;
+  width: auto !important;
+}
+
+.table-action-group .btn-profile,
+.table-action-group .btn-service {
+  width: 92px !important;
+}
+
+.table-action-group .btn-icon-only {
+  width: 30px !important;
+  padding: 0 !important;
+}
+
+/* Custom nowrap style */
+.thynk-nowrap {
+  white-space: nowrap !important;
+}
+
 
