@@ -233,6 +233,7 @@
               <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#addReminderModal"><i class="fa-solid fa-bell text-danger me-2"></i>Create Reminder</a></li>
               <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#addNoteModal"><i class="fa-solid fa-note-sticky text-danger me-2"></i>Write Note</a></li>
               <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#addMetaCampaignModal"><i class="fa-brands fa-facebook text-danger me-2"></i>New Meta Campaign</a></li>
+              <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#editGoogleModal" id="quick-add-google-btn"><i class="fa-brands fa-google text-danger me-2"></i>New Google Campaign</a></li>
             </ul>
           </div>
 
@@ -2698,6 +2699,12 @@
         <form id="edit-google-form">
           <input type="hidden" id="edit-google-id-hidden">
           <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Client Name</label>
+              <select class="form-select rounded-3" id="edit-google-client" required>
+                <option value="">Select Client</option>
+              </select>
+            </div>
             <div class="mb-3">
               <label class="form-label fw-semibold">Campaign Name</label>
               <input type="text" class="form-control rounded-3" id="edit-google-name" required>

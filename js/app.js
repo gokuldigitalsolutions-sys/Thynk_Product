@@ -449,7 +449,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 3. DROPDOWNS & MODALS FORM BUILDERS
   const populateModalDropdowns = () => {
     const employeeSelects = ["lead-assigned-employee", "client-assigned-employee", "service-assigned-employee", "payment-received-by", "task-assigned-employee", "reminder-assigned-employee", "note-created-by", "campaign-followup-employee", "edit-service-assigned-employee", "edit-client-assigned-employee", "edit-seo-employee", "edit-project-developer", "add-project-developer", "edit-google-employee", "add-seo-employee"];
-    const clientSelects = ["service-client-id", "task-client-id", "reminder-client-id", "note-client-id", "canva-client-id", "billing-software-client-id", "edit-service-client-id", "edit-domain-client-id", "edit-hosting-client-id", "edit-seo-client-id", "add-seo-client-id", "add-domain-client-id", "add-hosting-client-id", "edit-canva-client-id", "edit-billing-software-client-id", "add-project-client-id"];
+    const clientSelects = ["service-client-id", "task-client-id", "reminder-client-id", "note-client-id", "canva-client-id", "billing-software-client-id", "edit-service-client-id", "edit-domain-client-id", "edit-hosting-client-id", "edit-seo-client-id", "add-seo-client-id", "add-domain-client-id", "add-hosting-client-id", "edit-canva-client-id", "edit-billing-software-client-id", "add-project-client-id", "edit-google-client"];
     const invoiceSelect = document.getElementById("payment-invoice-id");
     const serviceSelect = document.getElementById("reminder-service-id");
     const taskServiceSelect = document.getElementById("task-service-id");
@@ -471,7 +471,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const el = document.getElementById(selectId);
       if (el) {
         let optionsHtml = state.clients.map(cli => `<option value="${cli.id}">${cli.companyName}</option>`).join("");
-        if (selectId === "service-client-id" || selectId === "canva-client-id" || selectId === "billing-software-client-id" || selectId === "edit-service-client-id" || selectId === "edit-domain-client-id" || selectId === "edit-hosting-client-id" || selectId === "edit-seo-client-id" || selectId === "add-seo-client-id" || selectId === "add-domain-client-id" || selectId === "add-hosting-client-id" || selectId === "edit-canva-client-id" || selectId === "edit-billing-software-client-id" || selectId === "add-project-client-id") {
+        if (selectId === "service-client-id" || selectId === "canva-client-id" || selectId === "billing-software-client-id" || selectId === "edit-service-client-id" || selectId === "edit-domain-client-id" || selectId === "edit-hosting-client-id" || selectId === "edit-seo-client-id" || selectId === "add-seo-client-id" || selectId === "add-domain-client-id" || selectId === "add-hosting-client-id" || selectId === "edit-canva-client-id" || selectId === "edit-billing-software-client-id" || selectId === "add-project-client-id" || selectId === "edit-google-client") {
           optionsHtml = `<option value="" selected>Select Client...</option>` + optionsHtml;
         }
         el.innerHTML = optionsHtml;
@@ -4187,6 +4187,9 @@ document.addEventListener("DOMContentLoaded", () => {
               </ol>
             </nav>
           </div>
+          <button class="btn btn-danger rounded-3" data-bs-toggle="modal" data-bs-target="#addMetaCampaignModal" style="background-color: var(--thynk-primary); border: none;">
+            <i class="fa-solid fa-circle-plus me-2"></i>Add Campaign
+          </button>
         </div>
 
         <div class="thynk-card mb-4 py-3">
@@ -4297,6 +4300,14 @@ document.addEventListener("DOMContentLoaded", () => {
                       <span class="small fw-bold text-dark text-end" style="font-size:0.82rem;">${item.nearestEnd}</span>
                     </div>
                   </div>
+                  <div class="d-flex justify-content-between mt-auto pt-2 border-top">
+                    <button class="btn btn-sm btn-outline-info meta-client-edit-btn border-0" data-client-id="${c.id}" title="Edit Client">
+                      <i class="fa-solid fa-pen-to-square me-1"></i>Edit
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger meta-client-view-btn border-0" data-client="${c.companyName}" title="View Details">
+                      <i class="fa-solid fa-eye me-1"></i>View Details
+                    </button>
+                  </div>
                 </div>
                 <div class="pt-2 d-flex gap-2">
                   <button class="btn btn-outline-danger btn-sm rounded-3 flex-grow-1 py-2 select-meta-client-btn" data-client="${c.companyName}" style="border-color: var(--thynk-primary); color: var(--thynk-primary); font-weight: 600;">
@@ -4373,6 +4384,25 @@ document.addEventListener("DOMContentLoaded", () => {
             });
           });
         });
+
+        // Event listeners for the new card buttons
+        document.querySelectorAll(".meta-client-view-btn").forEach(btn => {
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const clientName = btn.getAttribute("data-client");
+            state.selectedMetaClient = clientName;
+            renderMetaCampaignList();
+          });
+        });
+
+        document.querySelectorAll(".meta-client-edit-btn").forEach(btn => {
+          btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const cid = btn.getAttribute("data-client-id");
+            renderClientProfile(cid);
+          });
+        });
+
       };
 
       document.getElementById("meta-client-search")?.addEventListener("input", filterAndRenderClientCards);
@@ -4403,7 +4433,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <i class="fa-solid fa-arrow-left me-2"></i>Back to Clients
             </button>
             <button class="btn btn-danger rounded-3" data-bs-toggle="modal" data-bs-target="#addMetaCampaignModal" style="background-color: var(--thynk-primary); border: none;">
-              <i class="fa-solid fa-circle-plus me-2"></i>Add Campaign
+              <i class="fa-solid fa-circle-plus me-2"></i>Add
             </button>
           </div>
         </div>
@@ -4440,16 +4470,16 @@ document.addEventListener("DOMContentLoaded", () => {
                       <td><span class="badge-status ${statusBadge}">${camp.status}</span></td>
                       <td>
                         <button class="btn btn-danger btn-sm rounded-3 py-1 px-2 view-campaign-btn me-1" data-id="${camp.id}" style="background-color: var(--thynk-primary); border: none;">
-                          <i class="fa-solid fa-eye me-1"></i>View
-                        </button>
-                        <button class="btn btn-outline-info btn-sm rounded-3 py-1 px-2 meta-campaign-daily-btn me-1" data-id="${camp.id}" data-bs-toggle="modal" data-bs-target="#dailyPerformanceEntriesModal" title="Daily Data">
-                          <i class="fa-solid fa-chart-line me-1"></i>Daily Data
+                          <i class="fa-solid fa-eye me-1"></i>View Details
                         </button>
                         <button class="btn btn-outline-primary btn-sm rounded-3 py-1 px-2 edit-meta-campaign-btn me-1" data-id="${camp.id}" data-bs-toggle="modal" data-bs-target="#addMetaCampaignModal" title="Edit Campaign">
                           <i class="fa-solid fa-pen-to-square me-1"></i>Edit
                         </button>
-                        <button class="btn btn-outline-danger btn-sm rounded-3 py-1 px-2 delete-meta-campaign-btn" data-id="${camp.id}" title="Delete Campaign">
+                        <button class="btn btn-outline-danger btn-sm rounded-3 py-1 px-2 delete-meta-campaign-btn me-1" data-id="${camp.id}" title="Delete Campaign">
                           <i class="fa-solid fa-trash-can me-1"></i>Delete
+                        </button>
+                        <button class="btn btn-outline-info btn-sm rounded-3 py-1 px-2 meta-campaign-daily-btn" data-id="${camp.id}" data-bs-toggle="modal" data-bs-target="#dailyPerformanceEntriesModal" title="Daily Data">
+                          <i class="fa-solid fa-chart-line me-1"></i>Daily Data
                         </button>
                       </td>
                     </tr>
@@ -4679,6 +4709,9 @@ document.addEventListener("DOMContentLoaded", () => {
             </ol>
           </nav>
         </div>
+        <button class="btn btn-danger rounded-3" data-bs-toggle="modal" data-bs-target="#editGoogleModal" id="google-ads-add-btn" style="background-color: var(--thynk-primary); border: none;">
+          <i class="fa-solid fa-circle-plus me-2"></i>Add Campaign
+        </button>
       </div>
 
       <div class="row">
@@ -4745,6 +4778,16 @@ document.addEventListener("DOMContentLoaded", () => {
         }).join("")}
       </div>
     `;
+
+    document.getElementById("google-ads-add-btn")?.addEventListener("click", () => {
+      document.getElementById("edit-google-form").reset();
+      document.getElementById("edit-google-id-hidden").value = "";
+      document.getElementById("editGoogleModalLabel").innerHTML = `<i class="fa-brands fa-google me-2"></i>Add Google Ads Campaign`;
+      const clientSelect = document.getElementById("edit-google-client");
+      if(clientSelect) clientSelect.removeAttribute("disabled");
+      flatpickr("#edit-google-start", { dateFormat: "Y-m-d", allowInput: true });
+      flatpickr("#edit-google-end", { dateFormat: "Y-m-d", allowInput: true });
+    });
 
     // View Details event handler
     document.querySelectorAll(".view-google-btn").forEach(btn => {
@@ -10439,37 +10482,100 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("edit-google-form").addEventListener("submit", (e) => {
     e.preventDefault();
     const id = document.getElementById("edit-google-id-hidden").value;
-    const idx = state.googleAds.findIndex(x => x.id === id);
-    if (idx === -1) {
-      Swal.fire("Error", "Google campaign record not found.", "error");
-      return;
+    
+    if (!id) {
+      // Adding new campaign
+      const clientId = document.getElementById("edit-google-client").value;
+      if (!clientId) {
+        Swal.fire("Error", "Please select a client.", "error");
+        return;
+      }
+      const newId = "GC" + (state.googleAds.length + 1).toString().padStart(3, "0");
+      const newCamp = {
+        id: newId,
+        clientId: clientId,
+        campaignName: document.getElementById("edit-google-name").value,
+        objective: document.getElementById("edit-google-objective").value,
+        adBudget: parseFloat(document.getElementById("edit-google-budget").value) || 0,
+        startDate: document.getElementById("edit-google-start").value,
+        endDate: document.getElementById("edit-google-end").value,
+        reach: parseInt(document.getElementById("edit-google-reach").value) || 0,
+        clicks: parseInt(document.getElementById("edit-google-clicks").value) || 0,
+        leads: parseInt(document.getElementById("edit-google-leads").value) || 0,
+        roas: parseFloat(document.getElementById("edit-google-roas").value) || 1.0,
+        status: document.getElementById("edit-google-status").value,
+        assignedEmployeeId: document.getElementById("edit-google-employee").value,
+        notes: document.getElementById("edit-google-notes").value,
+        cpl: 0
+      };
+      
+      if (newCamp.reach > 0 && newCamp.leads > 0) {
+        newCamp.cpl = newCamp.adBudget / newCamp.leads;
+      }
+      
+      state.googleAds.push(newCamp);
+      addTimelineEvent("campaign", `Added Google Ads campaign '${newCamp.campaignName}'`, "fa-brands fa-google");
+      saveState();
+      
+      bootstrap.Modal.getOrCreateInstance(document.getElementById("editGoogleModal")).hide();
+      document.getElementById("edit-google-form").reset();
+      
+      if (activeView === "google-ads") renderGoogleAds();
+      
+      Swal.fire("Campaign Saved", "Google Ads campaign created successfully.", "success");
+      
+    } else {
+      // Editing existing campaign
+      const idx = state.googleAds.findIndex(x => x.id === id);
+      if (idx === -1) {
+        Swal.fire("Error", "Google campaign record not found.", "error");
+        return;
+      }
+      // If client is selected, update it. (Client dropdown is disabled when editing normally, but if populated we update it)
+      const clientId = document.getElementById("edit-google-client").value;
+      if (clientId) {
+        state.googleAds[idx].clientId = clientId;
+      }
+      state.googleAds[idx].campaignName = document.getElementById("edit-google-name").value;
+      state.googleAds[idx].objective = document.getElementById("edit-google-objective").value;
+      state.googleAds[idx].adBudget = parseFloat(document.getElementById("edit-google-budget").value) || 0;
+      state.googleAds[idx].startDate = document.getElementById("edit-google-start").value;
+      state.googleAds[idx].endDate = document.getElementById("edit-google-end").value;
+      state.googleAds[idx].reach = parseInt(document.getElementById("edit-google-reach").value) || 0;
+      state.googleAds[idx].clicks = parseInt(document.getElementById("edit-google-clicks").value) || 0;
+      state.googleAds[idx].leads = parseInt(document.getElementById("edit-google-leads").value) || 0;
+      state.googleAds[idx].roas = parseFloat(document.getElementById("edit-google-roas").value) || 1.0;
+      state.googleAds[idx].status = document.getElementById("edit-google-status").value;
+      state.googleAds[idx].assignedEmployeeId = document.getElementById("edit-google-employee").value;
+      state.googleAds[idx].notes = document.getElementById("edit-google-notes").value;
+  
+      if (state.googleAds[idx].reach > 0 && state.googleAds[idx].leads > 0) {
+        state.googleAds[idx].cpl = state.googleAds[idx].adBudget / state.googleAds[idx].leads;
+      }
+  
+      addTimelineEvent("campaign", `Updated Google Ads campaign '${state.googleAds[idx].campaignName}'`, "fa-rectangle-envelope");
+      saveState();
+  
+      bootstrap.Modal.getOrCreateInstance(document.getElementById("editGoogleModal")).hide();
+      document.getElementById("edit-google-form").reset();
+      
+      if (activeView === "google-ads") renderGoogleAds();
+  
+      Swal.fire("Changes Saved", "Google Ads campaign updated successfully.", "success");
     }
-    state.googleAds[idx].campaignName = document.getElementById("edit-google-name").value;
-    state.googleAds[idx].objective = document.getElementById("edit-google-objective").value;
-    state.googleAds[idx].adBudget = parseFloat(document.getElementById("edit-google-budget").value) || 0;
-    state.googleAds[idx].startDate = document.getElementById("edit-google-start").value;
-    state.googleAds[idx].endDate = document.getElementById("edit-google-end").value;
-    state.googleAds[idx].reach = parseInt(document.getElementById("edit-google-reach").value) || 0;
-    state.googleAds[idx].clicks = parseInt(document.getElementById("edit-google-clicks").value) || 0;
-    state.googleAds[idx].leads = parseInt(document.getElementById("edit-google-leads").value) || 0;
-    state.googleAds[idx].roas = parseFloat(document.getElementById("edit-google-roas").value) || 1.0;
-    state.googleAds[idx].status = document.getElementById("edit-google-status").value;
-    state.googleAds[idx].assignedEmployeeId = document.getElementById("edit-google-employee").value;
-    state.googleAds[idx].notes = document.getElementById("edit-google-notes").value;
+  });
 
-    if (state.googleAds[idx].reach > 0 && state.googleAds[idx].leads > 0) {
-      state.googleAds[idx].cpl = state.googleAds[idx].adBudget / state.googleAds[idx].leads;
-    }
-
-    addTimelineEvent("campaign", `Updated Google Ads campaign '${state.googleAds[idx].campaignName}'`, "fa-rectangle-envelope");
-    saveState();
-
-    bootstrap.Modal.getOrCreateInstance(document.getElementById("editGoogleModal")).hide();
+  document.getElementById("quick-add-google-btn")?.addEventListener("click", () => {
     document.getElementById("edit-google-form").reset();
-
-    Swal.fire("Changes Saved", "Google Ads campaign updated successfully.", "success");
-    const activeView = document.querySelector(".sidebar-item.active")?.getAttribute("data-view") || "";
-    if (activeView === "google-ads") renderGoogleAds();
+    document.getElementById("edit-google-id-hidden").value = "";
+    document.getElementById("editGoogleModalLabel").innerHTML = `<i class="fa-brands fa-google me-2"></i>Add Google Ads Campaign`;
+    
+    // Enable client selector for new
+    const clientSelect = document.getElementById("edit-google-client");
+    if(clientSelect) clientSelect.removeAttribute("disabled");
+    
+    flatpickr("#edit-google-start", { dateFormat: "Y-m-d", allowInput: true });
+    flatpickr("#edit-google-end", { dateFormat: "Y-m-d", allowInput: true });
   });
 
 
