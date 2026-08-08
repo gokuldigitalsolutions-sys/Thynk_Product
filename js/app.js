@@ -448,8 +448,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 3. DROPDOWNS & MODALS FORM BUILDERS
   const populateModalDropdowns = () => {
-    const employeeSelects = ["lead-assigned-employee", "client-assigned-employee", "service-assigned-employee", "payment-received-by", "task-assigned-employee", "reminder-assigned-employee", "note-created-by", "campaign-followup-employee", "edit-service-assigned-employee", "edit-client-assigned-employee", "edit-seo-employee", "edit-project-developer", "edit-google-employee", "add-seo-employee"];
-    const clientSelects = ["service-client-id", "task-client-id", "reminder-client-id", "note-client-id", "canva-client-id", "billing-software-client-id", "edit-service-client-id", "edit-domain-client-id", "edit-hosting-client-id", "edit-seo-client-id", "add-seo-client-id", "add-domain-client-id", "add-hosting-client-id", "edit-canva-client-id", "edit-billing-software-client-id"];
+    const employeeSelects = ["lead-assigned-employee", "client-assigned-employee", "service-assigned-employee", "payment-received-by", "task-assigned-employee", "reminder-assigned-employee", "note-created-by", "campaign-followup-employee", "edit-service-assigned-employee", "edit-client-assigned-employee", "edit-seo-employee", "edit-project-developer", "add-project-developer", "edit-google-employee", "add-seo-employee"];
+    const clientSelects = ["service-client-id", "task-client-id", "reminder-client-id", "note-client-id", "canva-client-id", "billing-software-client-id", "edit-service-client-id", "edit-domain-client-id", "edit-hosting-client-id", "edit-seo-client-id", "add-seo-client-id", "add-domain-client-id", "add-hosting-client-id", "edit-canva-client-id", "edit-billing-software-client-id", "add-project-client-id"];
     const invoiceSelect = document.getElementById("payment-invoice-id");
     const serviceSelect = document.getElementById("reminder-service-id");
     const taskServiceSelect = document.getElementById("task-service-id");
@@ -459,7 +459,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const el = document.getElementById(selectId);
       if (el) {
         let optionsHtml = state.employees.map(emp => `<option value="${emp.id}">${emp.name} (${emp.designation})</option>`).join("");
-        if (selectId === "lead-assigned-employee" || selectId === "service-assigned-employee" || selectId === "edit-service-assigned-employee" || selectId === "edit-client-assigned-employee" || selectId === "edit-seo-employee" || selectId === "edit-project-developer" || selectId === "edit-google-employee" || selectId === "add-seo-employee") {
+        if (selectId === "lead-assigned-employee" || selectId === "service-assigned-employee" || selectId === "edit-service-assigned-employee" || selectId === "edit-client-assigned-employee" || selectId === "edit-seo-employee" || selectId === "edit-project-developer" || selectId === "add-project-developer" || selectId === "edit-google-employee" || selectId === "add-seo-employee") {
           optionsHtml = `<option value="" selected>Select Employee...</option>` + optionsHtml;
         }
         el.innerHTML = optionsHtml;
@@ -471,7 +471,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const el = document.getElementById(selectId);
       if (el) {
         let optionsHtml = state.clients.map(cli => `<option value="${cli.id}">${cli.companyName}</option>`).join("");
-        if (selectId === "service-client-id" || selectId === "canva-client-id" || selectId === "billing-software-client-id" || selectId === "edit-service-client-id" || selectId === "edit-domain-client-id" || selectId === "edit-hosting-client-id" || selectId === "edit-seo-client-id" || selectId === "add-seo-client-id" || selectId === "add-domain-client-id" || selectId === "add-hosting-client-id" || selectId === "edit-canva-client-id" || selectId === "edit-billing-software-client-id") {
+        if (selectId === "service-client-id" || selectId === "canva-client-id" || selectId === "billing-software-client-id" || selectId === "edit-service-client-id" || selectId === "edit-domain-client-id" || selectId === "edit-hosting-client-id" || selectId === "edit-seo-client-id" || selectId === "add-seo-client-id" || selectId === "add-domain-client-id" || selectId === "add-hosting-client-id" || selectId === "edit-canva-client-id" || selectId === "edit-billing-software-client-id" || selectId === "add-project-client-id") {
           optionsHtml = `<option value="" selected>Select Client...</option>` + optionsHtml;
         }
         el.innerHTML = optionsHtml;
@@ -6402,6 +6402,9 @@ document.addEventListener("DOMContentLoaded", () => {
             </ol>
           </nav>
         </div>
+        <button class="btn btn-danger rounded-3" data-bs-toggle="modal" data-bs-target="#addProjectModal" style="background-color: var(--thynk-primary); border: none;">
+          <i class="fa-solid fa-circle-plus me-2"></i>Add Web Project
+        </button>
       </div>
 
       <div class="row">
@@ -6414,10 +6417,16 @@ document.addEventListener("DOMContentLoaded", () => {
                   <span class="text-danger small fw-semibold">${getClientName(proj.clientId)}</span>
                 </div>
                 <div class="d-flex gap-1 align-items-center">
+                  <button class="btn btn-sm btn-outline-info view-project-btn border-0" data-id="${proj.id}" title="View Project Details">
+                    <i class="fa-solid fa-eye"></i>
+                  </button>
                   <button class="btn btn-sm btn-outline-primary edit-project-btn border-0" data-id="${proj.id}" title="Edit Project Details">
                     <i class="fa-solid fa-pen-to-square"></i>
                   </button>
-                  <span class="badge-status badge-active">${proj.status}</span>
+                  <button class="btn btn-sm btn-outline-danger delete-project-btn border-0" data-id="${proj.id}" title="Delete Project">
+                    <i class="fa-solid fa-trash-can"></i>
+                  </button>
+                  <span class="badge-status badge-active ms-1">${proj.status}</span>
                 </div>
               </div>
 
@@ -6473,6 +6482,66 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const modalEl = bootstrap.Modal.getOrCreateInstance(document.getElementById("editProjectModal"));
         modalEl.show();
+      });
+    });
+
+    // View Project button handler
+    document.querySelectorAll(".view-project-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const projId = btn.getAttribute("data-id");
+        const proj = state.projects.find(x => x.id === projId);
+        if (!proj) return;
+
+        document.getElementById("view-project-name").innerText = proj.projectName || "";
+        document.getElementById("view-project-client").innerText = getClientName(proj.clientId) || "";
+        document.getElementById("view-project-type").innerText = proj.websiteType || "N/A";
+        document.getElementById("view-project-developer").innerText = getEmployeeName(proj.assignedDeveloperId) || "N/A";
+        document.getElementById("view-project-start").innerText = proj.startDate || "N/A";
+        document.getElementById("view-project-end").innerText = proj.deliveryDate || "N/A";
+        document.getElementById("view-project-progress").innerText = (proj.progress || "0") + "%";
+        document.getElementById("view-project-status").innerText = proj.status || "N/A";
+        
+        // Update badge class
+        const statusEl = document.getElementById("view-project-status");
+        statusEl.className = "badge-status";
+        if(proj.status === "Running") statusEl.classList.add("badge-active");
+        else if(proj.status === "Suspended") statusEl.classList.add("badge-warning");
+        else if(proj.status === "Completed") statusEl.classList.add("badge-success");
+        else statusEl.classList.add("badge-inactive");
+
+        document.getElementById("view-project-domain").innerText = proj.domain || "N/A";
+        document.getElementById("view-project-hosting").innerText = proj.hosting || "N/A";
+        document.getElementById("view-project-notes").innerText = proj.notes || "No additional notes provided.";
+
+        const modalEl = bootstrap.Modal.getOrCreateInstance(document.getElementById("viewProjectModal"));
+        modalEl.show();
+      });
+    });
+
+    // Delete Project button handler
+    document.querySelectorAll(".delete-project-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const projId = btn.getAttribute("data-id");
+        const proj = state.projects.find(x => x.id === projId);
+        if (!proj) return;
+
+        Swal.fire({
+          title: "Delete Project?",
+          text: `Are you sure you want to delete the web project '${proj.projectName}' for ${getClientName(proj.clientId)}?`,
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonColor: "var(--thynk-primary)",
+          cancelButtonColor: "#6c757d",
+          confirmButtonText: "Yes, Delete"
+        }).then((res) => {
+          if (res.isConfirmed) {
+            state.projects = state.projects.filter(p => p.id !== projId);
+            addTimelineEvent("project", `Deleted web project '${proj.projectName}' for ${getClientName(proj.clientId)}`, "fa-trash");
+            saveState();
+            renderProjects();
+            Swal.fire("Deleted!", "Project record has been deleted.", "success");
+          }
+        });
       });
     });
   };
@@ -9314,6 +9383,15 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Initialize flatpickr for Add Project Modal date fields when it opens
+  const addProjectModalEl = document.getElementById("addProjectModal");
+  if (addProjectModalEl) {
+    addProjectModalEl.addEventListener("show.bs.modal", () => {
+      flatpickr("#add-project-start", { dateFormat: "Y-m-d", allowInput: true });
+      flatpickr("#add-project-end", { dateFormat: "Y-m-d", allowInput: true });
+    });
+  }
+
   // Setup Daily Performance Form listeners
   setupDailyCplListeners();
   setupDailyCancelListener();
@@ -10303,6 +10381,56 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("edit-project-form").reset();
 
     Swal.fire("Changes Saved", "Project updated successfully.", "success");
+    const activeView = document.querySelector(".sidebar-item.active")?.getAttribute("data-view") || "";
+    if (activeView === "projects") renderProjects();
+  });
+
+  // FORM: ADD WEB PROJECT
+  document.getElementById("add-project-form").addEventListener("submit", (e) => {
+    e.preventDefault();
+
+    const clientId = document.getElementById("add-project-client-id").value;
+    if (!clientId) {
+      Swal.fire("Error", "Please select a client.", "error");
+      return;
+    }
+
+    const newId = "P" + (state.projects.length + 1).toString().padStart(3, "0");
+    const projectName = document.getElementById("add-project-name").value.trim();
+    const websiteType = document.getElementById("add-project-type").value.trim();
+    const assignedDeveloperId = document.getElementById("add-project-developer").value;
+    const startDate = document.getElementById("add-project-start").value;
+    const deliveryDate = document.getElementById("add-project-end").value;
+    const progress = parseInt(document.getElementById("add-project-progress").value) || 0;
+    const status = document.getElementById("add-project-status").value;
+    const domain = document.getElementById("add-project-domain").value.trim();
+    const hosting = document.getElementById("add-project-hosting").value.trim();
+    const notes = document.getElementById("add-project-notes").value.trim();
+
+    const newProject = {
+      id: newId,
+      clientId: clientId,
+      projectName: projectName,
+      websiteType: websiteType,
+      assignedDeveloperId: assignedDeveloperId,
+      startDate: startDate,
+      deliveryDate: deliveryDate,
+      progress: progress,
+      status: status,
+      domain: domain,
+      hosting: hosting,
+      notes: notes
+    };
+
+    state.projects.push(newProject);
+    addTimelineEvent("project", `Created new web project '${projectName}' for ${getClientName(clientId)}`, "fa-laptop-code");
+    saveState();
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById("addProjectModal")).hide();
+    document.getElementById("add-project-form").reset();
+
+    Swal.fire("Project Added", "New web project has been successfully added.", "success");
+
     const activeView = document.querySelector(".sidebar-item.active")?.getAttribute("data-view") || "";
     if (activeView === "projects") renderProjects();
   });
