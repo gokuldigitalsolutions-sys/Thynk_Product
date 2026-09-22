@@ -1,3 +1,11 @@
+// LOCAL DATE HELPER (Fix for BUG-024 & BUG-029)
+const getLocalDateString = (dateObj = new Date()) => {
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // Thynk Digital Solution - CRM & HRMS Main Application Controller
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -36,10 +44,97 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem(stateKey, JSON.stringify(state));
   }
 
-  // Migration Hook: restore leads from seed data if empty
-  if (state && state.leads && state.leads.length === 0 && initialCRMData.leads.length > 0) {
-    state.leads = initialCRMData.leads;
-    localStorage.setItem(stateKey, JSON.stringify(state));
+  // Migration Hook: clean up removed leads from state
+  const removedLeadIds = ["L001", "L002", "L003", "L004", "L005"];
+  if (state && state.leads && state.leads.length > 0) {
+    const prevCount = state.leads.length;
+    state.leads = state.leads.filter(l => !removedLeadIds.includes(l.id));
+    if (state.leads.length !== prevCount) {
+      localStorage.setItem(stateKey, JSON.stringify(state));
+    }
+  }
+
+  // Migration Hook: clean up HRMS & Tasks data
+  if (state) {
+    let hrmsModified = false;
+    if (state.employees && state.employees.length > 0) {
+      state.employees = [];
+      hrmsModified = true;
+    }
+    if (state.attendance && state.attendance.length > 0) {
+      state.attendance = [];
+      hrmsModified = true;
+    }
+    if (state.leaves && state.leaves.length > 0) {
+      state.leaves = [];
+      hrmsModified = true;
+    }
+    if (state.tasks && state.tasks.length > 0) {
+      state.tasks = [];
+      hrmsModified = true;
+    }
+    if (hrmsModified) {
+      localStorage.setItem(stateKey, JSON.stringify(state));
+    }
+  }
+
+  // Migration Hook: clean up removed clients and their cascading records
+  const removedClientIds = ["C001", "C002", "C003", "C004", "C006"];
+  if (state && state.clients) {
+    let clientsChanged = false;
+    const initialClientsCount = state.clients.length;
+    state.clients = state.clients.filter(c => !removedClientIds.includes(c.id));
+    if (state.clients.length !== initialClientsCount) clientsChanged = true;
+
+    if (state.services) {
+      const prev = state.services.length;
+      state.services = state.services.filter(s => !removedClientIds.includes(s.clientId));
+      if (state.services.length !== prev) clientsChanged = true;
+    }
+    if (state.projects) {
+      const prev = state.projects.length;
+      state.projects = state.projects.filter(p => !removedClientIds.includes(p.clientId));
+      if (state.projects.length !== prev) clientsChanged = true;
+    }
+    if (state.payments) {
+      const prev = state.payments.length;
+      state.payments = state.payments.filter(p => !removedClientIds.includes(p.clientId));
+      if (state.payments.length !== prev) clientsChanged = true;
+    }
+    if (state.invoices) {
+      const prev = state.invoices.length;
+      state.invoices = state.invoices.filter(i => !removedClientIds.includes(i.clientId));
+      if (state.invoices.length !== prev) clientsChanged = true;
+    }
+    if (state.followups) {
+      const prev = state.followups.length;
+      state.followups = state.followups.filter(f => !removedClientIds.includes(f.clientId));
+      if (state.followups.length !== prev) clientsChanged = true;
+    }
+    if (state.googleAds) {
+      const prev = state.googleAds.length;
+      state.googleAds = state.googleAds.filter(g => !removedClientIds.includes(g.clientId));
+      if (state.googleAds.length !== prev) clientsChanged = true;
+    }
+    if (state.seo) {
+      const prev = state.seo.length;
+      state.seo = state.seo.filter(s => !removedClientIds.includes(s.clientId));
+      if (state.seo.length !== prev) clientsChanged = true;
+    }
+    if (state.reminders) {
+      const prev = state.reminders.length;
+      state.reminders = state.reminders.filter(r => !removedClientIds.includes(r.clientId));
+      if (state.reminders.length !== prev) clientsChanged = true;
+    }
+    if (state.notes) {
+      const prev = state.notes.length;
+      state.notes = state.notes.filter(n => !removedClientIds.includes(n.clientId));
+      if (state.notes.length !== prev) clientsChanged = true;
+    }
+
+    if (clientsChanged) {
+      localStorage.setItem(stateKey, JSON.stringify(state));
+    }
   }
 
   // Migration Hook: check if metaAds has the old structure
@@ -122,7 +217,7 @@ document.addEventListener("DOMContentLoaded", () => {
             websiteType: "Custom Website Development",
             domain: parsedDom || "domain.com",
             hosting: "Hostinger",
-            startDate: srv.startDate || new Date().toISOString().split("T")[0],
+            startDate: srv.startDate || getLocalDateString(),
             deliveryDate: srv.endDate || "",
             progress: 0,
             assignedDeveloperId: srv.assignedEmployeeId || "",
@@ -144,7 +239,7 @@ document.addEventListener("DOMContentLoaded", () => {
             objective: "Sales / Signups",
             packageAmount: srv.finalAmount,
             adBudget: Math.round(srv.finalAmount * 0.6),
-            startDate: srv.startDate || new Date().toISOString().split("T")[0],
+            startDate: srv.startDate || getLocalDateString(),
             endDate: srv.endDate || "",
             reach: 0, clicks: 0, leads: 0, cpl: 0, roas: 0,
             status: "Running",
@@ -166,7 +261,7 @@ document.addEventListener("DOMContentLoaded", () => {
             objective: "Lead Generation",
             packageAmount: srv.finalAmount,
             adBudget: Math.round(srv.finalAmount * 0.6),
-            startDate: srv.startDate || new Date().toISOString().split("T")[0],
+            startDate: srv.startDate || getLocalDateString(),
             endDate: srv.endDate || "",
             renewalDate: srv.endDate || "",
             reach: 0, clicks: 0, leads: 0, cpl: 0, roas: 0,
@@ -298,8 +393,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   loginForm.addEventListener("submit", (e) => {
     e.preventDefault();
-    const email = document.getElementById("login-email").value;
-    const pass = document.getElementById("login-password").value;
+    const email = (document.getElementById("login-email")?.value || "");
+    const pass = (document.getElementById("login-password")?.value || "");
     
     // Simple mock authentication validation
     if (email === "admin@thynkdigital.in" && pass === "admin123") {
@@ -325,7 +420,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  document.getElementById("forgot-password-link").addEventListener("click", (e) => {
+  document.getElementById("forgot-password-link")?.addEventListener("click", (e) => {
     e.preventDefault();
     Swal.fire({
       title: "Reset Password",
@@ -353,8 +448,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  document.getElementById("logout-btn").addEventListener("click", (e) => { e.preventDefault(); handleLogout(); });
-  document.getElementById("logout-menu-btn").addEventListener("click", (e) => { e.preventDefault(); handleLogout(); });
+  document.getElementById("logout-btn")?.addEventListener("click", (e) => { e.preventDefault(); handleLogout(); });
+  document.getElementById("logout-menu-btn")?.addEventListener("click", (e) => { e.preventDefault(); handleLogout(); });
 
   // Sidebar Toggling
   const sidebarToggle = document.getElementById("sidebar-toggle");
@@ -405,7 +500,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Logo click triggers dashboard
-  document.getElementById("logo-refresh").addEventListener("click", (e) => {
+  document.getElementById("logo-refresh")?.addEventListener("click", (e) => {
     e.preventDefault();
     state.selectedMetaClient = null;
     state.selectedMetaCampaignId = null;
@@ -413,11 +508,11 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // Profile link actions
-  document.getElementById("view-profile-settings").addEventListener("click", (e) => {
+  document.getElementById("view-profile-settings")?.addEventListener("click", (e) => {
     e.preventDefault();
     window.location.hash = "#/crm/settings";
   });
-  document.getElementById("view-system-settings").addEventListener("click", (e) => {
+  document.getElementById("view-system-settings")?.addEventListener("click", (e) => {
     e.preventDefault();
     window.location.hash = "#/crm/settings";
   });
@@ -655,7 +750,7 @@ document.addEventListener("DOMContentLoaded", () => {
           if (type === "client") {
             renderClientProfile(id);
           } else if (type === "domain") {
-            navigateToView("domain");
+            navigateToView("domain-hosting");
           } else if (type === "campaign") {
             const isMeta = item.getAttribute("data-ismeta") === "true";
             const clientName = item.getAttribute("data-client");
@@ -1094,8 +1189,8 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
 
     // Chart Bindings
-    document.getElementById("dash-view-domains").addEventListener("click", (e) => { e.preventDefault(); navigateToView("domain"); });
-    document.getElementById("dash-view-logs").addEventListener("click", (e) => { e.preventDefault(); navigateToView("timeline"); });
+    document.getElementById("dash-view-domains")?.addEventListener("click", (e) => { e.preventDefault(); navigateToView("domain-hosting"); });
+    document.getElementById("dash-view-logs")?.addEventListener("click", (e) => { e.preventDefault(); navigateToView("timeline"); });
 
     // Initialize ApexCharts
     // 1. Revenue vs Payments Chart
@@ -1336,6 +1431,7 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
 
     // Initialize DataTable
+    if ($.fn.DataTable.isDataTable("#leads-datatable")) { $("#leads-datatable").DataTable().destroy(); }
     $("#leads-datatable").DataTable({
       language: { search: "_INPUT_", searchPlaceholder: "Search Leads..." }
     });
@@ -1400,7 +1496,7 @@ document.addEventListener("DOMContentLoaded", () => {
               assignedEmployeeId: lead.assignedEmployeeId,
               status: "Active",
               priority: lead.status === "Hot" ? "High" : (lead.status === "Warm" ? "Medium" : "Low"),
-              dateCreated: new Date().toISOString().split("T")[0]
+              dateCreated: getLocalDateString()
             };
 
             state.clients.push(newClient);
@@ -1548,23 +1644,23 @@ document.addEventListener("DOMContentLoaded", () => {
         const client = state.clients.find(c => c.id === clientId);
         if (!client) return;
 
-        document.getElementById("edit-client-id-hidden").value = client.id;
-        document.getElementById("edit-client-company").value = client.companyName || "";
-        document.getElementById("edit-client-name").value = client.clientName || "";
-        document.getElementById("edit-client-mobile").value = client.mobile || "";
-        document.getElementById("edit-client-whatsapp").value = client.whatsapp || "";
-        document.getElementById("edit-client-email").value = client.email || "";
-        document.getElementById("edit-client-website").value = client.website || "";
-        document.getElementById("edit-client-category").value = client.category || "";
-        document.getElementById("edit-client-gst").value = client.gst || "";
-        document.getElementById("edit-client-source").value = client.source || "Google Ads";
-        document.getElementById("edit-client-priority").value = client.priority || "Medium";
-        document.getElementById("edit-client-status").value = client.status || "Active";
-        document.getElementById("edit-client-assigned-employee").value = client.assignedEmployeeId || "";
-        document.getElementById("edit-client-address").value = client.address || "";
-        document.getElementById("edit-client-city").value = client.city || "";
-        document.getElementById("edit-client-state").value = client.state || "";
-        document.getElementById("edit-client-country").value = client.country || "India";
+        if (document.getElementById("edit-client-id-hidden")) document.getElementById("edit-client-id-hidden").value = client.id;
+        if (document.getElementById("edit-client-company")) document.getElementById("edit-client-company").value = client.companyName || "";
+        if (document.getElementById("edit-client-name")) document.getElementById("edit-client-name").value = client.clientName || "";
+        if (document.getElementById("edit-client-mobile")) document.getElementById("edit-client-mobile").value = client.mobile || "";
+        if (document.getElementById("edit-client-whatsapp")) document.getElementById("edit-client-whatsapp").value = client.whatsapp || "";
+        if (document.getElementById("edit-client-email")) document.getElementById("edit-client-email").value = client.email || "";
+        if (document.getElementById("edit-client-website")) document.getElementById("edit-client-website").value = client.website || "";
+        if (document.getElementById("edit-client-category")) document.getElementById("edit-client-category").value = client.category || "";
+        if (document.getElementById("edit-client-gst")) document.getElementById("edit-client-gst").value = client.gst || "";
+        if (document.getElementById("edit-client-source")) document.getElementById("edit-client-source").value = client.source || "Google Ads";
+        if (document.getElementById("edit-client-priority")) document.getElementById("edit-client-priority").value = client.priority || "Medium";
+        if (document.getElementById("edit-client-status")) document.getElementById("edit-client-status").value = client.status || "Active";
+        if (document.getElementById("edit-client-assigned-employee")) document.getElementById("edit-client-assigned-employee").value = client.assignedEmployeeId || "";
+        if (document.getElementById("edit-client-address")) document.getElementById("edit-client-address").value = client.address || "";
+        if (document.getElementById("edit-client-city")) document.getElementById("edit-client-city").value = client.city || "";
+        if (document.getElementById("edit-client-state")) document.getElementById("edit-client-state").value = client.state || "";
+        if (document.getElementById("edit-client-country")) document.getElementById("edit-client-country").value = client.country || "India";
 
         const modalEl = bootstrap.Modal.getOrCreateInstance(document.getElementById("editClientModal"));
         modalEl.show();
@@ -1929,15 +2025,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Inner back button bindings
     const handleBack = (e) => { e.preventDefault(); navigateToView("clients"); };
-    document.getElementById("crm-profile-back").addEventListener("click", handleBack);
-    document.getElementById("crm-profile-back-btn").addEventListener("click", handleBack);
+    document.getElementById("crm-profile-back")?.addEventListener("click", handleBack);
+    document.getElementById("crm-profile-back-btn")?.addEventListener("click", handleBack);
 
     // Inner quick actions triggers
-    document.getElementById("crm-profile-add-service-btn").addEventListener("click", () => {
+    document.getElementById("crm-profile-add-service-btn")?.addEventListener("click", () => {
       window.location.hash = `#/crm/services/new?client=${clientId}`;
     });
 
-    document.getElementById("crm-profile-add-payment-btn").addEventListener("click", () => {
+    document.getElementById("crm-profile-add-payment-btn")?.addEventListener("click", () => {
       const modalEl = bootstrap.Modal.getOrCreateInstance(document.getElementById("addPaymentModal"));
       // Pre-fill invoice lookup for this client
       const clientInvoicesOptions = state.invoices.filter(i => i.clientId === clientId && i.status !== "Paid");
@@ -1950,15 +2046,15 @@ document.addEventListener("DOMContentLoaded", () => {
       modalEl.show();
     });
 
-    document.getElementById("crm-profile-add-reminder-btn").addEventListener("click", () => {
+    document.getElementById("crm-profile-add-reminder-btn")?.addEventListener("click", () => {
       const modalEl = bootstrap.Modal.getOrCreateInstance(document.getElementById("addReminderModal"));
-      document.getElementById("reminder-client-id").value = clientId;
+      if (document.getElementById("reminder-client-id")) document.getElementById("reminder-client-id").value = clientId;
       modalEl.show();
     });
 
-    document.getElementById("crm-profile-add-note-btn").addEventListener("click", () => {
+    document.getElementById("crm-profile-add-note-btn")?.addEventListener("click", () => {
       const modalEl = bootstrap.Modal.getOrCreateInstance(document.getElementById("addNoteModal"));
-      document.getElementById("note-client-id").value = clientId;
+      if (document.getElementById("note-client-id")) document.getElementById("note-client-id").value = clientId;
       modalEl.show();
     });
 
@@ -1969,17 +2065,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const srv = state.services.find(s => s.id === srvId);
         if (!srv) return;
 
-        document.getElementById("edit-service-id-hidden").value = srv.id;
-        document.getElementById("edit-service-client-id").value = srv.clientId || "";
-        document.getElementById("edit-service-name").value = srv.serviceName || "";
-        document.getElementById("edit-service-package").value = srv.package || "";
-        document.getElementById("edit-service-start").value = srv.startDate || "";
-        document.getElementById("edit-service-end").value = srv.endDate || "";
-        document.getElementById("edit-service-cost").value = srv.cost !== undefined ? srv.cost : "";
-        document.getElementById("edit-service-discount").value = srv.discount !== undefined ? srv.discount : "";
-        document.getElementById("edit-service-assigned-employee").value = srv.assignedEmployeeId || "";
-        document.getElementById("edit-service-status").value = srv.status || "Running";
-        document.getElementById("edit-service-notes").value = srv.notes || "";
+        if (document.getElementById("edit-service-id-hidden")) document.getElementById("edit-service-id-hidden").value = srv.id;
+        if (document.getElementById("edit-service-client-id")) document.getElementById("edit-service-client-id").value = srv.clientId || "";
+        if (document.getElementById("edit-service-name")) document.getElementById("edit-service-name").value = srv.serviceName || "";
+        if (document.getElementById("edit-service-package")) document.getElementById("edit-service-package").value = srv.package || "";
+        if (document.getElementById("edit-service-start")) document.getElementById("edit-service-start").value = srv.startDate || "";
+        if (document.getElementById("edit-service-end")) document.getElementById("edit-service-end").value = srv.endDate || "";
+        if (document.getElementById("edit-service-cost")) document.getElementById("edit-service-cost").value = srv.cost !== undefined ? srv.cost : "";
+        if (document.getElementById("edit-service-discount")) document.getElementById("edit-service-discount").value = srv.discount !== undefined ? srv.discount : "";
+        if (document.getElementById("edit-service-assigned-employee")) document.getElementById("edit-service-assigned-employee").value = srv.assignedEmployeeId || "";
+        if (document.getElementById("edit-service-status")) document.getElementById("edit-service-status").value = srv.status || "Running";
+        if (document.getElementById("edit-service-notes")) document.getElementById("edit-service-notes").value = srv.notes || "";
 
         flatpickr("#edit-service-start", { dateFormat: "Y-m-d", allowInput: true });
         flatpickr("#edit-service-end", { dateFormat: "Y-m-d", allowInput: true });
@@ -2078,6 +2174,7 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
 
+    if ($.fn.DataTable.isDataTable("#followups-datatable")) { $("#followups-datatable").DataTable().destroy(); }
     $("#followups-datatable").DataTable({
       language: { search: "_INPUT_", searchPlaceholder: "Search Follow-ups..." }
     });
@@ -2088,13 +2185,13 @@ document.addEventListener("DOMContentLoaded", () => {
         const flw = state.followups.find(x => x.id === flwId);
         if (!flw) return;
 
-        document.getElementById("edit-followup-id-hidden").value = flw.id;
-        document.getElementById("edit-followup-client-name").value = getClientName(flw.clientId);
-        document.getElementById("edit-followup-type").value = flw.type || "Phone Call";
-        document.getElementById("edit-followup-status").value = flw.status || "Pending";
-        document.getElementById("edit-followup-last").value = flw.lastContact || "";
-        document.getElementById("edit-followup-next").value = flw.nextFollowup || "";
-        document.getElementById("edit-followup-remarks").value = flw.remarks || "";
+        if (document.getElementById("edit-followup-id-hidden")) document.getElementById("edit-followup-id-hidden").value = flw.id;
+        if (document.getElementById("edit-followup-client-name")) document.getElementById("edit-followup-client-name").value = getClientName(flw.clientId);
+        if (document.getElementById("edit-followup-type")) document.getElementById("edit-followup-type").value = flw.type || "Phone Call";
+        if (document.getElementById("edit-followup-status")) document.getElementById("edit-followup-status").value = flw.status || "Pending";
+        if (document.getElementById("edit-followup-last")) document.getElementById("edit-followup-last").value = flw.lastContact || "";
+        if (document.getElementById("edit-followup-next")) document.getElementById("edit-followup-next").value = flw.nextFollowup || "";
+        if (document.getElementById("edit-followup-remarks")) document.getElementById("edit-followup-remarks").value = flw.remarks || "";
 
         flatpickr("#edit-followup-last", { dateFormat: "Y-m-d", allowInput: true });
         flatpickr("#edit-followup-next", { dateFormat: "Y-m-d", allowInput: true });
@@ -2241,6 +2338,7 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
 
+    if ($.fn.DataTable.isDataTable("#services-datatable")) { $("#services-datatable").DataTable().destroy(); }
     $("#services-datatable").DataTable({
       language: { search: "_INPUT_", searchPlaceholder: "Search Services..." }
     });
@@ -2252,17 +2350,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const srv = state.services.find(s => s.id === srvId);
         if (!srv) return;
 
-        document.getElementById("edit-service-id-hidden").value = srv.id;
-        document.getElementById("edit-service-client-id").value = srv.clientId || "";
-        document.getElementById("edit-service-name").value = srv.serviceName || "";
-        document.getElementById("edit-service-package").value = srv.package || "";
-        document.getElementById("edit-service-start").value = srv.startDate || "";
-        document.getElementById("edit-service-end").value = srv.endDate || "";
-        document.getElementById("edit-service-cost").value = srv.cost !== undefined ? srv.cost : "";
-        document.getElementById("edit-service-discount").value = srv.discount !== undefined ? srv.discount : "";
-        document.getElementById("edit-service-assigned-employee").value = srv.assignedEmployeeId || "";
-        document.getElementById("edit-service-status").value = srv.status || "Running";
-        document.getElementById("edit-service-notes").value = srv.notes || "";
+        if (document.getElementById("edit-service-id-hidden")) document.getElementById("edit-service-id-hidden").value = srv.id;
+        if (document.getElementById("edit-service-client-id")) document.getElementById("edit-service-client-id").value = srv.clientId || "";
+        if (document.getElementById("edit-service-name")) document.getElementById("edit-service-name").value = srv.serviceName || "";
+        if (document.getElementById("edit-service-package")) document.getElementById("edit-service-package").value = srv.package || "";
+        if (document.getElementById("edit-service-start")) document.getElementById("edit-service-start").value = srv.startDate || "";
+        if (document.getElementById("edit-service-end")) document.getElementById("edit-service-end").value = srv.endDate || "";
+        if (document.getElementById("edit-service-cost")) document.getElementById("edit-service-cost").value = srv.cost !== undefined ? srv.cost : "";
+        if (document.getElementById("edit-service-discount")) document.getElementById("edit-service-discount").value = srv.discount !== undefined ? srv.discount : "";
+        if (document.getElementById("edit-service-assigned-employee")) document.getElementById("edit-service-assigned-employee").value = srv.assignedEmployeeId || "";
+        if (document.getElementById("edit-service-status")) document.getElementById("edit-service-status").value = srv.status || "Running";
+        if (document.getElementById("edit-service-notes")) document.getElementById("edit-service-notes").value = srv.notes || "";
 
         flatpickr("#edit-service-start", { dateFormat: "Y-m-d", allowInput: true });
         flatpickr("#edit-service-end", { dateFormat: "Y-m-d", allowInput: true });
@@ -2699,20 +2797,24 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
 
+    if ($.fn.DataTable.isDataTable("#unified-datatable")) { $("#unified-datatable").DataTable().destroy(); }
     $("#unified-datatable").DataTable({
       language: { search: "_INPUT_", searchPlaceholder: "Search Pricing Overview..." }
     });
 
+    if ($.fn.DataTable.isDataTable("#domains-datatable")) { $("#domains-datatable").DataTable().destroy(); }
     $("#domains-datatable").DataTable({
       language: { search: "_INPUT_", searchPlaceholder: "Search Domains..." }
     });
 
+    if ($.fn.DataTable.isDataTable("#hosting-datatable")) { $("#hosting-datatable").DataTable().destroy(); }
     $("#hosting-datatable").DataTable({
       language: { search: "_INPUT_", searchPlaceholder: "Search Hostings..." }
     });
 
     if (document.getElementById("both-datatable")) {
-      $("#both-datatable").DataTable({
+      if ($.fn.DataTable.isDataTable("#both-datatable")) { $("#both-datatable").DataTable().destroy(); }
+    $("#both-datatable").DataTable({
         language: { search: "_INPUT_", searchPlaceholder: "Search Domain & Hosting..." }
       });
     }
@@ -2724,25 +2826,25 @@ document.addEventListener("DOMContentLoaded", () => {
         const dom = state.domains.find(d => d.id === domId);
         if (!dom) return;
 
-        document.getElementById("edit-domain-id-hidden").value = dom.id;
-        document.getElementById("edit-domain-client-id").value = dom.clientId || "";
-        document.getElementById("edit-domain-name").value = dom.domainName || "";
-        document.getElementById("edit-domain-registrar").value = dom.registrar || "";
-        document.getElementById("edit-domain-purchased").value = dom.registrationDate || "";
-        document.getElementById("edit-domain-expiry").value = dom.expiryDate || "";
-        document.getElementById("edit-domain-cost").value = dom.renewalCost !== undefined ? dom.renewalCost : "";
-        document.getElementById("edit-domain-dns").value = dom.dnsStatus || "OK";
-        document.getElementById("edit-domain-status").value = dom.status || "Active";
-        document.getElementById("edit-domain-nameservers").value = dom.nameservers || "";
-        document.getElementById("edit-domain-credentials").value = dom.credentialsPlaceholder || "";
-        document.getElementById("edit-domain-notes").value = dom.notes || "";
+        if (document.getElementById("edit-domain-id-hidden")) document.getElementById("edit-domain-id-hidden").value = dom.id;
+        if (document.getElementById("edit-domain-client-id")) document.getElementById("edit-domain-client-id").value = dom.clientId || "";
+        if (document.getElementById("edit-domain-name")) document.getElementById("edit-domain-name").value = dom.domainName || "";
+        if (document.getElementById("edit-domain-registrar")) document.getElementById("edit-domain-registrar").value = dom.registrar || "";
+        if (document.getElementById("edit-domain-purchased")) document.getElementById("edit-domain-purchased").value = dom.registrationDate || "";
+        if (document.getElementById("edit-domain-expiry")) document.getElementById("edit-domain-expiry").value = dom.expiryDate || "";
+        if (document.getElementById("edit-domain-cost")) document.getElementById("edit-domain-cost").value = dom.renewalCost !== undefined ? dom.renewalCost : "";
+        if (document.getElementById("edit-domain-dns")) document.getElementById("edit-domain-dns").value = dom.dnsStatus || "OK";
+        if (document.getElementById("edit-domain-status")) document.getElementById("edit-domain-status").value = dom.status || "Active";
+        if (document.getElementById("edit-domain-nameservers")) document.getElementById("edit-domain-nameservers").value = dom.nameservers || "";
+        if (document.getElementById("edit-domain-credentials")) document.getElementById("edit-domain-credentials").value = dom.credentialsPlaceholder || "";
+        if (document.getElementById("edit-domain-notes")) document.getElementById("edit-domain-notes").value = dom.notes || "";
  
         flatpickr("#edit-domain-purchased", { dateFormat: "Y-m-d", allowInput: true });
         flatpickr("#edit-domain-expiry", { 
           dateFormat: "Y-m-d", 
           allowInput: true,
           onChange: function(selectedDates, dateStr) {
-            document.getElementById("edit-domain-status").value = calculateStatusFromDate(dateStr);
+            if (document.getElementById("edit-domain-status")) document.getElementById("edit-domain-status").value = calculateStatusFromDate(dateStr);
           }
         });
 
@@ -2758,23 +2860,23 @@ document.addEventListener("DOMContentLoaded", () => {
         const hst = state.hostings.find(h => h.id === hstId);
         if (!hst) return;
 
-        document.getElementById("edit-hosting-id-hidden").value = hst.id;
-        document.getElementById("edit-hosting-client-id").value = hst.clientId || "";
-        document.getElementById("edit-hosting-provider").value = hst.hostingProvider || "";
-        document.getElementById("edit-hosting-plan").value = hst.hostingPlan || "";
-        document.getElementById("edit-hosting-purchased").value = hst.purchaseDate || "";
-        document.getElementById("edit-hosting-expiry").value = hst.expiryDate || "";
-        document.getElementById("edit-hosting-cost").value = hst.renewalCost !== undefined ? hst.renewalCost : "";
-        document.getElementById("edit-hosting-backup").value = hst.backupStatus || "";
-        document.getElementById("edit-hosting-status").value = hst.status || "Active";
-        document.getElementById("edit-hosting-notes").value = hst.notes || "";
+        if (document.getElementById("edit-hosting-id-hidden")) document.getElementById("edit-hosting-id-hidden").value = hst.id;
+        if (document.getElementById("edit-hosting-client-id")) document.getElementById("edit-hosting-client-id").value = hst.clientId || "";
+        if (document.getElementById("edit-hosting-provider")) document.getElementById("edit-hosting-provider").value = hst.hostingProvider || "";
+        if (document.getElementById("edit-hosting-plan")) document.getElementById("edit-hosting-plan").value = hst.hostingPlan || "";
+        if (document.getElementById("edit-hosting-purchased")) document.getElementById("edit-hosting-purchased").value = hst.purchaseDate || "";
+        if (document.getElementById("edit-hosting-expiry")) document.getElementById("edit-hosting-expiry").value = hst.expiryDate || "";
+        if (document.getElementById("edit-hosting-cost")) document.getElementById("edit-hosting-cost").value = hst.renewalCost !== undefined ? hst.renewalCost : "";
+        if (document.getElementById("edit-hosting-backup")) document.getElementById("edit-hosting-backup").value = hst.backupStatus || "";
+        if (document.getElementById("edit-hosting-status")) document.getElementById("edit-hosting-status").value = hst.status || "Active";
+        if (document.getElementById("edit-hosting-notes")) document.getElementById("edit-hosting-notes").value = hst.notes || "";
  
         flatpickr("#edit-hosting-purchased", { dateFormat: "Y-m-d", allowInput: true });
         flatpickr("#edit-hosting-expiry", { 
           dateFormat: "Y-m-d", 
           allowInput: true,
           onChange: function(selectedDates, dateStr) {
-            document.getElementById("edit-hosting-status").value = calculateStatusFromDate(dateStr);
+            if (document.getElementById("edit-hosting-status")) document.getElementById("edit-hosting-status").value = calculateStatusFromDate(dateStr);
           }
         });
 
@@ -2830,12 +2932,6 @@ document.addEventListener("DOMContentLoaded", () => {
           if (res.isConfirmed) {
             const clientId = dom.clientId;
             state.domains = state.domains.filter(d => d.id !== domId);
-            const hasDomain = state.domains.some(d => d.clientId === clientId);
-            const hasHosting = state.hostings.some(h => h.clientId === clientId);
-            if (!hasDomain && !hasHosting) {
-              state.clients = state.clients.filter(c => c.id !== clientId);
-              state.services = state.services.filter(s => s.clientId !== clientId);
-            }
             saveState();
             renderDomainHosting();
             Swal.fire("Deleted!", "Domain record removed successfully.", "success");
@@ -2863,12 +2959,6 @@ document.addEventListener("DOMContentLoaded", () => {
           if (res.isConfirmed) {
             const clientId = hst.clientId;
             state.hostings = state.hostings.filter(h => h.id !== hstId);
-            const hasDomain = state.domains.some(d => d.clientId === clientId);
-            const hasHosting = state.hostings.some(h => h.clientId === clientId);
-            if (!hasDomain && !hasHosting) {
-              state.clients = state.clients.filter(c => c.id !== clientId);
-              state.services = state.services.filter(s => s.clientId !== clientId);
-            }
             saveState();
             renderDomainHosting();
             Swal.fire("Deleted!", "Hosting record removed successfully.", "success");
@@ -3040,6 +3130,7 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
 
+    if ($.fn.DataTable.isDataTable("#canva-datatable")) { $("#canva-datatable").DataTable().destroy(); }
     $("#canva-datatable").DataTable({
       language: { search: "_INPUT_", searchPlaceholder: "Search Canva accounts..." }
     });
@@ -3060,14 +3151,14 @@ document.addEventListener("DOMContentLoaded", () => {
         const account = state.canva.find(c => c.id === id);
         if (!account) return;
 
-        document.getElementById("edit-canva-id-hidden").value = account.id;
-        document.getElementById("edit-canva-client-id").value = account.clientId || "";
-        document.getElementById("edit-canva-client-name").value = account.clientName || "";
-        document.getElementById("edit-canva-email").value = account.email || "";
-        document.getElementById("edit-canva-price").value = account.price !== undefined ? account.price : 499;
-        document.getElementById("edit-canva-purchase-date").value = account.purchaseDate || "";
-        document.getElementById("edit-canva-renewal-date").value = account.renewalDate || "";
-        document.getElementById("edit-canva-notes").value = account.notes || "";
+        if (document.getElementById("edit-canva-id-hidden")) document.getElementById("edit-canva-id-hidden").value = account.id;
+        if (document.getElementById("edit-canva-client-id")) document.getElementById("edit-canva-client-id").value = account.clientId || "";
+        if (document.getElementById("edit-canva-client-name")) document.getElementById("edit-canva-client-name").value = account.clientName || "";
+        if (document.getElementById("edit-canva-email")) document.getElementById("edit-canva-email").value = account.email || "";
+        if (document.getElementById("edit-canva-price")) document.getElementById("edit-canva-price").value = account.price !== undefined ? account.price : 499;
+        if (document.getElementById("edit-canva-purchase-date")) document.getElementById("edit-canva-purchase-date").value = account.purchaseDate || "";
+        if (document.getElementById("edit-canva-renewal-date")) document.getElementById("edit-canva-renewal-date").value = account.renewalDate || "";
+        if (document.getElementById("edit-canva-notes")) document.getElementById("edit-canva-notes").value = account.notes || "";
 
         flatpickr("#edit-canva-purchase-date", { dateFormat: "Y-m-d", allowInput: true });
         flatpickr("#edit-canva-renewal-date", { dateFormat: "Y-m-d", allowInput: true });
@@ -3268,6 +3359,7 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
 
+    if ($.fn.DataTable.isDataTable("#billing-software-datatable")) { $("#billing-software-datatable").DataTable().destroy(); }
     $("#billing-software-datatable").DataTable({
       language: { search: "_INPUT_", searchPlaceholder: "Search Billing Software..." }
     });
@@ -3288,15 +3380,15 @@ document.addEventListener("DOMContentLoaded", () => {
         const license = state.billingSoftware.find(b => b.id === id);
         if (!license) return;
 
-        document.getElementById("edit-billing-software-id-hidden").value = license.id;
-        document.getElementById("edit-billing-software-client-id").value = license.clientId || "";
-        document.getElementById("edit-billing-software-company-name").value = license.companyName || "";
-        document.getElementById("edit-billing-software-client-name").value = license.clientName || "";
-        document.getElementById("edit-billing-software-price").value = license.price !== undefined ? license.price : 3500;
-        document.getElementById("edit-billing-software-maintenance").value = license.maintenance !== undefined ? license.maintenance : 2500;
-        document.getElementById("edit-billing-software-purchase-date").value = license.purchaseDate || "";
-        document.getElementById("edit-billing-software-renewal-date").value = license.renewalDate || "";
-        document.getElementById("edit-billing-software-notes").value = license.notes || "";
+        if (document.getElementById("edit-billing-software-id-hidden")) document.getElementById("edit-billing-software-id-hidden").value = license.id;
+        if (document.getElementById("edit-billing-software-client-id")) document.getElementById("edit-billing-software-client-id").value = license.clientId || "";
+        if (document.getElementById("edit-billing-software-company-name")) document.getElementById("edit-billing-software-company-name").value = license.companyName || "";
+        if (document.getElementById("edit-billing-software-client-name")) document.getElementById("edit-billing-software-client-name").value = license.clientName || "";
+        if (document.getElementById("edit-billing-software-price")) document.getElementById("edit-billing-software-price").value = license.price !== undefined ? license.price : 3500;
+        if (document.getElementById("edit-billing-software-maintenance")) document.getElementById("edit-billing-software-maintenance").value = license.maintenance !== undefined ? license.maintenance : 2500;
+        if (document.getElementById("edit-billing-software-purchase-date")) document.getElementById("edit-billing-software-purchase-date").value = license.purchaseDate || "";
+        if (document.getElementById("edit-billing-software-renewal-date")) document.getElementById("edit-billing-software-renewal-date").value = license.renewalDate || "";
+        if (document.getElementById("edit-billing-software-notes")) document.getElementById("edit-billing-software-notes").value = license.notes || "";
 
         flatpickr("#edit-billing-software-purchase-date", { dateFormat: "Y-m-d", allowInput: true });
         flatpickr("#edit-billing-software-renewal-date", { dateFormat: "Y-m-d", allowInput: true });
@@ -3679,12 +3771,12 @@ document.addEventListener("DOMContentLoaded", () => {
           state.editingDailyLogIndex = index;
           
           const log = daily[index];
-          document.getElementById("daily-perf-date").value = log.date;
-          document.getElementById("daily-perf-spend").value = log.adSpend;
-          document.getElementById("daily-perf-reach").value = log.reach;
-          document.getElementById("daily-perf-clicks").value = log.clicks;
-          document.getElementById("daily-perf-leads").value = log.leads;
-          document.getElementById("daily-perf-remarks").value = log.remarks || "";
+          if (document.getElementById("daily-perf-date")) document.getElementById("daily-perf-date").value = log.date;
+          if (document.getElementById("daily-perf-spend")) document.getElementById("daily-perf-spend").value = log.adSpend;
+          if (document.getElementById("daily-perf-reach")) document.getElementById("daily-perf-reach").value = log.reach;
+          if (document.getElementById("daily-perf-clicks")) document.getElementById("daily-perf-clicks").value = log.clicks;
+          if (document.getElementById("daily-perf-leads")) document.getElementById("daily-perf-leads").value = log.leads;
+          if (document.getElementById("daily-perf-remarks")) document.getElementById("daily-perf-remarks").value = log.remarks || "";
 
           const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById("addCampaignDailyPerformanceModal"));
           modal.show();
@@ -3733,7 +3825,8 @@ document.addEventListener("DOMContentLoaded", () => {
         exportToCSV(`${camp.campaignName.replace(/\s+/g, '_')}_daily_performance.csv`, rows, headers);
       });
 
-      $("#meta-daily-performance-table").DataTable({
+      if ($.fn.DataTable.isDataTable("#meta-daily-performance-table")) { $("#meta-daily-performance-table").DataTable().destroy(); }
+    $("#meta-daily-performance-table").DataTable({
         language: { search: "_INPUT_", searchPlaceholder: "Search daily logs..." },
         order: [[0, "desc"]]
       });
@@ -3988,7 +4081,7 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
 
       const generateMetaReport = () => {
-        const format = document.getElementById("meta-report-format").value;
+        const format = (document.getElementById("meta-report-format")?.value || "");
         const title = document.getElementById("meta-report-output-title");
         const area = document.getElementById("meta-report-output-area");
         const daily = camp.dailyPerformance || [];
@@ -4101,11 +4194,11 @@ document.addEventListener("DOMContentLoaded", () => {
         area.innerHTML = html;
       };
 
-      document.getElementById("meta-run-report-btn").addEventListener("click", generateMetaReport);
+      document.getElementById("meta-run-report-btn")?.addEventListener("click", generateMetaReport);
       generateMetaReport();
 
-      document.getElementById("meta-report-csv-btn").addEventListener("click", () => {
-        const format = document.getElementById("meta-report-format").value;
+      document.getElementById("meta-report-csv-btn")?.addEventListener("click", () => {
+        const format = (document.getElementById("meta-report-format")?.value || "");
         const daily = camp.dailyPerformance || [];
         if (format === "daily") {
           const headers = ["Date", "Ad Spend (INR)", "Reach", "Clicks", "Leads", "CPL"];
@@ -4155,13 +4248,13 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      document.getElementById("meta-report-excel-btn").addEventListener("click", () => {
+      document.getElementById("meta-report-excel-btn")?.addEventListener("click", () => {
         Swal.fire("Excel Export", "Report spreadsheet saved in Downloads folder successfully.", "success");
       });
-      document.getElementById("meta-report-pdf-btn").addEventListener("click", () => {
+      document.getElementById("meta-report-pdf-btn")?.addEventListener("click", () => {
         Swal.fire("PDF Export", "Report PDF document generated successfully.", "success");
       });
-      document.getElementById("meta-report-print-btn").addEventListener("click", () => {
+      document.getElementById("meta-report-print-btn")?.addEventListener("click", () => {
         window.print();
       });
     };
@@ -4364,7 +4457,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 state.payments = state.payments.filter(p => p.clientId !== clientId);
                 
                 // Delete associated meta ads campaigns
-                state.metaAds = state.metaAds.filter(m => m.clientName !== clientName);
+                state.invoices = state.invoices.filter(i => i.clientId !== clientId); // BUG-003 Fix
+                state.metaAds = state.metaAds.filter(m => m.clientId ? m.clientId !== clientId : m.clientName !== clientName); // BUG-004 Fix
 
                 // Delete associated google ads campaigns
                 state.googleAds = state.googleAds.filter(g => g.clientId !== clientId);
@@ -4492,11 +4586,11 @@ document.addEventListener("DOMContentLoaded", () => {
       `;
 
       // Back navigation triggers
-      document.getElementById("meta-back-btn").addEventListener("click", () => {
+      document.getElementById("meta-back-btn")?.addEventListener("click", () => {
         state.selectedMetaClient = null;
         renderMetaClientList();
       });
-      document.getElementById("meta-breadcrumb-back").addEventListener("click", (e) => {
+      document.getElementById("meta-breadcrumb-back")?.addEventListener("click", (e) => {
         e.preventDefault();
         state.selectedMetaClient = null;
         renderMetaClientList();
@@ -4548,7 +4642,8 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       // Initialize Datatable and inject Add Campaign button
-      const table = $("#meta-campaigns-table").DataTable({
+      if ($.fn.DataTable.isDataTable("#meta-campaigns-table")) { $("#meta-campaigns-table").DataTable().destroy(); }
+    const table = $("#meta-campaigns-table").DataTable({
         language: {
           search: "_INPUT_",
           searchPlaceholder: "Search campaigns...",
@@ -4642,18 +4737,18 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
 
-      document.getElementById("meta-campaign-back-btn").addEventListener("click", (e) => {
+      document.getElementById("meta-campaign-back-btn")?.addEventListener("click", (e) => {
         e.preventDefault();
         state.selectedMetaCampaignId = null;
         renderMetaAds();
       });
-      document.getElementById("meta-breadcrumb-root").addEventListener("click", (e) => {
+      document.getElementById("meta-breadcrumb-root")?.addEventListener("click", (e) => {
         e.preventDefault();
         state.selectedMetaClient = null;
         state.selectedMetaCampaignId = null;
         renderMetaAds();
       });
-      document.getElementById("meta-breadcrumb-client").addEventListener("click", (e) => {
+      document.getElementById("meta-breadcrumb-client")?.addEventListener("click", (e) => {
         e.preventDefault();
         state.selectedMetaCampaignId = null;
         renderMetaAds();
@@ -4781,7 +4876,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     document.getElementById("google-ads-add-btn")?.addEventListener("click", () => {
       document.getElementById("edit-google-form").reset();
-      document.getElementById("edit-google-id-hidden").value = "";
+      if (document.getElementById("edit-google-id-hidden")) document.getElementById("edit-google-id-hidden").value = "";
       document.getElementById("editGoogleModalLabel").innerHTML = `<i class="fa-brands fa-google me-2"></i>Add Google Ads Campaign`;
       const clientSelect = document.getElementById("edit-google-client");
       if(clientSelect) clientSelect.removeAttribute("disabled");
@@ -4841,19 +4936,27 @@ document.addEventListener("DOMContentLoaded", () => {
         const camp = state.googleAds.find(x => x.id === googleId);
         if (!camp) return;
 
-        document.getElementById("edit-google-id-hidden").value = camp.id;
-        document.getElementById("edit-google-name").value = camp.campaignName || "";
-        document.getElementById("edit-google-objective").value = camp.objective || "";
-        document.getElementById("edit-google-budget").value = camp.adBudget || 0;
-        document.getElementById("edit-google-start").value = camp.startDate || "";
-        document.getElementById("edit-google-end").value = camp.endDate || "";
-        document.getElementById("edit-google-reach").value = camp.reach || 0;
-        document.getElementById("edit-google-clicks").value = camp.clicks || 0;
-        document.getElementById("edit-google-leads").value = camp.leads || 0;
-        document.getElementById("edit-google-roas").value = camp.roas || 1.0;
-        document.getElementById("edit-google-status").value = camp.status || "Running";
-        document.getElementById("edit-google-employee").value = camp.assignedEmployeeId || "";
-        document.getElementById("edit-google-notes").value = camp.notes || "";
+        document.getElementById("editGoogleModalLabel").innerHTML = `<i class="fa-solid fa-square-envelope me-2"></i>Edit Google Ads Campaign`;
+        
+        const clientSelect = document.getElementById("edit-google-client");
+        if(clientSelect) {
+          clientSelect.value = camp.clientId || "";
+          clientSelect.setAttribute("disabled", "true");
+        }
+
+        if (document.getElementById("edit-google-id-hidden")) document.getElementById("edit-google-id-hidden").value = camp.id;
+        if (document.getElementById("edit-google-name")) document.getElementById("edit-google-name").value = camp.campaignName || "";
+        if (document.getElementById("edit-google-objective")) document.getElementById("edit-google-objective").value = camp.objective || "";
+        if (document.getElementById("edit-google-budget")) document.getElementById("edit-google-budget").value = camp.adBudget || 0;
+        if (document.getElementById("edit-google-start")) document.getElementById("edit-google-start").value = camp.startDate || "";
+        if (document.getElementById("edit-google-end")) document.getElementById("edit-google-end").value = camp.endDate || "";
+        if (document.getElementById("edit-google-reach")) document.getElementById("edit-google-reach").value = camp.reach || 0;
+        if (document.getElementById("edit-google-clicks")) document.getElementById("edit-google-clicks").value = camp.clicks || 0;
+        if (document.getElementById("edit-google-leads")) document.getElementById("edit-google-leads").value = camp.leads || 0;
+        if (document.getElementById("edit-google-roas")) document.getElementById("edit-google-roas").value = camp.roas || 1.0;
+        if (document.getElementById("edit-google-status")) document.getElementById("edit-google-status").value = camp.status || "Running";
+        if (document.getElementById("edit-google-employee")) document.getElementById("edit-google-employee").value = camp.assignedEmployeeId || "";
+        if (document.getElementById("edit-google-notes")) document.getElementById("edit-google-notes").value = camp.notes || "";
 
         flatpickr("#edit-google-start", { dateFormat: "Y-m-d", allowInput: true });
         flatpickr("#edit-google-end", { dateFormat: "Y-m-d", allowInput: true });
@@ -5010,20 +5113,20 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        document.getElementById("edit-seo-id-hidden").value = seoRec.id;
-        document.getElementById("edit-seo-client-id").value = seoRec.clientId || "";
-        document.getElementById("edit-seo-url").value = seoRec.websiteUrl || "";
-        document.getElementById("edit-seo-campaign-name").value = seoRec.campaignName || "";
-        document.getElementById("edit-seo-package").value = seoRec.package || "Silver";
-        document.getElementById("edit-seo-start-date").value = seoRec.startDate || "";
-        document.getElementById("edit-seo-end-date").value = seoRec.endDate || "";
-        document.getElementById("edit-seo-budget").value = seoRec.budget || 0;
-        document.getElementById("edit-seo-status").value = seoRec.status || "Active";
-        document.getElementById("edit-seo-employee").value = seoRec.assignedEmployeeId || "";
-        document.getElementById("edit-seo-report-date").value = seoRec.reportDate || "";
-        document.getElementById("edit-seo-frequency").value = seoRec.reportFrequency || "Monthly";
-        document.getElementById("edit-seo-notes").value = seoRec.notes || "";
-        document.getElementById("edit-seo-keywords").value = "";
+        if (document.getElementById("edit-seo-id-hidden")) document.getElementById("edit-seo-id-hidden").value = seoRec.id;
+        if (document.getElementById("edit-seo-client-id")) document.getElementById("edit-seo-client-id").value = seoRec.clientId || "";
+        if (document.getElementById("edit-seo-url")) document.getElementById("edit-seo-url").value = seoRec.websiteUrl || "";
+        if (document.getElementById("edit-seo-campaign-name")) document.getElementById("edit-seo-campaign-name").value = seoRec.campaignName || "";
+        if (document.getElementById("edit-seo-package")) document.getElementById("edit-seo-package").value = seoRec.package || "Silver";
+        if (document.getElementById("edit-seo-start-date")) document.getElementById("edit-seo-start-date").value = seoRec.startDate || "";
+        if (document.getElementById("edit-seo-end-date")) document.getElementById("edit-seo-end-date").value = seoRec.endDate || "";
+        if (document.getElementById("edit-seo-budget")) document.getElementById("edit-seo-budget").value = seoRec.budget || 0;
+        if (document.getElementById("edit-seo-status")) document.getElementById("edit-seo-status").value = seoRec.status || "Active";
+        if (document.getElementById("edit-seo-employee")) document.getElementById("edit-seo-employee").value = seoRec.assignedEmployeeId || "";
+        if (document.getElementById("edit-seo-report-date")) document.getElementById("edit-seo-report-date").value = seoRec.reportDate || "";
+        if (document.getElementById("edit-seo-frequency")) document.getElementById("edit-seo-frequency").value = seoRec.reportFrequency || "Monthly";
+        if (document.getElementById("edit-seo-notes")) document.getElementById("edit-seo-notes").value = seoRec.notes || "";
+        if (document.getElementById("edit-seo-keywords")) document.getElementById("edit-seo-keywords").value = "";
 
         flatpickr("#edit-seo-start-date", { dateFormat: "Y-m-d", allowInput: true });
         flatpickr("#edit-seo-end-date", { dateFormat: "Y-m-d", allowInput: true });
@@ -5063,22 +5166,22 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".btn-track-keyword-global").forEach(btn => {
       btn.addEventListener("click", () => {
         // Reset modal fields for global add
-        document.getElementById("kw-id-hidden").value = "";
-        document.getElementById("kw-campaign-id-hidden").value = "";
+        if (document.getElementById("kw-id-hidden")) document.getElementById("kw-id-hidden").value = "";
+        if (document.getElementById("kw-campaign-id-hidden")) document.getElementById("kw-campaign-id-hidden").value = "";
         document.getElementById("kw-campaign-select-wrapper").classList.remove("d-none");
-        document.getElementById("kw-input-name").value = "";
+        if (document.getElementById("kw-input-name")) document.getElementById("kw-input-name").value = "";
         document.getElementById("kw-input-name").disabled = false;
-        document.getElementById("kw-input-target-url").value = "";
-        document.getElementById("kw-input-engine").value = "Google";
-        document.getElementById("kw-input-device").value = "Desktop";
-        document.getElementById("kw-input-location").value = "Global";
-        document.getElementById("kw-input-status").value = "No Change";
-        document.getElementById("kw-input-priority").value = "Medium";
-        document.getElementById("kw-input-curr-rank").value = "10";
-        document.getElementById("kw-input-prev-rank").value = "10";
-        document.getElementById("kw-input-volume").value = "";
-        document.getElementById("kw-input-difficulty").value = "";
-        document.getElementById("kw-input-notes").value = "";
+        if (document.getElementById("kw-input-target-url")) document.getElementById("kw-input-target-url").value = "";
+        if (document.getElementById("kw-input-engine")) document.getElementById("kw-input-engine").value = "Google";
+        if (document.getElementById("kw-input-device")) document.getElementById("kw-input-device").value = "Desktop";
+        if (document.getElementById("kw-input-location")) document.getElementById("kw-input-location").value = "Global";
+        if (document.getElementById("kw-input-status")) document.getElementById("kw-input-status").value = "No Change";
+        if (document.getElementById("kw-input-priority")) document.getElementById("kw-input-priority").value = "Medium";
+        if (document.getElementById("kw-input-curr-rank")) document.getElementById("kw-input-curr-rank").value = "10";
+        if (document.getElementById("kw-input-prev-rank")) document.getElementById("kw-input-prev-rank").value = "10";
+        if (document.getElementById("kw-input-volume")) document.getElementById("kw-input-volume").value = "";
+        if (document.getElementById("kw-input-difficulty")) document.getElementById("kw-input-difficulty").value = "";
+        if (document.getElementById("kw-input-notes")) document.getElementById("kw-input-notes").value = "";
         
         // Show modal
         bootstrap.Modal.getOrCreateInstance(document.getElementById("addKeywordModal")).show();
@@ -5387,9 +5490,9 @@ document.addEventListener("DOMContentLoaded", () => {
       let chartInstance = null;
       
       const renderTrendChart = () => {
-        const selKeyword = document.getElementById("trend-filter-keyword").value;
-        const startDate = document.getElementById("trend-filter-start-date").value;
-        const endDate = document.getElementById("trend-filter-end-date").value;
+        const selKeyword = (document.getElementById("trend-filter-keyword")?.value || "");
+        const startDate = (document.getElementById("trend-filter-start-date")?.value || "");
+        const endDate = (document.getElementById("trend-filter-end-date")?.value || "");
         
         let filteredLogs = c.weeklyLog || [];
         
@@ -5445,8 +5548,8 @@ document.addEventListener("DOMContentLoaded", () => {
       renderTrendChart();
 
       // Bind Chart Filter event listeners
-      document.getElementById("trend-filter-keyword").addEventListener("change", renderTrendChart);
-      document.getElementById("trend-filter-campaign").addEventListener("change", (e) => {
+      document.getElementById("trend-filter-keyword")?.addEventListener("change", renderTrendChart);
+      document.getElementById("trend-filter-campaign")?.addEventListener("change", (e) => {
         renderCampaignDashboard(e.target.value);
       });
       
@@ -5454,15 +5557,15 @@ document.addEventListener("DOMContentLoaded", () => {
       flatpickr("#trend-filter-end-date", { dateFormat: "Y-m-d", allowInput: true, onChange: renderTrendChart });
 
       document.querySelector(".btn-reset-chart-filters").addEventListener("click", () => {
-        document.getElementById("trend-filter-keyword").value = "all";
-        document.getElementById("trend-filter-start-date").value = "";
-        document.getElementById("trend-filter-end-date").value = "";
-        document.getElementById("trend-filter-campaign").value = campaignId;
+        if (document.getElementById("trend-filter-keyword")) document.getElementById("trend-filter-keyword").value = "all";
+        if (document.getElementById("trend-filter-start-date")) document.getElementById("trend-filter-start-date").value = "";
+        if (document.getElementById("trend-filter-end-date")) document.getElementById("trend-filter-end-date").value = "";
+        if (document.getElementById("trend-filter-campaign")) document.getElementById("trend-filter-campaign").value = campaignId;
         renderTrendChart();
       });
 
       // GA4 editor listener
-      document.getElementById("btn-edit-ga4").addEventListener("click", () => {
+      document.getElementById("btn-edit-ga4")?.addEventListener("click", () => {
         Swal.fire({
           title: "Update GA4 Analytics",
           html: `
@@ -5478,13 +5581,13 @@ document.addEventListener("DOMContentLoaded", () => {
           confirmButtonColor: "var(--thynk-primary)",
           preConfirm: () => {
             return {
-              users: parseInt(document.getElementById('swal-ga4-users').value) || 0,
-              sessions: parseInt(document.getElementById('swal-ga4-sessions').value) || 0,
-              engagedSessions: Math.round((parseInt(document.getElementById('swal-ga4-sessions').value) || 0) * 0.65),
-              views: parseInt(document.getElementById('swal-ga4-views').value) || 0,
-              bounceRate: parseFloat(document.getElementById('swal-ga4-bounce').value) || 0,
-              avgEngagementTime: parseInt(document.getElementById('swal-ga4-time').value) || 0,
-              conversions: parseInt(document.getElementById('swal-ga4-conv').value) || 0
+              users: parseInt((document.getElementById("swal-ga4-users")?.value || "")) || 0,
+              sessions: parseInt((document.getElementById("swal-ga4-sessions")?.value || "")) || 0,
+              engagedSessions: Math.round((parseInt((document.getElementById("swal-ga4-sessions")?.value || "")) || 0) * 0.65),
+              views: parseInt((document.getElementById("swal-ga4-views")?.value || "")) || 0,
+              bounceRate: parseFloat((document.getElementById("swal-ga4-bounce")?.value || "")) || 0,
+              avgEngagementTime: parseInt((document.getElementById("swal-ga4-time")?.value || "")) || 0,
+              conversions: parseInt((document.getElementById("swal-ga4-conv")?.value || "")) || 0
             };
           }
         }).then(result => {
@@ -5498,7 +5601,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       // GSC editor listener
-      document.getElementById("btn-edit-gsc").addEventListener("click", () => {
+      document.getElementById("btn-edit-gsc")?.addEventListener("click", () => {
         Swal.fire({
           title: "Update GSC Performance Summary",
           html: `
@@ -5512,10 +5615,10 @@ document.addEventListener("DOMContentLoaded", () => {
           confirmButtonColor: "var(--thynk-primary)",
           preConfirm: () => {
             return {
-              totalClicks: parseInt(document.getElementById('swal-gsc-clicks').value) || 0,
-              totalImpressions: parseInt(document.getElementById('swal-gsc-impr').value) || 0,
-              avgCtr: parseFloat(document.getElementById('swal-gsc-ctr').value) || 0,
-              avgPosition: parseFloat(document.getElementById('swal-gsc-pos').value) || 0
+              totalClicks: parseInt((document.getElementById("swal-gsc-clicks")?.value || "")) || 0,
+              totalImpressions: parseInt((document.getElementById("swal-gsc-impr")?.value || "")) || 0,
+              avgCtr: parseFloat((document.getElementById("swal-gsc-ctr")?.value || "")) || 0,
+              avgPosition: parseFloat((document.getElementById("swal-gsc-pos")?.value || "")) || 0
             };
           }
         }).then(result => {
@@ -5611,22 +5714,22 @@ document.addEventListener("DOMContentLoaded", () => {
             const kw = keywordsList.find(x => x.id === kwId);
             if (!kw) return;
 
-            document.getElementById("kw-id-hidden").value = kw.id;
-            document.getElementById("kw-campaign-id-hidden").value = campaignId;
+            if (document.getElementById("kw-id-hidden")) document.getElementById("kw-id-hidden").value = kw.id;
+            if (document.getElementById("kw-campaign-id-hidden")) document.getElementById("kw-campaign-id-hidden").value = campaignId;
             document.getElementById("kw-campaign-select-wrapper").classList.add("d-none");
-            document.getElementById("kw-input-name").value = kw.keyword;
+            if (document.getElementById("kw-input-name")) document.getElementById("kw-input-name").value = kw.keyword;
             document.getElementById("kw-input-name").disabled = true; // Lock keyword phrase on edit
-            document.getElementById("kw-input-target-url").value = kw.targetUrl || "";
-            document.getElementById("kw-input-engine").value = kw.searchEngine || "Google";
-            document.getElementById("kw-input-device").value = kw.device || "Desktop";
-            document.getElementById("kw-input-location").value = kw.location || "Global";
-            document.getElementById("kw-input-status").value = kw.status || "No Change";
-            document.getElementById("kw-input-priority").value = kw.priority || "Medium";
-            document.getElementById("kw-input-curr-rank").value = kw.currentRank;
-            document.getElementById("kw-input-prev-rank").value = kw.previousRank;
-            document.getElementById("kw-input-volume").value = kw.searchVolume || "";
-            document.getElementById("kw-input-difficulty").value = kw.difficulty || "";
-            document.getElementById("kw-input-notes").value = kw.notes || "";
+            if (document.getElementById("kw-input-target-url")) document.getElementById("kw-input-target-url").value = kw.targetUrl || "";
+            if (document.getElementById("kw-input-engine")) document.getElementById("kw-input-engine").value = kw.searchEngine || "Google";
+            if (document.getElementById("kw-input-device")) document.getElementById("kw-input-device").value = kw.device || "Desktop";
+            if (document.getElementById("kw-input-location")) document.getElementById("kw-input-location").value = kw.location || "Global";
+            if (document.getElementById("kw-input-status")) document.getElementById("kw-input-status").value = kw.status || "No Change";
+            if (document.getElementById("kw-input-priority")) document.getElementById("kw-input-priority").value = kw.priority || "Medium";
+            if (document.getElementById("kw-input-curr-rank")) document.getElementById("kw-input-curr-rank").value = kw.currentRank;
+            if (document.getElementById("kw-input-prev-rank")) document.getElementById("kw-input-prev-rank").value = kw.previousRank;
+            if (document.getElementById("kw-input-volume")) document.getElementById("kw-input-volume").value = kw.searchVolume || "";
+            if (document.getElementById("kw-input-difficulty")) document.getElementById("kw-input-difficulty").value = kw.difficulty || "";
+            if (document.getElementById("kw-input-notes")) document.getElementById("kw-input-notes").value = kw.notes || "";
 
             const modalEl = bootstrap.Modal.getOrCreateInstance(document.getElementById("addKeywordModal"));
             modalEl.show();
@@ -5662,9 +5765,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Filter and render helper
       const filterKeywordsTable = () => {
-        const engine = document.getElementById("kw-filter-engine").value;
-        const device = document.getElementById("kw-filter-device").value;
-        const priority = document.getElementById("kw-filter-priority").value;
+        const engine = (document.getElementById("kw-filter-engine")?.value || "");
+        const device = (document.getElementById("kw-filter-device")?.value || "");
+        const priority = (document.getElementById("kw-filter-priority")?.value || "");
         
         let filtered = keywordsList;
         if (engine !== "all") {
@@ -5727,7 +5830,8 @@ document.addEventListener("DOMContentLoaded", () => {
           if ($.fn.DataTable.isDataTable('#keywords-table')) {
             $('#keywords-table').DataTable().destroy();
           }
-          $('#keywords-table').DataTable({
+          if ($.fn.DataTable.isDataTable("#keywords-table")) { $("#keywords-table").DataTable().destroy(); }
+    $("#keywords-table").DataTable({
             pageLength: 10,
             lengthMenu: [5, 10, 25],
             ordering: true,
@@ -5740,34 +5844,34 @@ document.addEventListener("DOMContentLoaded", () => {
       filterKeywordsTable();
 
       // Bind filter change events
-      document.getElementById("kw-filter-engine").addEventListener("change", filterKeywordsTable);
-      document.getElementById("kw-filter-device").addEventListener("change", filterKeywordsTable);
-      document.getElementById("kw-filter-priority").addEventListener("change", filterKeywordsTable);
-      document.getElementById("btn-reset-kw-filters").addEventListener("click", () => {
-        document.getElementById("kw-filter-engine").value = "all";
-        document.getElementById("kw-filter-device").value = "all";
-        document.getElementById("kw-filter-priority").value = "all";
+      document.getElementById("kw-filter-engine")?.addEventListener("change", filterKeywordsTable);
+      document.getElementById("kw-filter-device")?.addEventListener("change", filterKeywordsTable);
+      document.getElementById("kw-filter-priority")?.addEventListener("change", filterKeywordsTable);
+      document.getElementById("btn-reset-kw-filters")?.addEventListener("click", () => {
+        if (document.getElementById("kw-filter-engine")) document.getElementById("kw-filter-engine").value = "all";
+        if (document.getElementById("kw-filter-device")) document.getElementById("kw-filter-device").value = "all";
+        if (document.getElementById("kw-filter-priority")) document.getElementById("kw-filter-priority").value = "all";
         filterKeywordsTable();
       });
 
       // Add Keyword Button Trigger
-      document.getElementById("btn-add-keyword").addEventListener("click", () => {
-        document.getElementById("kw-id-hidden").value = "";
-        document.getElementById("kw-campaign-id-hidden").value = campaignId;
+      document.getElementById("btn-add-keyword")?.addEventListener("click", () => {
+        if (document.getElementById("kw-id-hidden")) document.getElementById("kw-id-hidden").value = "";
+        if (document.getElementById("kw-campaign-id-hidden")) document.getElementById("kw-campaign-id-hidden").value = campaignId;
         document.getElementById("kw-campaign-select-wrapper").classList.add("d-none");
-        document.getElementById("kw-input-name").value = "";
+        if (document.getElementById("kw-input-name")) document.getElementById("kw-input-name").value = "";
         document.getElementById("kw-input-name").disabled = false;
-        document.getElementById("kw-input-target-url").value = c.websiteUrl || "";
-        document.getElementById("kw-input-engine").value = "Google";
-        document.getElementById("kw-input-device").value = "Desktop";
-        document.getElementById("kw-input-location").value = "Global";
-        document.getElementById("kw-input-status").value = "No Change";
-        document.getElementById("kw-input-priority").value = "Medium";
-        document.getElementById("kw-input-curr-rank").value = "10";
-        document.getElementById("kw-input-prev-rank").value = "10";
-        document.getElementById("kw-input-volume").value = "";
-        document.getElementById("kw-input-difficulty").value = "";
-        document.getElementById("kw-input-notes").value = "";
+        if (document.getElementById("kw-input-target-url")) document.getElementById("kw-input-target-url").value = c.websiteUrl || "";
+        if (document.getElementById("kw-input-engine")) document.getElementById("kw-input-engine").value = "Google";
+        if (document.getElementById("kw-input-device")) document.getElementById("kw-input-device").value = "Desktop";
+        if (document.getElementById("kw-input-location")) document.getElementById("kw-input-location").value = "Global";
+        if (document.getElementById("kw-input-status")) document.getElementById("kw-input-status").value = "No Change";
+        if (document.getElementById("kw-input-priority")) document.getElementById("kw-input-priority").value = "Medium";
+        if (document.getElementById("kw-input-curr-rank")) document.getElementById("kw-input-curr-rank").value = "10";
+        if (document.getElementById("kw-input-prev-rank")) document.getElementById("kw-input-prev-rank").value = "10";
+        if (document.getElementById("kw-input-volume")) document.getElementById("kw-input-volume").value = "";
+        if (document.getElementById("kw-input-difficulty")) document.getElementById("kw-input-difficulty").value = "";
+        if (document.getElementById("kw-input-notes")) document.getElementById("kw-input-notes").value = "";
 
         const modalEl = bootstrap.Modal.getOrCreateInstance(document.getElementById("addKeywordModal"));
         modalEl.show();
@@ -5881,10 +5985,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // History log filter application
       const applyHistoryFilters = () => {
-        const selectedCamp = document.getElementById("history-filter-campaign").value;
-        const monthVal = document.getElementById("history-filter-month").value;
-        const keywordVal = document.getElementById("history-filter-keyword").value.toLowerCase();
-        const dateVal = document.getElementById("history-filter-date").value;
+        const selectedCamp = (document.getElementById("history-filter-campaign")?.value || "");
+        const monthVal = (document.getElementById("history-filter-month")?.value || "");
+        const keywordVal = (document.getElementById("history-filter-keyword")?.value || "").toLowerCase();
+        const dateVal = (document.getElementById("history-filter-date")?.value || "");
         
         let logsList = [];
         if (selectedCamp === "current") {
@@ -5976,7 +6080,8 @@ document.addEventListener("DOMContentLoaded", () => {
           if ($.fn.DataTable.isDataTable('#weekly-log-table')) {
             $('#weekly-log-table').DataTable().destroy();
           }
-          $('#weekly-log-table').DataTable({
+          if ($.fn.DataTable.isDataTable("#weekly-log-table")) { $("#weekly-log-table").DataTable().destroy(); }
+    $("#weekly-log-table").DataTable({
             pageLength: 10,
             ordering: true,
             order: [[0, "desc"]],
@@ -5989,33 +6094,33 @@ document.addEventListener("DOMContentLoaded", () => {
       applyHistoryFilters();
 
       // Bind filter change events
-      document.getElementById("history-filter-campaign").addEventListener("change", applyHistoryFilters);
-      document.getElementById("history-filter-month").addEventListener("change", applyHistoryFilters);
-      document.getElementById("history-filter-keyword").addEventListener("input", applyHistoryFilters);
-      document.getElementById("history-filter-date").addEventListener("change", applyHistoryFilters);
+      document.getElementById("history-filter-campaign")?.addEventListener("change", applyHistoryFilters);
+      document.getElementById("history-filter-month")?.addEventListener("change", applyHistoryFilters);
+      document.getElementById("history-filter-keyword")?.addEventListener("input", applyHistoryFilters);
+      document.getElementById("history-filter-date")?.addEventListener("change", applyHistoryFilters);
       
       flatpickr("#history-filter-date", { dateFormat: "Y-m-d", allowInput: true });
 
       // Log Modal Trigger
-      document.getElementById("btn-trigger-log-modal").addEventListener("click", () => {
+      document.getElementById("btn-trigger-log-modal")?.addEventListener("click", () => {
         if (keywordsList.length === 0) {
           Swal.fire("No Keywords Tracked", "Please add keywords first in the Keywords tab before logging rank updates.", "warning");
           return;
         }
 
-        document.getElementById("weekly-campaign-id-hidden").value = campaignId;
-        document.getElementById("weekly-input-date").value = new Date().toISOString().split("T")[0];
+        if (document.getElementById("weekly-campaign-id-hidden")) document.getElementById("weekly-campaign-id-hidden").value = campaignId;
+        if (document.getElementById("weekly-input-date")) document.getElementById("weekly-input-date").value = getLocalDateString();
         
         // Populate keyword select options
         const select = document.getElementById("weekly-input-keyword-id");
         select.innerHTML = `<option value="" disabled selected>Choose Keyword...</option>` + 
           keywordsList.map(kw => `<option value="${kw.keyword}">${kw.keyword} (Current: ${kw.currentRank})</option>`).join("");
         
-        document.getElementById("weekly-input-prev-rank").value = "10";
-        document.getElementById("weekly-input-curr-rank").value = "10";
-        document.getElementById("weekly-input-engine").value = "Google";
-        document.getElementById("weekly-input-device").value = "Desktop";
-        document.getElementById("weekly-input-remarks").value = "";
+        if (document.getElementById("weekly-input-prev-rank")) document.getElementById("weekly-input-prev-rank").value = "10";
+        if (document.getElementById("weekly-input-curr-rank")) document.getElementById("weekly-input-curr-rank").value = "10";
+        if (document.getElementById("weekly-input-engine")) document.getElementById("weekly-input-engine").value = "Google";
+        if (document.getElementById("weekly-input-device")) document.getElementById("weekly-input-device").value = "Desktop";
+        if (document.getElementById("weekly-input-remarks")) document.getElementById("weekly-input-remarks").value = "";
 
         flatpickr("#weekly-input-date", { dateFormat: "Y-m-d", allowInput: true });
 
@@ -6144,9 +6249,9 @@ document.addEventListener("DOMContentLoaded", () => {
       flatpickr("#settings-report-date", { dateFormat: "Y-m-d", allowInput: true });
 
       // Save Schedule Listener
-      document.getElementById("btn-save-report-settings").addEventListener("click", () => {
-        c.reportFrequency = document.getElementById("settings-frequency").value;
-        c.reportDate = document.getElementById("settings-report-date").value;
+      document.getElementById("btn-save-report-settings")?.addEventListener("click", () => {
+        c.reportFrequency = (document.getElementById("settings-frequency")?.value || "");
+        c.reportDate = (document.getElementById("settings-report-date")?.value || "");
         saveState();
         Swal.fire("Schedule Updated", "Reporting frequency and due dates updated successfully.", "success");
         renderCampaignDashboard(campaignId);
@@ -6156,11 +6261,11 @@ document.addEventListener("DOMContentLoaded", () => {
       document.querySelectorAll(".btn-upload-doc").forEach(btn => {
         btn.addEventListener("click", () => {
           const type = btn.getAttribute("data-type");
-          document.getElementById("upload-campaign-id-hidden").value = campaignId;
-          document.getElementById("upload-report-type").value = type;
-          document.getElementById("upload-report-name").value = "";
-          document.getElementById("upload-report-notes").value = "";
-          document.getElementById("upload-report-file").value = "";
+          if (document.getElementById("upload-campaign-id-hidden")) document.getElementById("upload-campaign-id-hidden").value = campaignId;
+          if (document.getElementById("upload-report-type")) document.getElementById("upload-report-type").value = type;
+          if (document.getElementById("upload-report-name")) document.getElementById("upload-report-name").value = "";
+          if (document.getElementById("upload-report-notes")) document.getElementById("upload-report-notes").value = "";
+          if (document.getElementById("upload-report-file")) document.getElementById("upload-report-file").value = "";
 
           const modalEl = bootstrap.Modal.getOrCreateInstance(document.getElementById("uploadSeoReportModal"));
           modalEl.show();
@@ -6508,17 +6613,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const proj = state.projects.find(x => x.id === projId);
         if (!proj) return;
 
-        document.getElementById("edit-project-id-hidden").value = proj.id;
-        document.getElementById("edit-project-name").value = proj.projectName || "";
-        document.getElementById("edit-project-type").value = proj.websiteType || "";
-        document.getElementById("edit-project-developer").value = proj.assignedDeveloperId || "";
-        document.getElementById("edit-project-start").value = proj.startDate || "";
-        document.getElementById("edit-project-end").value = proj.deliveryDate || "";
-        document.getElementById("edit-project-progress").value = proj.progress || 0;
-        document.getElementById("edit-project-status").value = proj.status || "Running";
-        document.getElementById("edit-project-domain").value = proj.domain || "";
-        document.getElementById("edit-project-hosting").value = proj.hosting || "";
-        document.getElementById("edit-project-notes").value = proj.notes || "";
+        if (document.getElementById("edit-project-id-hidden")) document.getElementById("edit-project-id-hidden").value = proj.id;
+        if (document.getElementById("edit-project-name")) document.getElementById("edit-project-name").value = proj.projectName || "";
+        if (document.getElementById("edit-project-type")) document.getElementById("edit-project-type").value = proj.websiteType || "";
+        if (document.getElementById("edit-project-developer")) document.getElementById("edit-project-developer").value = proj.assignedDeveloperId || "";
+        if (document.getElementById("edit-project-start")) document.getElementById("edit-project-start").value = proj.startDate || "";
+        if (document.getElementById("edit-project-end")) document.getElementById("edit-project-end").value = proj.deliveryDate || "";
+        if (document.getElementById("edit-project-progress")) document.getElementById("edit-project-progress").value = proj.progress || 0;
+        if (document.getElementById("edit-project-status")) document.getElementById("edit-project-status").value = proj.status || "Running";
+        if (document.getElementById("edit-project-domain")) document.getElementById("edit-project-domain").value = proj.domain || "";
+        if (document.getElementById("edit-project-hosting")) document.getElementById("edit-project-hosting").value = proj.hosting || "";
+        if (document.getElementById("edit-project-notes")) document.getElementById("edit-project-notes").value = proj.notes || "";
 
         flatpickr("#edit-project-start", { dateFormat: "Y-m-d", allowInput: true });
         flatpickr("#edit-project-end", { dateFormat: "Y-m-d", allowInput: true });
@@ -6641,6 +6746,7 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
 
+    if ($.fn.DataTable.isDataTable("#payments-datatable")) { $("#payments-datatable").DataTable().destroy(); }
     $("#payments-datatable").DataTable({
       language: { search: "_INPUT_", searchPlaceholder: "Search Payments..." }
     });
@@ -6706,6 +6812,7 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
 
+    if ($.fn.DataTable.isDataTable("#invoices-datatable")) { $("#invoices-datatable").DataTable().destroy(); }
     $("#invoices-datatable").DataTable({
       language: { search: "_INPUT_", searchPlaceholder: "Search Invoices..." }
     });
@@ -6803,18 +6910,18 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    document.getElementById("invoice-print-btn").addEventListener("click", () => {
+    document.getElementById("invoice-print-btn")?.addEventListener("click", () => {
       window.print();
     });
 
-    document.getElementById("invoice-download-pdf-btn").addEventListener("click", () => {
+    document.getElementById("invoice-download-pdf-btn")?.addEventListener("click", () => {
       Swal.fire("Mock Export", "Invoice saved as PDF in Downloads folder.", "success");
     });
   };
 
   // VIEW: REMINDERS LIST
   const renderReminders = () => {
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = getLocalDateString();
     
     // Categorize reminders
     const todaysReminders = state.reminders.filter(r => r.reminderDate === todayStr && r.status === "Active");
@@ -7023,7 +7130,7 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
 
       <div class="row">
-        ${state.employees.map(emp => `
+        ${state.employees && state.employees.length > 0 ? state.employees.map(emp => `
           <div class="col-md-6 col-lg-3 mb-4">
             <div class="thynk-card text-center h-100 d-flex flex-column justify-content-between">
               <div>
@@ -7052,7 +7159,14 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
             </div>
           </div>
-        `).join("")}
+        `).join("") : `
+          <div class="col-12 py-5 text-center text-muted">
+            <i class="fa-solid fa-users-slash fs-1 mb-3 text-secondary opacity-50"></i>
+            <h5 class="fw-semibold text-dark">No Employees Registered</h5>
+            <p class="small text-muted mb-3">Your HRMS directory is clean. Click 'Add Employee' to register staff members.</p>
+            <a href="#/hrms/employees/new" class="btn btn-danger btn-sm rounded-3 px-3"><i class="fa-solid fa-plus me-1"></i>Add First Employee</a>
+          </div>
+        `}
       </div>
     `;
 
@@ -7086,7 +7200,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // VIEW: ATTENDANCE BOARD
   const renderAttendance = () => {
-    const todayStr = new Date().toISOString().split("T")[0];
+    const todayStr = getLocalDateString();
     
     // Check if current user E001 is clocked in today
     const myLog = state.attendance.find(a => a.employeeId === "E001" && a.date === todayStr);
@@ -7207,7 +7321,16 @@ document.addEventListener("DOMContentLoaded", () => {
         const log = state.attendance.find(a => a.employeeId === "E001" && a.date === todayStr);
         
         log.clockOut = timeNow;
-        log.hours = 8.5; // mocked worked duration
+        if (log.clockIn) {
+          const inParts = log.clockIn.split(":");
+          const outParts = timeNow.split(":");
+          const inMin = parseInt(inParts[0]) * 60 + parseInt(inParts[1]);
+          const outMin = parseInt(outParts[0]) * 60 + parseInt(outParts[1]);
+          const diffHours = Math.max(0.5, Math.round(((outMin - inMin) / 60) * 10) / 10);
+          log.hours = isNaN(diffHours) ? 8.5 : diffHours;
+        } else {
+          log.hours = 8.5;
+        }
         
         addTimelineEvent("attendance", `Employee Ankit Kumar Clocked Out at ${timeNow}`, "fa-door-closed");
         saveState();
@@ -7318,17 +7441,25 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
 
     // Apply leave form handler
-    document.getElementById("apply-leave-form").addEventListener("submit", (e) => {
+    document.getElementById("apply-leave-form")?.addEventListener("submit", (e) => {
       e.preventDefault();
       
       const newL = {
         id: "L" + (state.leaves.length + 1).toString().padStart(2, "0"),
         employeeId: "E001",
-        leaveType: document.getElementById("leave-type").value,
-        startDate: document.getElementById("leave-start").value,
-        endDate: document.getElementById("leave-end").value,
-        totalDays: 3, // mock count
-        reason: document.getElementById("leave-reason").value,
+        leaveType: (document.getElementById("leave-type")?.value || ""),
+        startDate: (document.getElementById("leave-start")?.value || ""),
+        endDate: (document.getElementById("leave-end")?.value || ""),
+        totalDays: (() => {
+          const s = document.getElementById("leave-start")?.value;
+          const e = document.getElementById("leave-end")?.value;
+          if (s && e) {
+            const diff = (new Date(e) - new Date(s)) / (1000 * 60 * 60 * 24);
+            return diff >= 0 ? Math.ceil(diff) + 1 : 1;
+          }
+          return 1;
+        })(),
+        reason: (document.getElementById("leave-reason")?.value || ""),
         status: "Pending"
       };
 
@@ -7392,7 +7523,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       <div class="kanban-container pb-3">
         ${columns.map(col => {
-          const colTasks = state.tasks.filter(t => t.status === col);
+          const activeUserId = (state.currentUser && state.currentUser.id) ? state.currentUser.id : "E001";
+        const colTasks = state.tasks.filter(t => t.status === col && (t.assignedEmployeeId === activeUserId || t.employeeId === activeUserId));
           return `
             <div class="kanban-column" data-status="${col}">
               <div class="kanban-header">
@@ -7602,6 +7734,7 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
 
+    if ($.fn.DataTable.isDataTable("#employee-tasks-datatable")) { $("#employee-tasks-datatable").DataTable().destroy(); }
     $("#employee-tasks-datatable").DataTable({
       language: { search: "_INPUT_", searchPlaceholder: "Search Tasks..." }
     });
@@ -7666,8 +7799,8 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
 
     const generateReport = () => {
-      const type = document.getElementById("report-type").value;
-      const period = document.getElementById("report-period").value;
+      const type = (document.getElementById("report-type")?.value || "");
+      const period = (document.getElementById("report-period")?.value || "");
       const output = document.getElementById("report-output-area");
       const title = document.getElementById("report-output-title");
 
@@ -7781,7 +7914,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 ${state.employees.map(emp => {
                   const completed = state.tasks.filter(t => t.assignedEmployeeId === emp.id && t.status === "Completed").length;
                   const pending = state.tasks.filter(t => t.assignedEmployeeId === emp.id && t.status !== "Completed").length;
-                  const todayAtt = state.attendance.find(a => a.employeeId === emp.id && a.date === new Date().toISOString().split("T")[0]) || { hours: 0 };
+                  const todayAtt = state.attendance.find(a => a.employeeId === emp.id && a.date === getLocalDateString()) || { hours: 0 };
                   
                   return `
                     <tr>
@@ -7801,17 +7934,17 @@ document.addEventListener("DOMContentLoaded", () => {
       output.innerHTML = html;
     };
 
-    document.getElementById("generate-report-btn").addEventListener("click", generateReport);
+    document.getElementById("generate-report-btn")?.addEventListener("click", generateReport);
     generateReport(); // run default first load
 
     // Bind export actions
-    document.getElementById("export-excel-btn").addEventListener("click", () => {
+    document.getElementById("export-excel-btn")?.addEventListener("click", () => {
       Swal.fire("Excel Export", "Report spreadsheet saved in Downloads folder successfully.", "success");
     });
-    document.getElementById("export-pdf-btn").addEventListener("click", () => {
+    document.getElementById("export-pdf-btn")?.addEventListener("click", () => {
       Swal.fire("PDF Export", "Report PDF document generated successfully.", "success");
     });
-    document.getElementById("print-report-btn").addEventListener("click", () => {
+    document.getElementById("print-report-btn")?.addEventListener("click", () => {
       window.print();
     });
   };
@@ -7916,15 +8049,15 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
 
     // Agency config save
-    document.getElementById("agency-settings-form").addEventListener("submit", (e) => {
+    document.getElementById("agency-settings-form")?.addEventListener("submit", (e) => {
       e.preventDefault();
       
-      state.settings.agencyName = document.getElementById("set-agency-name").value;
-      state.settings.email = document.getElementById("set-agency-email").value;
-      state.settings.phone = document.getElementById("set-agency-phone").value;
-      state.settings.currencySymbol = document.getElementById("set-agency-currency").value;
-      state.settings.gstPercentage = parseInt(document.getElementById("set-agency-gst").value);
-      state.settings.website = document.getElementById("set-agency-web").value;
+      state.settings.agencyName = (document.getElementById("set-agency-name")?.value || "");
+      state.settings.email = (document.getElementById("set-agency-email")?.value || "");
+      state.settings.phone = (document.getElementById("set-agency-phone")?.value || "");
+      state.settings.currencySymbol = (document.getElementById("set-agency-currency")?.value || "");
+      state.settings.gstPercentage = parseInt((document.getElementById("set-agency-gst")?.value || ""));
+      state.settings.website = (document.getElementById("set-agency-web")?.value || "");
 
       addTimelineEvent("settings", `Updated global system and agency configurations`, "fa-sliders");
       saveState();
@@ -7933,7 +8066,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     // Reset factory seed
-    document.getElementById("reset-factory-btn").addEventListener("click", () => {
+    document.getElementById("reset-factory-btn")?.addEventListener("click", () => {
       Swal.fire({
         title: "Restore Factory State?",
         text: "This will permanently wipe all local modifications and restore standard seed data.",
@@ -7963,22 +8096,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // 7. FORM SUBMISSIONS AND ACTIONS CREATION HANDLERS
   
   // FORM: CREATE LEAD
-  document.getElementById("add-lead-form").addEventListener("submit", (e) => {
+  document.getElementById("add-lead-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
     const leadId = "L" + (state.leads.length + 1).toString().padStart(3, "0");
     const newL = {
       id: leadId,
-      companyName: document.getElementById("lead-company").value,
-      contactName: document.getElementById("lead-contact").value || "",
-      mobile: document.getElementById("lead-mobile").value || "",
-      email: document.getElementById("lead-email").value || "",
-      source: document.getElementById("lead-source").value || "",
-      value: document.getElementById("lead-value").value ? (parseInt(document.getElementById("lead-value").value) || 0) : null,
-      status: document.getElementById("lead-status").value || "Cold",
-      assignedEmployeeId: document.getElementById("lead-assigned-employee").value || "",
-      notes: document.getElementById("lead-notes").value || "",
-      dateCreated: new Date().toISOString().split("T")[0]
+      companyName: (document.getElementById("lead-company")?.value || ""),
+      contactName: (document.getElementById("lead-contact")?.value || "") || "",
+      mobile: (document.getElementById("lead-mobile")?.value || "") || "",
+      email: (document.getElementById("lead-email")?.value || "") || "",
+      source: (document.getElementById("lead-source")?.value || "") || "",
+      value: (document.getElementById("lead-value")?.value || "") ? (parseInt((document.getElementById("lead-value")?.value || "")) || 0) : null,
+      status: (document.getElementById("lead-status")?.value || "") || "Cold",
+      assignedEmployeeId: (document.getElementById("lead-assigned-employee")?.value || "") || "",
+      notes: (document.getElementById("lead-notes")?.value || "") || "",
+      dateCreated: getLocalDateString()
     };
 
     state.leads.push(newL);
@@ -7999,30 +8132,30 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: CREATE CLIENT
-  document.getElementById("add-client-form").addEventListener("submit", (e) => {
+  document.getElementById("add-client-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
     const clientId = "C" + (state.clients.length + 1).toString().padStart(3, "0");
     const newC = {
       id: clientId,
-      companyName: document.getElementById("client-company").value,
-      clientName: document.getElementById("client-name").value,
-      mobile: document.getElementById("client-mobile").value,
-      whatsapp: document.getElementById("client-whatsapp").value || document.getElementById("client-mobile").value,
-      email: document.getElementById("client-email").value,
-      website: document.getElementById("client-website").value,
-      category: document.getElementById("client-category").value,
-      gst: document.getElementById("client-gst").value,
-      address: document.getElementById("client-address").value,
-      city: document.getElementById("client-city").value,
-      state: document.getElementById("client-state").value,
-      country: document.getElementById("client-country").value,
-      logo: document.getElementById("client-company").value.charAt(0),
-      source: document.getElementById("client-source").value,
-      assignedEmployeeId: document.getElementById("client-assigned-employee").value,
+      companyName: (document.getElementById("client-company")?.value || ""),
+      clientName: (document.getElementById("client-name")?.value || ""),
+      mobile: (document.getElementById("client-mobile")?.value || ""),
+      whatsapp: (document.getElementById("client-whatsapp")?.value || "") || (document.getElementById("client-mobile")?.value || ""),
+      email: (document.getElementById("client-email")?.value || ""),
+      website: (document.getElementById("client-website")?.value || ""),
+      category: (document.getElementById("client-category")?.value || ""),
+      gst: (document.getElementById("client-gst")?.value || ""),
+      address: (document.getElementById("client-address")?.value || ""),
+      city: (document.getElementById("client-city")?.value || ""),
+      state: (document.getElementById("client-state")?.value || ""),
+      country: (document.getElementById("client-country")?.value || ""),
+      logo: (document.getElementById("client-company")?.value || "").charAt(0),
+      source: (document.getElementById("client-source")?.value || ""),
+      assignedEmployeeId: (document.getElementById("client-assigned-employee")?.value || ""),
       status: "Active",
-      priority: document.getElementById("client-priority").value,
-      dateCreated: new Date().toISOString().split("T")[0]
+      priority: (document.getElementById("client-priority")?.value || ""),
+      dateCreated: getLocalDateString()
     };
 
     state.clients.push(newC);
@@ -8030,13 +8163,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // Auto-create Domain & Hosting if checked
     const addDomainHosting = document.getElementById("client-add-domain-hosting").checked;
     if (addDomainHosting) {
-      const domainRegistrar = document.getElementById("client-domain-registrar").value || "GoDaddy";
-      const hostingProvider = document.getElementById("client-hosting-provider").value || "Hostinger";
-      const purchasedDate = document.getElementById("client-domain-purchased").value || new Date().toISOString().split("T")[0];
-      const renewalDate = document.getElementById("client-domain-expiry").value || "";
-      const domainCost = parseInt(document.getElementById("client-domain-cost").value) || 0;
-      const hostingCost = parseInt(document.getElementById("client-hosting-cost").value) || 0;
-      const dnsVal = document.getElementById("client-domain-dns").value || "OK";
+      const domainRegistrar = (document.getElementById("client-domain-registrar")?.value || "") || "GoDaddy";
+      const hostingProvider = (document.getElementById("client-hosting-provider")?.value || "") || "Hostinger";
+      const purchasedDate = (document.getElementById("client-domain-purchased")?.value || "") || getLocalDateString();
+      const renewalDate = (document.getElementById("client-domain-expiry")?.value || "") || "";
+      const domainCost = parseInt((document.getElementById("client-domain-cost")?.value || "")) || 0;
+      const hostingCost = parseInt((document.getElementById("client-hosting-cost")?.value || "")) || 0;
+      const dnsVal = (document.getElementById("client-domain-dns")?.value || "") || "OK";
       
       let parsedDom = "";
       if (newC.website) {
@@ -8131,32 +8264,32 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: EDIT CLIENT
-  document.getElementById("edit-client-form").addEventListener("submit", (e) => {
+  document.getElementById("edit-client-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
-    const clientId = document.getElementById("edit-client-id-hidden").value;
+    const clientId = (document.getElementById("edit-client-id-hidden")?.value || "");
     const clientIndex = state.clients.findIndex(c => c.id === clientId);
     if (clientIndex === -1) {
       Swal.fire("Error", "Client profile not found.", "error");
       return;
     }
 
-    state.clients[clientIndex].companyName = document.getElementById("edit-client-company").value;
-    state.clients[clientIndex].clientName = document.getElementById("edit-client-name").value;
-    state.clients[clientIndex].mobile = document.getElementById("edit-client-mobile").value;
-    state.clients[clientIndex].whatsapp = document.getElementById("edit-client-whatsapp").value || document.getElementById("edit-client-mobile").value;
-    state.clients[clientIndex].email = document.getElementById("edit-client-email").value;
-    state.clients[clientIndex].website = document.getElementById("edit-client-website").value;
-    state.clients[clientIndex].category = document.getElementById("edit-client-category").value;
-    state.clients[clientIndex].gst = document.getElementById("edit-client-gst").value;
-    state.clients[clientIndex].address = document.getElementById("edit-client-address").value;
-    state.clients[clientIndex].city = document.getElementById("edit-client-city").value;
-    state.clients[clientIndex].state = document.getElementById("edit-client-state").value;
-    state.clients[clientIndex].country = document.getElementById("edit-client-country").value;
-    state.clients[clientIndex].source = document.getElementById("edit-client-source").value;
-    state.clients[clientIndex].assignedEmployeeId = document.getElementById("edit-client-assigned-employee").value;
-    state.clients[clientIndex].status = document.getElementById("edit-client-status").value;
-    state.clients[clientIndex].priority = document.getElementById("edit-client-priority").value;
+    state.clients[clientIndex].companyName = (document.getElementById("edit-client-company")?.value || "");
+    state.clients[clientIndex].clientName = (document.getElementById("edit-client-name")?.value || "");
+    state.clients[clientIndex].mobile = (document.getElementById("edit-client-mobile")?.value || "");
+    state.clients[clientIndex].whatsapp = (document.getElementById("edit-client-whatsapp")?.value || "") || (document.getElementById("edit-client-mobile")?.value || "");
+    state.clients[clientIndex].email = (document.getElementById("edit-client-email")?.value || "");
+    state.clients[clientIndex].website = (document.getElementById("edit-client-website")?.value || "");
+    state.clients[clientIndex].category = (document.getElementById("edit-client-category")?.value || "");
+    state.clients[clientIndex].gst = (document.getElementById("edit-client-gst")?.value || "");
+    state.clients[clientIndex].address = (document.getElementById("edit-client-address")?.value || "");
+    state.clients[clientIndex].city = (document.getElementById("edit-client-city")?.value || "");
+    state.clients[clientIndex].state = (document.getElementById("edit-client-state")?.value || "");
+    state.clients[clientIndex].country = (document.getElementById("edit-client-country")?.value || "");
+    state.clients[clientIndex].source = (document.getElementById("edit-client-source")?.value || "");
+    state.clients[clientIndex].assignedEmployeeId = (document.getElementById("edit-client-assigned-employee")?.value || "");
+    state.clients[clientIndex].status = (document.getElementById("edit-client-status")?.value || "");
+    state.clients[clientIndex].priority = (document.getElementById("edit-client-priority")?.value || "");
 
     addTimelineEvent("client", `Updated CRM Client Profile for ${state.clients[clientIndex].companyName}`, "fa-user-pen");
     saveState();
@@ -8173,31 +8306,31 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: ADD SERVICE CONTRACT
-  document.getElementById("add-service-form").addEventListener("submit", (e) => {
+  document.getElementById("add-service-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
     try {
       const srvId = "S" + (state.services.length + 1).toString().padStart(3, "0");
-      const clientId = document.getElementById("service-client-id").value || "";
-      const name = document.getElementById("service-name").value;
-      const cost = parseInt(document.getElementById("service-cost").value) || 0;
-      const discount = parseInt(document.getElementById("service-discount").value) || 0;
+      const clientId = (document.getElementById("service-client-id")?.value || "") || "";
+      const name = (document.getElementById("service-name")?.value || "");
+      const cost = parseInt((document.getElementById("service-cost")?.value || "")) || 0;
+      const discount = parseInt((document.getElementById("service-discount")?.value || "")) || 0;
       const finalAmt = cost - discount;
 
       const newS = {
         id: srvId,
         clientId: clientId,
         serviceName: name,
-        package: document.getElementById("service-package").value || "",
-        startDate: document.getElementById("service-start").value || "",
-        endDate: document.getElementById("service-end").value || "",
-        renewalDate: document.getElementById("service-end").value || "",
-        assignedEmployeeId: document.getElementById("service-assigned-employee").value || "",
+        package: (document.getElementById("service-package")?.value || "") || "",
+        startDate: (document.getElementById("service-start")?.value || "") || "",
+        endDate: (document.getElementById("service-end")?.value || "") || "",
+        renewalDate: (document.getElementById("service-end")?.value || "") || "",
+        assignedEmployeeId: (document.getElementById("service-assigned-employee")?.value || "") || "",
         cost: cost,
         discount: discount,
         finalAmount: finalAmt,
         status: "Running",
-        notes: document.getElementById("service-notes").value || ""
+        notes: (document.getElementById("service-notes")?.value || "") || ""
       };
 
       state.services.push(newS);
@@ -8211,9 +8344,9 @@ document.addEventListener("DOMContentLoaded", () => {
             parsedDom = cli.website.replace(/https?:\/\/(www\.)?/, "").split("/")[0];
           } catch (e) {}
         }
-        const domName = document.getElementById("service-package").value || parsedDom || "Domain for " + (cli ? cli.companyName : "Client");
-        const expiry = document.getElementById("service-end").value || "";
-        const startDate = document.getElementById("service-start").value || "";
+        const domName = (document.getElementById("service-package")?.value || "") || parsedDom || "Domain for " + (cli ? cli.companyName : "Client");
+        const expiry = (document.getElementById("service-end")?.value || "") || "";
+        const startDate = (document.getElementById("service-start")?.value || "") || "";
 
         // Split cost: domain gets 1200 or 50% if finalAmt < 2000, hosting gets the remainder
         const domainCost = finalAmt >= 2000 ? 1200 : Math.floor(finalAmt * 0.5);
@@ -8224,14 +8357,14 @@ document.addEventListener("DOMContentLoaded", () => {
           id: "D" + (state.domains.length + 1).toString().padStart(3, "0"),
           clientId: clientId,
           domainName: domName,
-          registrar: document.getElementById("domain-registrar").value || "GoDaddy",
+          registrar: (document.getElementById("domain-registrar")?.value || "") || "GoDaddy",
           registrationDate: startDate,
           expiryDate: expiry,
           renewalDate: expiry,
           status: calculateStatusFromDate(expiry),
           renewalCost: domainCost,
-          dnsStatus: document.getElementById("domain-dns-status").value || "OK",
-          nameservers: document.getElementById("domain-nameservers").value || "",
+          dnsStatus: (document.getElementById("domain-dns-status")?.value || "") || "OK",
+          nameservers: (document.getElementById("domain-nameservers")?.value || "") || "",
           credentialsPlaceholder: "",
           notes: "Auto-linked on Domain & Hosting service registration"
         });
@@ -8240,8 +8373,8 @@ document.addEventListener("DOMContentLoaded", () => {
         state.hostings.push({
           id: "H" + (state.hostings.length + 1).toString().padStart(3, "0"),
           clientId: clientId,
-          hostingProvider: document.getElementById("hosting-provider").value || "Hostinger",
-          hostingPlan: document.getElementById("service-package").value || "Premium Hosting",
+          hostingProvider: (document.getElementById("hosting-provider")?.value || "") || "Hostinger",
+          hostingPlan: (document.getElementById("service-package")?.value || "") || "Premium Hosting",
           purchaseDate: startDate,
           expiryDate: expiry,
           renewalDate: expiry,
@@ -8257,16 +8390,16 @@ document.addEventListener("DOMContentLoaded", () => {
         state.metaAds.push({
           id: "M" + (state.metaAds.length + 1).toString().padStart(3, "0"),
           clientId: clientId,
-          campaignName: `${getClientName(clientId)} - ${document.getElementById("service-package").value || "Meta Campaign"}`,
+          campaignName: `${getClientName(clientId)} - ${(document.getElementById("service-package")?.value || "") || "Meta Campaign"}`,
           objective: "Lead Generation",
           packageAmount: finalAmt,
           adBudget: Math.round(finalAmt * 0.6), // Mock: 60% of invoice cost goes to budget
-          startDate: document.getElementById("service-start").value,
-          endDate: document.getElementById("service-end").value,
-          renewalDate: document.getElementById("service-end").value,
+          startDate: (document.getElementById("service-start")?.value || ""),
+          endDate: (document.getElementById("service-end")?.value || ""),
+          renewalDate: (document.getElementById("service-end")?.value || ""),
           reach: 0, clicks: 0, leads: 0, cpl: 0, roas: 0,
           status: "Running",
-          assignedEmployeeId: document.getElementById("service-assigned-employee").value,
+          assignedEmployeeId: (document.getElementById("service-assigned-employee")?.value || ""),
           notes: "Auto-launched on Meta Ads subscription start."
         });
       }
@@ -8283,16 +8416,16 @@ document.addEventListener("DOMContentLoaded", () => {
         state.projects.push({
           id: "P" + (state.projects.length + 1).toString().padStart(3, "0"),
           clientId: clientId,
-          projectName: document.getElementById("service-package").value || (cli ? cli.companyName + " Website" : "Website Project"),
+          projectName: (document.getElementById("service-package")?.value || "") || (cli ? cli.companyName + " Website" : "Website Project"),
           websiteType: "Custom Website Development",
           domain: parsedDom || "domain.com",
           hosting: "Hostinger",
-          startDate: document.getElementById("service-start").value || new Date().toISOString().split("T")[0],
-          deliveryDate: document.getElementById("service-end").value || "",
+          startDate: (document.getElementById("service-start")?.value || "") || getLocalDateString(),
+          deliveryDate: (document.getElementById("service-end")?.value || "") || "",
           progress: 0,
-          assignedDeveloperId: document.getElementById("service-assigned-employee").value || "",
+          assignedDeveloperId: (document.getElementById("service-assigned-employee")?.value || "") || "",
           status: "Running",
-          notes: document.getElementById("service-notes").value || "Auto-created on Website Development service activation."
+          notes: (document.getElementById("service-notes")?.value || "") || "Auto-created on Website Development service activation."
         });
       }
 
@@ -8301,16 +8434,16 @@ document.addEventListener("DOMContentLoaded", () => {
         state.googleAds.push({
           id: "G" + (state.googleAds.length + 1).toString().padStart(3, "0"),
           clientId: clientId,
-          campaignName: `${getClientName(clientId)} - ${document.getElementById("service-package").value || "Google Campaign"}`,
+          campaignName: `${getClientName(clientId)} - ${(document.getElementById("service-package")?.value || "") || "Google Campaign"}`,
           objective: "Sales / Signups",
           packageAmount: finalAmt,
           adBudget: Math.round(finalAmt * 0.6),
-          startDate: document.getElementById("service-start").value || new Date().toISOString().split("T")[0],
-          endDate: document.getElementById("service-end").value || "",
+          startDate: (document.getElementById("service-start")?.value || "") || getLocalDateString(),
+          endDate: (document.getElementById("service-end")?.value || "") || "",
           reach: 0, clicks: 0, leads: 0, cpl: 0, roas: 0,
           status: "Running",
-          assignedEmployeeId: document.getElementById("service-assigned-employee").value || "",
-          notes: document.getElementById("service-notes").value || "Auto-created on Google Ads service activation."
+          assignedEmployeeId: (document.getElementById("service-assigned-employee")?.value || "") || "",
+          notes: (document.getElementById("service-notes")?.value || "") || "Auto-created on Google Ads service activation."
         });
       }
 
@@ -8319,14 +8452,14 @@ document.addEventListener("DOMContentLoaded", () => {
         state.seo.push({
           id: "SEO" + (state.seo.length + 1).toString().padStart(3, "0"),
           clientId: clientId,
-          targetKeywords: document.getElementById("service-package").value || "Target Keywords",
+          targetKeywords: (document.getElementById("service-package")?.value || "") || "Target Keywords",
           currentRanking: "Page 1 - Rank 10+",
           articlesPublished: 0,
           backlinks: 0,
           reportFile: "",
-          assignedEmployeeId: document.getElementById("service-assigned-employee").value || "",
+          assignedEmployeeId: (document.getElementById("service-assigned-employee")?.value || "") || "",
           progress: 0,
-          notes: document.getElementById("service-notes").value || "Auto-created on SEO service activation."
+          notes: (document.getElementById("service-notes")?.value || "") || "Auto-created on SEO service activation."
         });
       }
 
@@ -8338,8 +8471,8 @@ document.addEventListener("DOMContentLoaded", () => {
       state.invoices.push({
         id: invId,
         clientId: clientId,
-        invoiceDate: document.getElementById("service-start").value,
-        dueDate: document.getElementById("service-start").value, // payable on start
+        invoiceDate: (document.getElementById("service-start")?.value || ""),
+        dueDate: (document.getElementById("service-start")?.value || ""), // payable on start
         serviceId: srvId,
         grossAmount: finalAmt,
         gstRate: state.settings.gstPercentage,
@@ -8386,12 +8519,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: LOG PAYMENT
-  document.getElementById("add-payment-form").addEventListener("submit", (e) => {
+  document.getElementById("add-payment-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
     const payId = "PAY" + (state.payments.length + 1).toString().padStart(3, "0");
-    const invId = document.getElementById("payment-invoice-id").value;
-    const amount = parseInt(document.getElementById("payment-amount").value);
+    const invId = (document.getElementById("payment-invoice-id")?.value || "");
+    const amount = parseInt((document.getElementById("payment-amount")?.value || ""));
     
     const invoice = state.invoices.find(i => i.id === invId);
     if (!invoice) return;
@@ -8401,11 +8534,11 @@ document.addEventListener("DOMContentLoaded", () => {
       invoiceNo: invId,
       clientId: invoice.clientId,
       amount: amount,
-      date: document.getElementById("payment-date").value,
-      paymentMode: document.getElementById("payment-mode").value,
-      transactionId: document.getElementById("payment-ref").value,
-      receivedById: document.getElementById("payment-received-by").value,
-      remarks: document.getElementById("payment-remarks").value
+      date: (document.getElementById("payment-date")?.value || ""),
+      paymentMode: (document.getElementById("payment-mode")?.value || ""),
+      transactionId: (document.getElementById("payment-ref")?.value || ""),
+      receivedById: (document.getElementById("payment-received-by")?.value || ""),
+      remarks: (document.getElementById("payment-remarks")?.value || "")
     };
 
     state.payments.push(newP);
@@ -8440,13 +8573,13 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: CREATE TASK
-  document.getElementById("add-task-form").addEventListener("submit", (e) => {
+  document.getElementById("add-task-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
     const tId = "T" + (state.tasks.length + 1).toString().padStart(3, "0");
-    const clientId = document.getElementById("task-client-id").value;
-    const title = document.getElementById("task-title").value;
-    const status = document.getElementById("task-status").value;
+    const clientId = (document.getElementById("task-client-id")?.value || "");
+    const title = (document.getElementById("task-title")?.value || "");
+    const status = (document.getElementById("task-status")?.value || "");
 
     let prog = 10;
     if (status === "In Progress") prog = 50;
@@ -8456,14 +8589,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const newT = {
       id: tId,
       taskName: title,
-      description: document.getElementById("task-desc").value,
+      description: (document.getElementById("task-desc")?.value || ""),
       clientId: clientId,
-      serviceId: document.getElementById("task-service-id").value,
-      assignedEmployeeId: document.getElementById("task-assigned-employee").value,
-      priority: document.getElementById("task-priority").value,
-      startDate: document.getElementById("task-start").value,
-      dueDate: document.getElementById("task-due").value,
-      estHours: parseInt(document.getElementById("task-hours").value),
+      serviceId: (document.getElementById("task-service-id")?.value || ""),
+      assignedEmployeeId: (document.getElementById("task-assigned-employee")?.value || ""),
+      priority: (document.getElementById("task-priority")?.value || ""),
+      startDate: (document.getElementById("task-start")?.value || ""),
+      dueDate: (document.getElementById("task-due")?.value || ""),
+      estHours: parseInt((document.getElementById("task-hours")?.value || "")),
       progress: prog,
       status: status,
       comments: [],
@@ -8485,22 +8618,22 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: CREATE REMINDER
-  document.getElementById("add-reminder-form").addEventListener("submit", (e) => {
+  document.getElementById("add-reminder-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
     const rId = "R" + (state.reminders.length + 1).toString().padStart(3, "0");
-    const title = document.getElementById("reminder-title").value;
+    const title = (document.getElementById("reminder-title")?.value || "");
 
     const newR = {
       id: rId,
       title: title,
-      description: document.getElementById("reminder-desc").value,
-      clientId: document.getElementById("reminder-client-id").value,
-      serviceId: document.getElementById("reminder-service-id").value || "",
-      assignedEmployeeId: document.getElementById("reminder-assigned-employee").value,
-      reminderDate: document.getElementById("reminder-date").value,
-      reminderTime: document.getElementById("reminder-time").value,
-      priority: document.getElementById("reminder-priority").value,
+      description: (document.getElementById("reminder-desc")?.value || ""),
+      clientId: (document.getElementById("reminder-client-id")?.value || ""),
+      serviceId: (document.getElementById("reminder-service-id")?.value || "") || "",
+      assignedEmployeeId: (document.getElementById("reminder-assigned-employee")?.value || ""),
+      reminderDate: (document.getElementById("reminder-date")?.value || ""),
+      reminderTime: (document.getElementById("reminder-time")?.value || ""),
+      priority: (document.getElementById("reminder-priority")?.value || ""),
       status: "Active"
     };
 
@@ -8524,22 +8657,22 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: CREATE NOTE
-  document.getElementById("add-note-form").addEventListener("submit", (e) => {
+  document.getElementById("add-note-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
     const nId = "N" + (state.notes.length + 1).toString().padStart(3, "0");
-    const clientId = document.getElementById("note-client-id").value;
-    const title = document.getElementById("note-title").value;
-    const tagsInput = document.getElementById("note-tags").value;
+    const clientId = (document.getElementById("note-client-id")?.value || "");
+    const title = (document.getElementById("note-title")?.value || "");
+    const tagsInput = (document.getElementById("note-tags")?.value || "");
     const tags = tagsInput ? tagsInput.split(",").map(t => t.trim()) : ["General"];
 
     const newN = {
       id: nId,
       clientId: clientId,
       title: title,
-      description: document.getElementById("note-desc").value,
+      description: (document.getElementById("note-desc")?.value || ""),
       tags: tags,
-      createdById: document.getElementById("note-created-by").value,
+      createdById: (document.getElementById("note-created-by")?.value || ""),
       dateCreated: new Date().toISOString().replace('T', ' ').substring(0, 19),
       pinned: document.getElementById("note-pin").checked
     };
@@ -8603,12 +8736,12 @@ document.addEventListener("DOMContentLoaded", () => {
           clientInput.value = camp.clientName || state.selectedMetaClient || "";
           clientInput.setAttribute("readonly", "true");
           
-          document.getElementById("meta-campaign-name").value = camp.campaignName || "";
-          document.getElementById("meta-campaign-objective").value = camp.objective || "";
-          document.getElementById("meta-campaign-ad-budget").value = camp.adBudget || "";
-          document.getElementById("meta-campaign-start").value = camp.startDate || "";
-          document.getElementById("meta-campaign-end").value = camp.endDate || "";
-          document.getElementById("meta-campaign-status").value = camp.status || "Active";
+          if (document.getElementById("meta-campaign-name")) document.getElementById("meta-campaign-name").value = camp.campaignName || "";
+          if (document.getElementById("meta-campaign-objective")) document.getElementById("meta-campaign-objective").value = camp.objective || "";
+          if (document.getElementById("meta-campaign-ad-budget")) document.getElementById("meta-campaign-ad-budget").value = camp.adBudget || "";
+          if (document.getElementById("meta-campaign-start")) document.getElementById("meta-campaign-start").value = camp.startDate || "";
+          if (document.getElementById("meta-campaign-end")) document.getElementById("meta-campaign-end").value = camp.endDate || "";
+          if (document.getElementById("meta-campaign-status")) document.getElementById("meta-campaign-status").value = camp.status || "Active";
         }
       } else {
         modalTitle.innerHTML = `<i class="fa-brands fa-facebook me-2"></i>Add Meta Ads Campaign`;
@@ -8625,22 +8758,22 @@ document.addEventListener("DOMContentLoaded", () => {
           }
         }
         
-        document.getElementById("meta-campaign-name").value = "";
-        document.getElementById("meta-campaign-objective").value = "";
-        document.getElementById("meta-campaign-ad-budget").value = "";
-        document.getElementById("meta-campaign-start").value = "";
-        document.getElementById("meta-campaign-end").value = "";
-        document.getElementById("meta-campaign-status").value = "";
+        if (document.getElementById("meta-campaign-name")) document.getElementById("meta-campaign-name").value = "";
+        if (document.getElementById("meta-campaign-objective")) document.getElementById("meta-campaign-objective").value = "";
+        if (document.getElementById("meta-campaign-ad-budget")) document.getElementById("meta-campaign-ad-budget").value = "";
+        if (document.getElementById("meta-campaign-start")) document.getElementById("meta-campaign-start").value = "";
+        if (document.getElementById("meta-campaign-end")) document.getElementById("meta-campaign-end").value = "";
+        if (document.getElementById("meta-campaign-status")) document.getElementById("meta-campaign-status").value = "";
       }
     });
   }
 
   // FORM: ADD/EDIT META ADS CAMPAIGN
-  document.getElementById("add-meta-campaign-form").addEventListener("submit", (e) => {
+  document.getElementById("add-meta-campaign-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
     const submitBtn = e.target.querySelector("button[type='submit']");
-    const id = document.getElementById("meta-campaign-id-hidden").value;
+    const id = (document.getElementById("meta-campaign-id-hidden")?.value || "");
     const clientNameInput = document.getElementById("meta-client-name");
     const campaignNameInput = document.getElementById("meta-campaign-name");
     const objectiveInput = document.getElementById("meta-campaign-objective");
@@ -8793,17 +8926,17 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: ADD DAILY PERFORMANCE LOG
-  document.getElementById("add-campaign-daily-performance-form").addEventListener("submit", (e) => {
+  document.getElementById("add-campaign-daily-performance-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     const camp = state.metaAds.find(m => m.id === state.selectedMetaCampaignId);
     if (!camp) return;
 
-    const dateVal = document.getElementById("daily-perf-date").value;
-    const spendVal = parseFloat(document.getElementById("daily-perf-spend").value) || 0;
-    const reachVal = parseInt(document.getElementById("daily-perf-reach").value) || 0;
-    const clicksVal = parseInt(document.getElementById("daily-perf-clicks").value) || 0;
-    const leadsVal = parseInt(document.getElementById("daily-perf-leads").value) || 0;
-    const remarksVal = document.getElementById("daily-perf-remarks").value;
+    const dateVal = (document.getElementById("daily-perf-date")?.value || "");
+    const spendVal = parseFloat((document.getElementById("daily-perf-spend")?.value || "")) || 0;
+    const reachVal = parseInt((document.getElementById("daily-perf-reach")?.value || "")) || 0;
+    const clicksVal = parseInt((document.getElementById("daily-perf-clicks")?.value || "")) || 0;
+    const leadsVal = parseInt((document.getElementById("daily-perf-leads")?.value || "")) || 0;
+    const remarksVal = (document.getElementById("daily-perf-remarks")?.value || "");
 
     const logEntry = {
       date: dateVal,
@@ -9442,16 +9575,16 @@ document.addEventListener("DOMContentLoaded", () => {
   setupDailyExportListeners();
 
   // FORM: RECORD CAMPAIGN PAYMENT
-  document.getElementById("add-campaign-payment-form").addEventListener("submit", (e) => {
+  document.getElementById("add-campaign-payment-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     const camp = state.metaAds.find(m => m.id === state.selectedMetaCampaignId);
     if (!camp) return;
 
-    const dateVal = document.getElementById("campaign-payment-date").value;
-    const amtVal = parseFloat(document.getElementById("campaign-payment-amount").value) || 0;
-    const modeVal = document.getElementById("campaign-payment-mode").value;
-    const refVal = document.getElementById("campaign-payment-ref").value;
-    const remarksVal = document.getElementById("campaign-payment-remarks").value;
+    const dateVal = (document.getElementById("campaign-payment-date")?.value || "");
+    const amtVal = parseFloat((document.getElementById("campaign-payment-amount")?.value || "")) || 0;
+    const modeVal = (document.getElementById("campaign-payment-mode")?.value || "");
+    const refVal = (document.getElementById("campaign-payment-ref")?.value || "");
+    const remarksVal = (document.getElementById("campaign-payment-remarks")?.value || "");
 
     const paymentEntry = {
       date: dateVal,
@@ -9495,15 +9628,15 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: CREATE CAMPAIGN NOTE
-  document.getElementById("add-campaign-note-form").addEventListener("submit", (e) => {
+  document.getElementById("add-campaign-note-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     const camp = state.metaAds.find(m => m.id === state.selectedMetaCampaignId);
     if (!camp) return;
 
-    const titleVal = document.getElementById("campaign-note-title").value;
-    const descVal = document.getElementById("campaign-note-desc").value;
-    const priorityVal = document.getElementById("campaign-note-priority").value;
-    const tagsVal = document.getElementById("campaign-note-tags").value;
+    const titleVal = (document.getElementById("campaign-note-title")?.value || "");
+    const descVal = (document.getElementById("campaign-note-desc")?.value || "");
+    const priorityVal = (document.getElementById("campaign-note-priority")?.value || "");
+    const tagsVal = (document.getElementById("campaign-note-tags")?.value || "");
 
     const noteEntry = {
       id: "MN" + Date.now(),
@@ -9534,17 +9667,17 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: RECORD CAMPAIGN FOLLOW-UP
-  document.getElementById("add-campaign-followup-form").addEventListener("submit", (e) => {
+  document.getElementById("add-campaign-followup-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     const camp = state.metaAds.find(m => m.id === state.selectedMetaCampaignId);
     if (!camp) return;
 
-    const dateVal = document.getElementById("campaign-followup-date").value;
-    const nextVal = document.getElementById("campaign-followup-next").value;
-    const typeVal = document.getElementById("campaign-followup-type").value;
-    const statusVal = document.getElementById("campaign-followup-status").value;
-    const employeeVal = document.getElementById("campaign-followup-employee").value;
-    const summaryVal = document.getElementById("campaign-followup-summary").value;
+    const dateVal = (document.getElementById("campaign-followup-date")?.value || "");
+    const nextVal = (document.getElementById("campaign-followup-next")?.value || "");
+    const typeVal = (document.getElementById("campaign-followup-type")?.value || "");
+    const statusVal = (document.getElementById("campaign-followup-status")?.value || "");
+    const employeeVal = (document.getElementById("campaign-followup-employee")?.value || "");
+    const summaryVal = (document.getElementById("campaign-followup-summary")?.value || "");
 
     const followupEntry = {
       id: "MF" + Date.now(),
@@ -9575,12 +9708,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: ADD CANVA PREMIUM LICENSE
-  document.getElementById("add-canva-form").addEventListener("submit", (e) => {
+  document.getElementById("add-canva-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
     const canId = "CAN" + (state.canva.length + 1).toString().padStart(3, "0");
-    const clientId = document.getElementById("canva-client-id").value || "";
-    let clientName = document.getElementById("canva-client-name").value.trim();
+    const clientId = (document.getElementById("canva-client-id")?.value || "") || "";
+    let clientName = (document.getElementById("canva-client-name")?.value || "").trim();
     
     // If client is selected from dropdown but name is not typed, get from client object
     if (clientId && !clientName) {
@@ -9592,11 +9725,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     
-    const email = document.getElementById("canva-email").value;
-    const price = parseInt(document.getElementById("canva-price").value) || 499;
-    const purchaseDate = document.getElementById("canva-purchase-date").value;
-    const renewalDate = document.getElementById("canva-renewal-date").value;
-    const notes = document.getElementById("canva-notes").value || "";
+    const email = (document.getElementById("canva-email")?.value || "");
+    const price = parseInt((document.getElementById("canva-price")?.value || "")) || 499;
+    const purchaseDate = (document.getElementById("canva-purchase-date")?.value || "");
+    const renewalDate = (document.getElementById("canva-renewal-date")?.value || "");
+    const notes = (document.getElementById("canva-notes")?.value || "") || "";
 
     const newCan = {
       id: canId,
@@ -9625,18 +9758,18 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: EDIT CANVA PREMIUM LICENSE
-  document.getElementById("edit-canva-form").addEventListener("submit", (e) => {
+  document.getElementById("edit-canva-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
-    const canId = document.getElementById("edit-canva-id-hidden").value;
+    const canId = (document.getElementById("edit-canva-id-hidden")?.value || "");
     const canIndex = state.canva.findIndex(c => c.id === canId);
     if (canIndex === -1) {
       Swal.fire("Error", "Canva account record not found.", "error");
       return;
     }
 
-    const clientId = document.getElementById("edit-canva-client-id").value || "";
-    let clientName = document.getElementById("edit-canva-client-name").value.trim();
+    const clientId = (document.getElementById("edit-canva-client-id")?.value || "") || "";
+    let clientName = (document.getElementById("edit-canva-client-name")?.value || "").trim();
     
     // If client is selected from dropdown but name is not typed, get from client object
     if (clientId && !clientName) {
@@ -9648,11 +9781,11 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     
-    const email = document.getElementById("edit-canva-email").value;
-    const price = parseInt(document.getElementById("edit-canva-price").value) || 499;
-    const purchaseDate = document.getElementById("edit-canva-purchase-date").value;
-    const renewalDate = document.getElementById("edit-canva-renewal-date").value;
-    const notes = document.getElementById("edit-canva-notes").value || "";
+    const email = (document.getElementById("edit-canva-email")?.value || "");
+    const price = parseInt((document.getElementById("edit-canva-price")?.value || "")) || 499;
+    const purchaseDate = (document.getElementById("edit-canva-purchase-date")?.value || "");
+    const renewalDate = (document.getElementById("edit-canva-renewal-date")?.value || "");
+    const notes = (document.getElementById("edit-canva-notes")?.value || "") || "";
 
     state.canva[canIndex].clientId = clientId;
     state.canva[canIndex].clientName = clientName;
@@ -9677,12 +9810,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: ADD BILLING SOFTWARE LICENSE
-  document.getElementById("add-billing-software-form").addEventListener("submit", (e) => {
+  document.getElementById("add-billing-software-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
     const bsId = "BS" + (state.billingSoftware.length + 1).toString().padStart(3, "0");
-    const clientId = document.getElementById("billing-software-client-id").value || "";
-    let companyName = document.getElementById("billing-software-company-name").value.trim();
+    const clientId = (document.getElementById("billing-software-client-id")?.value || "") || "";
+    let companyName = (document.getElementById("billing-software-company-name")?.value || "").trim();
     
     // If company is selected from dropdown but name is not typed, get from client object
     if (clientId && !companyName) {
@@ -9694,12 +9827,12 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     
-    const clientName = document.getElementById("billing-software-client-name").value.trim() || "";
-    const price = parseInt(document.getElementById("billing-software-price").value) || 0;
-    const maintenance = parseInt(document.getElementById("billing-software-maintenance").value) || 0;
-    const purchaseDate = document.getElementById("billing-software-purchase-date").value;
-    const renewalDate = document.getElementById("billing-software-renewal-date").value;
-    const notes = document.getElementById("billing-software-notes").value || "";
+    const clientName = (document.getElementById("billing-software-client-name")?.value || "").trim() || "";
+    const price = parseInt((document.getElementById("billing-software-price")?.value || "")) || 0;
+    const maintenance = parseInt((document.getElementById("billing-software-maintenance")?.value || "")) || 0;
+    const purchaseDate = (document.getElementById("billing-software-purchase-date")?.value || "");
+    const renewalDate = (document.getElementById("billing-software-renewal-date")?.value || "");
+    const notes = (document.getElementById("billing-software-notes")?.value || "") || "";
 
     const newBS = {
       id: bsId,
@@ -9729,18 +9862,18 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: EDIT BILLING SOFTWARE LICENSE
-  document.getElementById("edit-billing-software-form").addEventListener("submit", (e) => {
+  document.getElementById("edit-billing-software-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
-    const bsId = document.getElementById("edit-billing-software-id-hidden").value;
+    const bsId = (document.getElementById("edit-billing-software-id-hidden")?.value || "");
     const bsIndex = state.billingSoftware.findIndex(b => b.id === bsId);
     if (bsIndex === -1) {
       Swal.fire("Error", "Billing Software account record not found.", "error");
       return;
     }
 
-    const clientId = document.getElementById("edit-billing-software-client-id").value || "";
-    let companyName = document.getElementById("edit-billing-software-company-name").value.trim();
+    const clientId = (document.getElementById("edit-billing-software-client-id")?.value || "") || "";
+    let companyName = (document.getElementById("edit-billing-software-company-name")?.value || "").trim();
     
     // If company is selected from dropdown but name is not typed, get from client object
     if (clientId && !companyName) {
@@ -9752,12 +9885,12 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     
-    const clientName = document.getElementById("edit-billing-software-client-name").value.trim() || "";
-    const price = parseInt(document.getElementById("edit-billing-software-price").value) || 0;
-    const maintenance = parseInt(document.getElementById("edit-billing-software-maintenance").value) || 0;
-    const purchaseDate = document.getElementById("edit-billing-software-purchase-date").value;
-    const renewalDate = document.getElementById("edit-billing-software-renewal-date").value;
-    const notes = document.getElementById("edit-billing-software-notes").value || "";
+    const clientName = (document.getElementById("edit-billing-software-client-name")?.value || "").trim() || "";
+    const price = parseInt((document.getElementById("edit-billing-software-price")?.value || "")) || 0;
+    const maintenance = parseInt((document.getElementById("edit-billing-software-maintenance")?.value || "")) || 0;
+    const purchaseDate = (document.getElementById("edit-billing-software-purchase-date")?.value || "");
+    const renewalDate = (document.getElementById("edit-billing-software-renewal-date")?.value || "");
+    const notes = (document.getElementById("edit-billing-software-notes")?.value || "") || "";
 
     state.billingSoftware[bsIndex].clientId = clientId;
     state.billingSoftware[bsIndex].companyName = companyName;
@@ -9783,33 +9916,33 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: EDIT SERVICE CONTRACT
-  document.getElementById("edit-service-form").addEventListener("submit", (e) => {
+  document.getElementById("edit-service-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
-    const srvId = document.getElementById("edit-service-id-hidden").value;
+    const srvId = (document.getElementById("edit-service-id-hidden")?.value || "");
     const srvIndex = state.services.findIndex(s => s.id === srvId);
     if (srvIndex === -1) {
       Swal.fire("Error", "Service contract not found.", "error");
       return;
     }
 
-    const name = document.getElementById("edit-service-name").value;
-    const cost = parseInt(document.getElementById("edit-service-cost").value) || 0;
-    const discount = parseInt(document.getElementById("edit-service-discount").value) || 0;
+    const name = (document.getElementById("edit-service-name")?.value || "");
+    const cost = parseInt((document.getElementById("edit-service-cost")?.value || "")) || 0;
+    const discount = parseInt((document.getElementById("edit-service-discount")?.value || "")) || 0;
     const finalAmt = cost - discount;
 
     // Update fields in contract
     state.services[srvIndex].serviceName = name;
-    state.services[srvIndex].package = document.getElementById("edit-service-package").value || "";
-    state.services[srvIndex].startDate = document.getElementById("edit-service-start").value || "";
-    state.services[srvIndex].endDate = document.getElementById("edit-service-end").value || "";
-    state.services[srvIndex].renewalDate = document.getElementById("edit-service-end").value || "";
-    state.services[srvIndex].assignedEmployeeId = document.getElementById("edit-service-assigned-employee").value || "";
+    state.services[srvIndex].package = (document.getElementById("edit-service-package")?.value || "") || "";
+    state.services[srvIndex].startDate = (document.getElementById("edit-service-start")?.value || "") || "";
+    state.services[srvIndex].endDate = (document.getElementById("edit-service-end")?.value || "") || "";
+    state.services[srvIndex].renewalDate = (document.getElementById("edit-service-end")?.value || "") || "";
+    state.services[srvIndex].assignedEmployeeId = (document.getElementById("edit-service-assigned-employee")?.value || "") || "";
     state.services[srvIndex].cost = cost;
     state.services[srvIndex].discount = discount;
     state.services[srvIndex].finalAmount = finalAmt;
-    state.services[srvIndex].status = document.getElementById("edit-service-status").value;
-    state.services[srvIndex].notes = document.getElementById("edit-service-notes").value || "";
+    state.services[srvIndex].status = (document.getElementById("edit-service-status")?.value || "");
+    state.services[srvIndex].notes = (document.getElementById("edit-service-notes")?.value || "") || "";
 
     addTimelineEvent("service", `Updated service contract '${name}' for ${getClientName(state.services[srvIndex].clientId)}`, "fa-cube");
     saveState();
@@ -9830,32 +9963,32 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: EDIT DOMAIN
-  document.getElementById("edit-domain-form").addEventListener("submit", (e) => {
+  document.getElementById("edit-domain-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
-    const domId = document.getElementById("edit-domain-id-hidden").value;
+    const domId = (document.getElementById("edit-domain-id-hidden")?.value || "");
     const domIndex = state.domains.findIndex(d => d.id === domId);
     if (domIndex === -1) {
       Swal.fire("Error", "Domain record not found.", "error");
       return;
     }
 
-    const domainName = document.getElementById("edit-domain-name").value;
-    const cost = parseInt(document.getElementById("edit-domain-cost").value) || 0;
+    const domainName = (document.getElementById("edit-domain-name")?.value || "");
+    const cost = parseInt((document.getElementById("edit-domain-cost")?.value || "")) || 0;
 
     // Update fields
-    state.domains[domIndex].clientId = document.getElementById("edit-domain-client-id").value;
+    state.domains[domIndex].clientId = (document.getElementById("edit-domain-client-id")?.value || "");
     state.domains[domIndex].domainName = domainName;
-    state.domains[domIndex].registrar = document.getElementById("edit-domain-registrar").value;
-    state.domains[domIndex].registrationDate = document.getElementById("edit-domain-purchased").value;
-    state.domains[domIndex].expiryDate = document.getElementById("edit-domain-expiry").value;
-    state.domains[domIndex].renewalDate = document.getElementById("edit-domain-expiry").value;
+    state.domains[domIndex].registrar = (document.getElementById("edit-domain-registrar")?.value || "");
+    state.domains[domIndex].registrationDate = (document.getElementById("edit-domain-purchased")?.value || "");
+    state.domains[domIndex].expiryDate = (document.getElementById("edit-domain-expiry")?.value || "");
+    state.domains[domIndex].renewalDate = (document.getElementById("edit-domain-expiry")?.value || "");
     state.domains[domIndex].renewalCost = cost;
-    state.domains[domIndex].dnsStatus = document.getElementById("edit-domain-dns").value;
-    state.domains[domIndex].status = document.getElementById("edit-domain-status").value;
-    state.domains[domIndex].nameservers = document.getElementById("edit-domain-nameservers").value || "";
-    state.domains[domIndex].credentialsPlaceholder = document.getElementById("edit-domain-credentials").value || "";
-    state.domains[domIndex].notes = document.getElementById("edit-domain-notes").value || "";
+    state.domains[domIndex].dnsStatus = (document.getElementById("edit-domain-dns")?.value || "");
+    state.domains[domIndex].status = (document.getElementById("edit-domain-status")?.value || "");
+    state.domains[domIndex].nameservers = (document.getElementById("edit-domain-nameservers")?.value || "") || "";
+    state.domains[domIndex].credentialsPlaceholder = (document.getElementById("edit-domain-credentials")?.value || "") || "";
+    state.domains[domIndex].notes = (document.getElementById("edit-domain-notes")?.value || "") || "";
 
     addTimelineEvent("domain", `Updated domain record '${domainName}' for ${getClientName(state.domains[domIndex].clientId)}`, "fa-globe");
     saveState();
@@ -9874,30 +10007,30 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: EDIT HOSTING
-  document.getElementById("edit-hosting-form").addEventListener("submit", (e) => {
+  document.getElementById("edit-hosting-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
-    const hstId = document.getElementById("edit-hosting-id-hidden").value;
+    const hstId = (document.getElementById("edit-hosting-id-hidden")?.value || "");
     const hstIndex = state.hostings.findIndex(h => h.id === hstId);
     if (hstIndex === -1) {
       Swal.fire("Error", "Hosting record not found.", "error");
       return;
     }
 
-    const provider = document.getElementById("edit-hosting-provider").value;
-    const cost = parseInt(document.getElementById("edit-hosting-cost").value) || 0;
+    const provider = (document.getElementById("edit-hosting-provider")?.value || "");
+    const cost = parseInt((document.getElementById("edit-hosting-cost")?.value || "")) || 0;
 
     // Update fields
-    state.hostings[hstIndex].clientId = document.getElementById("edit-hosting-client-id").value;
+    state.hostings[hstIndex].clientId = (document.getElementById("edit-hosting-client-id")?.value || "");
     state.hostings[hstIndex].hostingProvider = provider;
-    state.hostings[hstIndex].hostingPlan = document.getElementById("edit-hosting-plan").value;
-    state.hostings[hstIndex].purchaseDate = document.getElementById("edit-hosting-purchased").value;
-    state.hostings[hstIndex].expiryDate = document.getElementById("edit-hosting-expiry").value;
-    state.hostings[hstIndex].renewalDate = document.getElementById("edit-hosting-expiry").value;
+    state.hostings[hstIndex].hostingPlan = (document.getElementById("edit-hosting-plan")?.value || "");
+    state.hostings[hstIndex].purchaseDate = (document.getElementById("edit-hosting-purchased")?.value || "");
+    state.hostings[hstIndex].expiryDate = (document.getElementById("edit-hosting-expiry")?.value || "");
+    state.hostings[hstIndex].renewalDate = (document.getElementById("edit-hosting-expiry")?.value || "");
     state.hostings[hstIndex].renewalCost = cost;
-    state.hostings[hstIndex].backupStatus = document.getElementById("edit-hosting-backup").value || "";
-    state.hostings[hstIndex].status = document.getElementById("edit-hosting-status").value;
-    state.hostings[hstIndex].notes = document.getElementById("edit-hosting-notes").value || "";
+    state.hostings[hstIndex].backupStatus = (document.getElementById("edit-hosting-backup")?.value || "") || "";
+    state.hostings[hstIndex].status = (document.getElementById("edit-hosting-status")?.value || "");
+    state.hostings[hstIndex].notes = (document.getElementById("edit-hosting-notes")?.value || "") || "";
 
     addTimelineEvent("hosting", `Updated hosting record '${provider}' for ${getClientName(state.hostings[hstIndex].clientId)}`, "fa-server");
     saveState();
@@ -9916,29 +10049,29 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: ADD DOMAIN
-  document.getElementById("add-domain-form").addEventListener("submit", (e) => {
+  document.getElementById("add-domain-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
-    const domainName = document.getElementById("add-domain-name").value;
-    const cost = parseInt(document.getElementById("add-domain-cost").value) || 0;
-    const clientId = document.getElementById("add-domain-client-id").value;
-    const registrationDate = document.getElementById("add-domain-purchased").value;
-    const expiryDate = document.getElementById("add-domain-expiry").value;
+    const domainName = (document.getElementById("add-domain-name")?.value || "");
+    const cost = parseInt((document.getElementById("add-domain-cost")?.value || "")) || 0;
+    const clientId = (document.getElementById("add-domain-client-id")?.value || "");
+    const registrationDate = (document.getElementById("add-domain-purchased")?.value || "");
+    const expiryDate = (document.getElementById("add-domain-expiry")?.value || "");
 
     const newDom = {
       id: "D" + (state.domains.length + 1).toString().padStart(3, "0"),
       clientId: clientId,
       domainName: domainName,
-      registrar: document.getElementById("add-domain-registrar").value,
+      registrar: (document.getElementById("add-domain-registrar")?.value || ""),
       registrationDate: registrationDate,
       expiryDate: expiryDate,
       renewalDate: expiryDate,
       renewalCost: cost,
-      dnsStatus: document.getElementById("add-domain-dns").value,
-      status: document.getElementById("add-domain-status").value,
-      nameservers: document.getElementById("add-domain-nameservers").value || "",
-      credentialsPlaceholder: document.getElementById("add-domain-credentials").value || "",
-      notes: document.getElementById("add-domain-notes").value || ""
+      dnsStatus: (document.getElementById("add-domain-dns")?.value || ""),
+      status: (document.getElementById("add-domain-status")?.value || ""),
+      nameservers: (document.getElementById("add-domain-nameservers")?.value || "") || "",
+      credentialsPlaceholder: (document.getElementById("add-domain-credentials")?.value || "") || "",
+      notes: (document.getElementById("add-domain-notes")?.value || "") || ""
     };
 
     state.domains.push(newDom);
@@ -9960,27 +10093,27 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: ADD HOSTING
-  document.getElementById("add-hosting-form").addEventListener("submit", (e) => {
+  document.getElementById("add-hosting-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
-    const provider = document.getElementById("add-hosting-provider").value;
-    const cost = parseInt(document.getElementById("add-hosting-cost").value) || 0;
-    const clientId = document.getElementById("add-hosting-client-id").value;
-    const purchaseDate = document.getElementById("add-hosting-purchased").value;
-    const expiryDate = document.getElementById("add-hosting-expiry").value;
+    const provider = (document.getElementById("add-hosting-provider")?.value || "");
+    const cost = parseInt((document.getElementById("add-hosting-cost")?.value || "")) || 0;
+    const clientId = (document.getElementById("add-hosting-client-id")?.value || "");
+    const purchaseDate = (document.getElementById("add-hosting-purchased")?.value || "");
+    const expiryDate = (document.getElementById("add-hosting-expiry")?.value || "");
 
     const newHst = {
       id: "H" + (state.hostings.length + 1).toString().padStart(3, "0"),
       clientId: clientId,
       hostingProvider: provider,
-      hostingPlan: document.getElementById("add-hosting-plan").value,
+      hostingPlan: (document.getElementById("add-hosting-plan")?.value || ""),
       purchaseDate: purchaseDate,
       expiryDate: expiryDate,
       renewalDate: expiryDate,
       renewalCost: cost,
-      backupStatus: document.getElementById("add-hosting-backup").value || "",
-      status: document.getElementById("add-hosting-status").value,
-      notes: document.getElementById("add-hosting-notes").value || ""
+      backupStatus: (document.getElementById("add-hosting-backup")?.value || "") || "",
+      status: (document.getElementById("add-hosting-status")?.value || ""),
+      notes: (document.getElementById("add-hosting-notes")?.value || "") || ""
     };
 
     state.hostings.push(newHst);
@@ -10003,21 +10136,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   // FORM: EDIT FOLLOW-UP
-  document.getElementById("edit-followup-form").addEventListener("submit", (e) => {
+  document.getElementById("edit-followup-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
-    const flwId = document.getElementById("edit-followup-id-hidden").value;
+    const flwId = (document.getElementById("edit-followup-id-hidden")?.value || "");
     const flwIndex = state.followups.findIndex(x => x.id === flwId);
     if (flwIndex === -1) {
       Swal.fire("Error", "Follow-up record not found.", "error");
       return;
     }
 
-    state.followups[flwIndex].type = document.getElementById("edit-followup-type").value;
-    state.followups[flwIndex].status = document.getElementById("edit-followup-status").value;
-    state.followups[flwIndex].lastContact = document.getElementById("edit-followup-last").value;
-    state.followups[flwIndex].nextFollowup = document.getElementById("edit-followup-next").value;
-    state.followups[flwIndex].remarks = document.getElementById("edit-followup-remarks").value;
+    state.followups[flwIndex].type = (document.getElementById("edit-followup-type")?.value || "");
+    state.followups[flwIndex].status = (document.getElementById("edit-followup-status")?.value || "");
+    state.followups[flwIndex].lastContact = (document.getElementById("edit-followup-last")?.value || "");
+    state.followups[flwIndex].nextFollowup = (document.getElementById("edit-followup-next")?.value || "");
+    state.followups[flwIndex].remarks = (document.getElementById("edit-followup-remarks")?.value || "");
 
     addTimelineEvent("followup", `Updated follow-up status for client ${getClientName(state.followups[flwIndex].clientId)}`, "fa-phone");
     saveState();
@@ -10034,9 +10167,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: EDIT SEO CAMPAIGN
-  document.getElementById("edit-seo-form").addEventListener("submit", (e) => {
+  document.getElementById("edit-seo-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
-    const id = document.getElementById("edit-seo-id-hidden").value;
+    const id = (document.getElementById("edit-seo-id-hidden")?.value || "");
     const idx = state.seo.findIndex(x => x.id === id);
     if (idx === -1) {
       Swal.fire("Error", "SEO record not found.", "error");
@@ -10044,20 +10177,20 @@ document.addEventListener("DOMContentLoaded", () => {
     }
     
     // Save updated values
-    state.seo[idx].clientId = document.getElementById("edit-seo-client-id").value;
-    state.seo[idx].websiteUrl = document.getElementById("edit-seo-url").value;
-    state.seo[idx].campaignName = document.getElementById("edit-seo-campaign-name").value;
-    state.seo[idx].package = document.getElementById("edit-seo-package").value;
-    state.seo[idx].startDate = document.getElementById("edit-seo-start-date").value;
-    state.seo[idx].endDate = document.getElementById("edit-seo-end-date").value;
-    state.seo[idx].budget = parseFloat(document.getElementById("edit-seo-budget").value) || 0;
-    state.seo[idx].status = document.getElementById("edit-seo-status").value;
-    state.seo[idx].assignedEmployeeId = document.getElementById("edit-seo-employee").value;
-    state.seo[idx].reportDate = document.getElementById("edit-seo-report-date").value;
-    state.seo[idx].reportFrequency = document.getElementById("edit-seo-frequency").value;
-    state.seo[idx].notes = document.getElementById("edit-seo-notes").value;
+    state.seo[idx].clientId = (document.getElementById("edit-seo-client-id")?.value || "");
+    state.seo[idx].websiteUrl = (document.getElementById("edit-seo-url")?.value || "");
+    state.seo[idx].campaignName = (document.getElementById("edit-seo-campaign-name")?.value || "");
+    state.seo[idx].package = (document.getElementById("edit-seo-package")?.value || "");
+    state.seo[idx].startDate = (document.getElementById("edit-seo-start-date")?.value || "");
+    state.seo[idx].endDate = (document.getElementById("edit-seo-end-date")?.value || "");
+    state.seo[idx].budget = parseFloat((document.getElementById("edit-seo-budget")?.value || "")) || 0;
+    state.seo[idx].status = (document.getElementById("edit-seo-status")?.value || "");
+    state.seo[idx].assignedEmployeeId = (document.getElementById("edit-seo-employee")?.value || "");
+    state.seo[idx].reportDate = (document.getElementById("edit-seo-report-date")?.value || "");
+    state.seo[idx].reportFrequency = (document.getElementById("edit-seo-frequency")?.value || "");
+    state.seo[idx].notes = (document.getElementById("edit-seo-notes")?.value || "");
 
-    const additionalKwsText = document.getElementById("edit-seo-keywords").value || "";
+    const additionalKwsText = (document.getElementById("edit-seo-keywords")?.value || "") || "";
     const uniquePhrases = [...new Set(
       additionalKwsText.split(/[\n,]+/)
         .map(p => p.trim())
@@ -10100,20 +10233,20 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: ADD SEO CAMPAIGN
-  document.getElementById("add-seo-form").addEventListener("submit", (e) => {
+  document.getElementById("add-seo-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
     // Generate new unique ID
     const newId = "SEO" + (state.seo.length + 1).toString().padStart(3, "0");
     
-    const initialKwsText = document.getElementById("add-seo-keywords").value || "";
+    const initialKwsText = (document.getElementById("add-seo-keywords")?.value || "") || "";
     const uniquePhrases = [...new Set(
       initialKwsText.split(/[\n,]+/)
         .map(p => p.trim())
         .filter(p => p.length > 0)
     )];
 
-    const targetUrl = document.getElementById("add-seo-url").value;
+    const targetUrl = (document.getElementById("add-seo-url")?.value || "");
     const initialKeywordsList = uniquePhrases.map((phrase, idx) => ({
       id: "KW" + (idx + 1).toString().padStart(3, "0"),
       keyword: phrase,
@@ -10130,18 +10263,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const newCampaign = {
       id: newId,
-      clientId: document.getElementById("add-seo-client-id").value,
+      clientId: (document.getElementById("add-seo-client-id")?.value || ""),
       websiteUrl: targetUrl,
-      campaignName: document.getElementById("add-seo-campaign-name").value,
-      package: document.getElementById("add-seo-package").value,
-      startDate: document.getElementById("add-seo-start-date").value,
-      endDate: document.getElementById("add-seo-end-date").value,
-      budget: parseFloat(document.getElementById("add-seo-budget").value) || 0,
-      status: document.getElementById("add-seo-status").value || "Active",
-      assignedEmployeeId: document.getElementById("add-seo-employee").value || "",
-      reportDate: document.getElementById("add-seo-report-date").value,
-      reportFrequency: document.getElementById("add-seo-frequency").value || "Monthly",
-      notes: document.getElementById("add-seo-notes").value || "",
+      campaignName: (document.getElementById("add-seo-campaign-name")?.value || ""),
+      package: (document.getElementById("add-seo-package")?.value || ""),
+      startDate: (document.getElementById("add-seo-start-date")?.value || ""),
+      endDate: (document.getElementById("add-seo-end-date")?.value || ""),
+      budget: parseFloat((document.getElementById("add-seo-budget")?.value || "")) || 0,
+      status: (document.getElementById("add-seo-status")?.value || "") || "Active",
+      assignedEmployeeId: (document.getElementById("add-seo-employee")?.value || "") || "",
+      reportDate: (document.getElementById("add-seo-report-date")?.value || ""),
+      reportFrequency: (document.getElementById("add-seo-frequency")?.value || "") || "Monthly",
+      notes: (document.getElementById("add-seo-notes")?.value || "") || "",
       keywords: initialKeywordsList,
       weeklyLog: [],
       uploadedReports: [],
@@ -10164,14 +10297,14 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: ADD/EDIT SEO KEYWORD
-  document.getElementById("keyword-form").addEventListener("submit", (e) => {
+  document.getElementById("keyword-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
-    const kwId = document.getElementById("kw-id-hidden").value;
-    let campaignId = document.getElementById("kw-campaign-id-hidden").value;
+    const kwId = (document.getElementById("kw-id-hidden")?.value || "");
+    let campaignId = (document.getElementById("kw-campaign-id-hidden")?.value || "");
     
     // Fallback to select dropdown if not inside a campaign dashboard context
     if (!campaignId) {
-      campaignId = document.getElementById("kw-input-campaign-id").value;
+      campaignId = (document.getElementById("kw-input-campaign-id")?.value || "");
     }
     
     if (!campaignId) {
@@ -10185,18 +10318,18 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     
-    const keywordInput = document.getElementById("kw-input-name").value;
-    const targetUrl = document.getElementById("kw-input-target-url").value;
-    const searchEngine = document.getElementById("kw-input-engine").value;
-    const device = document.getElementById("kw-input-device").value;
-    const location = document.getElementById("kw-input-location").value;
-    const status = document.getElementById("kw-input-status").value;
-    const priority = document.getElementById("kw-input-priority").value;
-    const currentRank = parseInt(document.getElementById("kw-input-curr-rank").value) || 10;
-    const previousRank = parseInt(document.getElementById("kw-input-prev-rank").value) || 10;
-    const searchVolume = parseInt(document.getElementById("kw-input-volume").value) || null;
-    const difficulty = parseInt(document.getElementById("kw-input-difficulty").value) || null;
-    const notes = document.getElementById("kw-input-notes").value || "";
+    const keywordInput = (document.getElementById("kw-input-name")?.value || "");
+    const targetUrl = (document.getElementById("kw-input-target-url")?.value || "");
+    const searchEngine = (document.getElementById("kw-input-engine")?.value || "");
+    const device = (document.getElementById("kw-input-device")?.value || "");
+    const location = (document.getElementById("kw-input-location")?.value || "");
+    const status = (document.getElementById("kw-input-status")?.value || "");
+    const priority = (document.getElementById("kw-input-priority")?.value || "");
+    const currentRank = parseInt((document.getElementById("kw-input-curr-rank")?.value || "")) || 10;
+    const previousRank = parseInt((document.getElementById("kw-input-prev-rank")?.value || "")) || 10;
+    const searchVolume = parseInt((document.getElementById("kw-input-volume")?.value || "")) || null;
+    const difficulty = parseInt((document.getElementById("kw-input-difficulty")?.value || "")) || null;
+    const notes = (document.getElementById("kw-input-notes")?.value || "") || "";
     
     if (currentRank < 1 || previousRank < 1) {
       Swal.fire("Validation Error", "Ranking positions must be positive numbers.", "warning");
@@ -10287,31 +10420,31 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // AUTO-POPULATE PREVIOUS RANK, ENGINE, DEVICE ON KEYWORD SELECT
-  document.getElementById("weekly-input-keyword-id").addEventListener("change", (e) => {
+  document.getElementById("weekly-input-keyword-id")?.addEventListener("change", (e) => {
     const kwVal = e.target.value;
-    const campId = document.getElementById("weekly-campaign-id-hidden").value;
+    const campId = (document.getElementById("weekly-campaign-id-hidden")?.value || "");
     const camp = state.seo.find(x => x.id === campId);
     if (camp && camp.keywords) {
       const kw = camp.keywords.find(x => x.keyword === kwVal);
       if (kw) {
-        document.getElementById("weekly-input-prev-rank").value = kw.currentRank;
-        document.getElementById("weekly-input-engine").value = kw.searchEngine || "Google";
-        document.getElementById("weekly-input-device").value = kw.device || "Desktop";
+        if (document.getElementById("weekly-input-prev-rank")) document.getElementById("weekly-input-prev-rank").value = kw.currentRank;
+        if (document.getElementById("weekly-input-engine")) document.getElementById("weekly-input-engine").value = kw.searchEngine || "Google";
+        if (document.getElementById("weekly-input-device")) document.getElementById("weekly-input-device").value = kw.device || "Desktop";
       }
     }
   });
 
   // FORM: LOG WEEKLY RANK UPDATE
-  document.getElementById("weekly-rank-form").addEventListener("submit", (e) => {
+  document.getElementById("weekly-rank-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
-    const campaignId = document.getElementById("weekly-campaign-id-hidden").value;
-    const date = document.getElementById("weekly-input-date").value;
-    const keywordVal = document.getElementById("weekly-input-keyword-id").value;
-    const searchEngine = document.getElementById("weekly-input-engine").value;
-    const device = document.getElementById("weekly-input-device").value;
-    const prevRank = parseInt(document.getElementById("weekly-input-prev-rank").value) || 10;
-    const currRank = parseInt(document.getElementById("weekly-input-curr-rank").value) || 10;
-    const remarks = document.getElementById("weekly-input-remarks").value || "";
+    const campaignId = (document.getElementById("weekly-campaign-id-hidden")?.value || "");
+    const date = (document.getElementById("weekly-input-date")?.value || "");
+    const keywordVal = (document.getElementById("weekly-input-keyword-id")?.value || "");
+    const searchEngine = (document.getElementById("weekly-input-engine")?.value || "");
+    const device = (document.getElementById("weekly-input-device")?.value || "");
+    const prevRank = parseInt((document.getElementById("weekly-input-prev-rank")?.value || "")) || 10;
+    const currRank = parseInt((document.getElementById("weekly-input-curr-rank")?.value || "")) || 10;
+    const remarks = (document.getElementById("weekly-input-remarks")?.value || "") || "";
     
     if (!keywordVal) {
       Swal.fire("Validation Error", "Please select a keyword to update.", "warning");
@@ -10362,14 +10495,14 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: UPLOAD SEO REPORT (GA4/GSC METADATA)
-  document.getElementById("upload-seo-report-form").addEventListener("submit", (e) => {
+  document.getElementById("upload-seo-report-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
-    const type = document.getElementById("upload-report-type").value;
-    const name = document.getElementById("upload-report-name").value;
-    const notes = document.getElementById("upload-report-notes").value;
+    const type = (document.getElementById("upload-report-type")?.value || "");
+    const name = (document.getElementById("upload-report-name")?.value || "");
+    const notes = (document.getElementById("upload-report-notes")?.value || "");
     const fileInput = document.getElementById("upload-report-file");
     const file = fileInput.files[0];
-    const campaignId = document.getElementById("upload-campaign-id-hidden").value;
+    const campaignId = (document.getElementById("upload-campaign-id-hidden")?.value || "");
     
     const camp = state.seo.find(x => x.id === campaignId);
     if (camp && file) {
@@ -10382,7 +10515,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       camp.uploadedReports.push({
-        uploadDate: new Date().toISOString().split("T")[0],
+        uploadDate: getLocalDateString(),
         fileName: file.name,
         fileSize: (file.size / 1024 / 1024).toFixed(2) + " MB",
         notes: notes,
@@ -10398,24 +10531,24 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: EDIT WEB PROJECT
-  document.getElementById("edit-project-form").addEventListener("submit", (e) => {
+  document.getElementById("edit-project-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
-    const id = document.getElementById("edit-project-id-hidden").value;
+    const id = (document.getElementById("edit-project-id-hidden")?.value || "");
     const idx = state.projects.findIndex(x => x.id === id);
     if (idx === -1) {
       Swal.fire("Error", "Project record not found.", "error");
       return;
     }
-    state.projects[idx].projectName = document.getElementById("edit-project-name").value;
-    state.projects[idx].websiteType = document.getElementById("edit-project-type").value;
-    state.projects[idx].assignedDeveloperId = document.getElementById("edit-project-developer").value;
-    state.projects[idx].startDate = document.getElementById("edit-project-start").value;
-    state.projects[idx].deliveryDate = document.getElementById("edit-project-end").value;
-    state.projects[idx].progress = parseInt(document.getElementById("edit-project-progress").value) || 0;
-    state.projects[idx].status = document.getElementById("edit-project-status").value;
-    state.projects[idx].domain = document.getElementById("edit-project-domain").value;
-    state.projects[idx].hosting = document.getElementById("edit-project-hosting").value;
-    state.projects[idx].notes = document.getElementById("edit-project-notes").value;
+    state.projects[idx].projectName = (document.getElementById("edit-project-name")?.value || "");
+    state.projects[idx].websiteType = (document.getElementById("edit-project-type")?.value || "");
+    state.projects[idx].assignedDeveloperId = (document.getElementById("edit-project-developer")?.value || "");
+    state.projects[idx].startDate = (document.getElementById("edit-project-start")?.value || "");
+    state.projects[idx].deliveryDate = (document.getElementById("edit-project-end")?.value || "");
+    state.projects[idx].progress = parseInt((document.getElementById("edit-project-progress")?.value || "")) || 0;
+    state.projects[idx].status = (document.getElementById("edit-project-status")?.value || "");
+    state.projects[idx].domain = (document.getElementById("edit-project-domain")?.value || "");
+    state.projects[idx].hosting = (document.getElementById("edit-project-hosting")?.value || "");
+    state.projects[idx].notes = (document.getElementById("edit-project-notes")?.value || "");
 
     addTimelineEvent("project", `Updated project details for '${state.projects[idx].projectName}'`, "fa-laptop-code");
     saveState();
@@ -10429,26 +10562,26 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: ADD WEB PROJECT
-  document.getElementById("add-project-form").addEventListener("submit", (e) => {
+  document.getElementById("add-project-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
 
-    const clientId = document.getElementById("add-project-client-id").value;
+    const clientId = (document.getElementById("add-project-client-id")?.value || "");
     if (!clientId) {
       Swal.fire("Error", "Please select a client.", "error");
       return;
     }
 
     const newId = "P" + (state.projects.length + 1).toString().padStart(3, "0");
-    const projectName = document.getElementById("add-project-name").value.trim();
-    const websiteType = document.getElementById("add-project-type").value.trim();
-    const assignedDeveloperId = document.getElementById("add-project-developer").value;
-    const startDate = document.getElementById("add-project-start").value;
-    const deliveryDate = document.getElementById("add-project-end").value;
-    const progress = parseInt(document.getElementById("add-project-progress").value) || 0;
-    const status = document.getElementById("add-project-status").value;
-    const domain = document.getElementById("add-project-domain").value.trim();
-    const hosting = document.getElementById("add-project-hosting").value.trim();
-    const notes = document.getElementById("add-project-notes").value.trim();
+    const projectName = (document.getElementById("add-project-name")?.value || "").trim();
+    const websiteType = (document.getElementById("add-project-type")?.value || "").trim();
+    const assignedDeveloperId = (document.getElementById("add-project-developer")?.value || "");
+    const startDate = (document.getElementById("add-project-start")?.value || "");
+    const deliveryDate = (document.getElementById("add-project-end")?.value || "");
+    const progress = parseInt((document.getElementById("add-project-progress")?.value || "")) || 0;
+    const status = (document.getElementById("add-project-status")?.value || "");
+    const domain = (document.getElementById("add-project-domain")?.value || "").trim();
+    const hosting = (document.getElementById("add-project-hosting")?.value || "").trim();
+    const notes = (document.getElementById("add-project-notes")?.value || "").trim();
 
     const newProject = {
       id: newId,
@@ -10479,13 +10612,13 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // FORM: EDIT GOOGLE ADS
-  document.getElementById("edit-google-form").addEventListener("submit", (e) => {
+  document.getElementById("edit-google-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
-    const id = document.getElementById("edit-google-id-hidden").value;
+    const id = (document.getElementById("edit-google-id-hidden")?.value || "");
     
     if (!id) {
       // Adding new campaign
-      const clientId = document.getElementById("edit-google-client").value;
+      const clientId = (document.getElementById("edit-google-client")?.value || "");
       if (!clientId) {
         Swal.fire("Error", "Please select a client.", "error");
         return;
@@ -10494,18 +10627,18 @@ document.addEventListener("DOMContentLoaded", () => {
       const newCamp = {
         id: newId,
         clientId: clientId,
-        campaignName: document.getElementById("edit-google-name").value,
-        objective: document.getElementById("edit-google-objective").value,
-        adBudget: parseFloat(document.getElementById("edit-google-budget").value) || 0,
-        startDate: document.getElementById("edit-google-start").value,
-        endDate: document.getElementById("edit-google-end").value,
-        reach: parseInt(document.getElementById("edit-google-reach").value) || 0,
-        clicks: parseInt(document.getElementById("edit-google-clicks").value) || 0,
-        leads: parseInt(document.getElementById("edit-google-leads").value) || 0,
-        roas: parseFloat(document.getElementById("edit-google-roas").value) || 1.0,
-        status: document.getElementById("edit-google-status").value,
-        assignedEmployeeId: document.getElementById("edit-google-employee").value,
-        notes: document.getElementById("edit-google-notes").value,
+        campaignName: (document.getElementById("edit-google-name")?.value || ""),
+        objective: (document.getElementById("edit-google-objective")?.value || ""),
+        adBudget: parseFloat((document.getElementById("edit-google-budget")?.value || "")) || 0,
+        startDate: (document.getElementById("edit-google-start")?.value || ""),
+        endDate: (document.getElementById("edit-google-end")?.value || ""),
+        reach: parseInt((document.getElementById("edit-google-reach")?.value || "")) || 0,
+        clicks: parseInt((document.getElementById("edit-google-clicks")?.value || "")) || 0,
+        leads: parseInt((document.getElementById("edit-google-leads")?.value || "")) || 0,
+        roas: parseFloat((document.getElementById("edit-google-roas")?.value || "")) || 1.0,
+        status: (document.getElementById("edit-google-status")?.value || ""),
+        assignedEmployeeId: (document.getElementById("edit-google-employee")?.value || ""),
+        notes: (document.getElementById("edit-google-notes")?.value || ""),
         cpl: 0
       };
       
@@ -10532,22 +10665,22 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
       // If client is selected, update it. (Client dropdown is disabled when editing normally, but if populated we update it)
-      const clientId = document.getElementById("edit-google-client").value;
+      const clientId = (document.getElementById("edit-google-client")?.value || "");
       if (clientId) {
         state.googleAds[idx].clientId = clientId;
       }
-      state.googleAds[idx].campaignName = document.getElementById("edit-google-name").value;
-      state.googleAds[idx].objective = document.getElementById("edit-google-objective").value;
-      state.googleAds[idx].adBudget = parseFloat(document.getElementById("edit-google-budget").value) || 0;
-      state.googleAds[idx].startDate = document.getElementById("edit-google-start").value;
-      state.googleAds[idx].endDate = document.getElementById("edit-google-end").value;
-      state.googleAds[idx].reach = parseInt(document.getElementById("edit-google-reach").value) || 0;
-      state.googleAds[idx].clicks = parseInt(document.getElementById("edit-google-clicks").value) || 0;
-      state.googleAds[idx].leads = parseInt(document.getElementById("edit-google-leads").value) || 0;
-      state.googleAds[idx].roas = parseFloat(document.getElementById("edit-google-roas").value) || 1.0;
-      state.googleAds[idx].status = document.getElementById("edit-google-status").value;
-      state.googleAds[idx].assignedEmployeeId = document.getElementById("edit-google-employee").value;
-      state.googleAds[idx].notes = document.getElementById("edit-google-notes").value;
+      state.googleAds[idx].campaignName = (document.getElementById("edit-google-name")?.value || "");
+      state.googleAds[idx].objective = (document.getElementById("edit-google-objective")?.value || "");
+      state.googleAds[idx].adBudget = parseFloat((document.getElementById("edit-google-budget")?.value || "")) || 0;
+      state.googleAds[idx].startDate = (document.getElementById("edit-google-start")?.value || "");
+      state.googleAds[idx].endDate = (document.getElementById("edit-google-end")?.value || "");
+      state.googleAds[idx].reach = parseInt((document.getElementById("edit-google-reach")?.value || "")) || 0;
+      state.googleAds[idx].clicks = parseInt((document.getElementById("edit-google-clicks")?.value || "")) || 0;
+      state.googleAds[idx].leads = parseInt((document.getElementById("edit-google-leads")?.value || "")) || 0;
+      state.googleAds[idx].roas = parseFloat((document.getElementById("edit-google-roas")?.value || "")) || 1.0;
+      state.googleAds[idx].status = (document.getElementById("edit-google-status")?.value || "");
+      state.googleAds[idx].assignedEmployeeId = (document.getElementById("edit-google-employee")?.value || "");
+      state.googleAds[idx].notes = (document.getElementById("edit-google-notes")?.value || "");
   
       if (state.googleAds[idx].reach > 0 && state.googleAds[idx].leads > 0) {
         state.googleAds[idx].cpl = state.googleAds[idx].adBudget / state.googleAds[idx].leads;
@@ -10567,7 +10700,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("quick-add-google-btn")?.addEventListener("click", () => {
     document.getElementById("edit-google-form").reset();
-    document.getElementById("edit-google-id-hidden").value = "";
+    if (document.getElementById("edit-google-id-hidden")) document.getElementById("edit-google-id-hidden").value = "";
     document.getElementById("editGoogleModalLabel").innerHTML = `<i class="fa-brands fa-google me-2"></i>Add Google Ads Campaign`;
     
     // Enable client selector for new
@@ -10988,7 +11121,7 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
         
         try {
-          const selectedClientId = document.getElementById("new-service-client-id").value;
+          const selectedClientId = (document.getElementById("new-service-client-id")?.value || "");
           if (!selectedClientId) {
             Swal.fire({
               icon: "warning",
@@ -10999,25 +11132,25 @@ document.addEventListener("DOMContentLoaded", () => {
           }
 
           const srvId = "S" + (state.services.length + 1).toString().padStart(3, "0");
-          const name = document.getElementById("new-service-name").value;
-          const cost = parseInt(document.getElementById("new-service-cost").value) || 0;
-          const discount = parseInt(document.getElementById("new-service-discount").value) || 0;
+          const name = (document.getElementById("new-service-name")?.value || "");
+          const cost = parseInt((document.getElementById("new-service-cost")?.value || "")) || 0;
+          const discount = parseInt((document.getElementById("new-service-discount")?.value || "")) || 0;
           const finalAmt = cost - discount;
 
           const newS = {
             id: srvId,
             clientId: selectedClientId,
             serviceName: name,
-            package: document.getElementById("new-service-package").value || "",
-            startDate: document.getElementById("new-service-start").value || "",
-            endDate: document.getElementById("new-service-end").value || "",
-            renewalDate: document.getElementById("new-service-end").value || "",
-            assignedEmployeeId: document.getElementById("new-service-assigned-employee").value || "",
+            package: (document.getElementById("new-service-package")?.value || "") || "",
+            startDate: (document.getElementById("new-service-start")?.value || "") || "",
+            endDate: (document.getElementById("new-service-end")?.value || "") || "",
+            renewalDate: (document.getElementById("new-service-end")?.value || "") || "",
+            assignedEmployeeId: (document.getElementById("new-service-assigned-employee")?.value || "") || "",
             cost: cost,
             discount: discount,
             finalAmount: finalAmt,
-            status: document.getElementById("new-service-status").value || "Running",
-            notes: document.getElementById("new-service-notes").value || ""
+            status: (document.getElementById("new-service-status")?.value || "") || "Running",
+            notes: (document.getElementById("new-service-notes")?.value || "") || ""
           };
 
           state.services.push(newS);
@@ -11030,9 +11163,9 @@ document.addEventListener("DOMContentLoaded", () => {
                 parsedDom = cli.website.replace(/https?:\/\/(www\.)?/, "").split("/")[0];
               } catch (e) {}
             }
-            const domName = document.getElementById("new-service-package").value || parsedDom || "Domain for " + (cli ? cli.companyName : "Client");
-            const expiry = document.getElementById("new-service-end").value || "";
-            const startDate = document.getElementById("new-service-start").value || "";
+            const domName = (document.getElementById("new-service-package")?.value || "") || parsedDom || "Domain for " + (cli ? cli.companyName : "Client");
+            const expiry = (document.getElementById("new-service-end")?.value || "") || "";
+            const startDate = (document.getElementById("new-service-start")?.value || "") || "";
 
             const domainCost = finalAmt >= 2000 ? 1200 : Math.floor(finalAmt * 0.5);
             const hostingCost = finalAmt - domainCost;
@@ -11041,14 +11174,14 @@ document.addEventListener("DOMContentLoaded", () => {
               id: "D" + (state.domains.length + 1).toString().padStart(3, "0"),
               clientId: selectedClientId,
               domainName: domName,
-              registrar: document.getElementById("new-domain-registrar").value || "GoDaddy",
+              registrar: (document.getElementById("new-domain-registrar")?.value || "") || "GoDaddy",
               registrationDate: startDate,
               expiryDate: expiry,
               renewalDate: expiry,
               status: calculateStatusFromDate(expiry),
               renewalCost: domainCost,
-              dnsStatus: document.getElementById("new-domain-dns-status").value || "OK",
-              nameservers: document.getElementById("new-domain-nameservers").value || "",
+              dnsStatus: (document.getElementById("new-domain-dns-status")?.value || "") || "OK",
+              nameservers: (document.getElementById("new-domain-nameservers")?.value || "") || "",
               credentialsPlaceholder: "",
               notes: "Auto-linked on Domain & Hosting service registration"
             });
@@ -11056,8 +11189,8 @@ document.addEventListener("DOMContentLoaded", () => {
             state.hostings.push({
               id: "H" + (state.hostings.length + 1).toString().padStart(3, "0"),
               clientId: selectedClientId,
-              hostingProvider: document.getElementById("new-hosting-provider").value || "Hostinger",
-              hostingPlan: document.getElementById("new-service-package").value || "Premium Hosting",
+              hostingProvider: (document.getElementById("new-hosting-provider")?.value || "") || "Hostinger",
+              hostingPlan: (document.getElementById("new-service-package")?.value || "") || "Premium Hosting",
               purchaseDate: startDate,
               expiryDate: expiry,
               renewalDate: expiry,
@@ -11072,16 +11205,16 @@ document.addEventListener("DOMContentLoaded", () => {
             state.metaAds.push({
               id: "M" + (state.metaAds.length + 1).toString().padStart(3, "0"),
               clientId: selectedClientId,
-              campaignName: `${getClientName(selectedClientId)} - ${document.getElementById("new-service-package").value || "Meta Campaign"}`,
+              campaignName: `${getClientName(selectedClientId)} - ${(document.getElementById("new-service-package")?.value || "") || "Meta Campaign"}`,
               objective: "Lead Generation",
               packageAmount: finalAmt,
               adBudget: Math.round(finalAmt * 0.6),
-              startDate: document.getElementById("new-service-start").value,
-              endDate: document.getElementById("new-service-end").value,
-              renewalDate: document.getElementById("new-service-end").value,
+              startDate: (document.getElementById("new-service-start")?.value || ""),
+              endDate: (document.getElementById("new-service-end")?.value || ""),
+              renewalDate: (document.getElementById("new-service-end")?.value || ""),
               reach: 0, clicks: 0, leads: 0, cpl: 0, roas: 0,
               status: "Running",
-              assignedEmployeeId: document.getElementById("new-service-assigned-employee").value,
+              assignedEmployeeId: (document.getElementById("new-service-assigned-employee")?.value || ""),
               notes: "Auto-launched on Meta Ads subscription start."
             });
           }
@@ -11097,16 +11230,16 @@ document.addEventListener("DOMContentLoaded", () => {
             state.projects.push({
               id: "P" + (state.projects.length + 1).toString().padStart(3, "0"),
               clientId: selectedClientId,
-              projectName: document.getElementById("new-service-package").value || (cli ? cli.companyName + " Website" : "Website Project"),
+              projectName: (document.getElementById("new-service-package")?.value || "") || (cli ? cli.companyName + " Website" : "Website Project"),
               websiteType: "Custom Website Development",
               domain: parsedDom || "domain.com",
               hosting: "Hostinger",
-              startDate: document.getElementById("new-service-start").value || new Date().toISOString().split("T")[0],
-              deliveryDate: document.getElementById("new-service-end").value || "",
+              startDate: (document.getElementById("new-service-start")?.value || "") || getLocalDateString(),
+              deliveryDate: (document.getElementById("new-service-end")?.value || "") || "",
               progress: 0,
-              assignedDeveloperId: document.getElementById("new-service-assigned-employee").value || "",
+              assignedDeveloperId: (document.getElementById("new-service-assigned-employee")?.value || "") || "",
               status: "Running",
-              notes: document.getElementById("new-service-notes").value || "Auto-created on Website Development service activation."
+              notes: (document.getElementById("new-service-notes")?.value || "") || "Auto-created on Website Development service activation."
             });
           }
 
@@ -11114,16 +11247,16 @@ document.addEventListener("DOMContentLoaded", () => {
             state.googleAds.push({
               id: "G" + (state.googleAds.length + 1).toString().padStart(3, "0"),
               clientId: selectedClientId,
-              campaignName: `${getClientName(selectedClientId)} - ${document.getElementById("new-service-package").value || "Google Campaign"}`,
+              campaignName: `${getClientName(selectedClientId)} - ${(document.getElementById("new-service-package")?.value || "") || "Google Campaign"}`,
               objective: "Sales / Signups",
               packageAmount: finalAmt,
               adBudget: Math.round(finalAmt * 0.6),
-              startDate: document.getElementById("new-service-start").value || new Date().toISOString().split("T")[0],
-              endDate: document.getElementById("new-service-end").value || "",
+              startDate: (document.getElementById("new-service-start")?.value || "") || getLocalDateString(),
+              endDate: (document.getElementById("new-service-end")?.value || "") || "",
               reach: 0, clicks: 0, leads: 0, cpl: 0, roas: 0,
               status: "Running",
-              assignedEmployeeId: document.getElementById("new-service-assigned-employee").value || "",
-              notes: document.getElementById("new-service-notes").value || "Auto-created on Google Ads service activation."
+              assignedEmployeeId: (document.getElementById("new-service-assigned-employee")?.value || "") || "",
+              notes: (document.getElementById("new-service-notes")?.value || "") || "Auto-created on Google Ads service activation."
             });
           }
 
@@ -11131,14 +11264,14 @@ document.addEventListener("DOMContentLoaded", () => {
             state.seo.push({
               id: "SEO" + (state.seo.length + 1).toString().padStart(3, "0"),
               clientId: selectedClientId,
-              targetKeywords: document.getElementById("new-service-package").value || "Target Keywords",
+              targetKeywords: (document.getElementById("new-service-package")?.value || "") || "Target Keywords",
               currentRanking: "Page 1 - Rank 10+",
               articlesPublished: 0,
               backlinks: 0,
               reportFile: "",
-              assignedEmployeeId: document.getElementById("new-service-assigned-employee").value || "",
+              assignedEmployeeId: (document.getElementById("new-service-assigned-employee")?.value || "") || "",
               progress: 0,
-              notes: document.getElementById("new-service-notes").value || "Auto-created on SEO service activation."
+              notes: (document.getElementById("new-service-notes")?.value || "") || "Auto-created on SEO service activation."
             });
           }
 
@@ -11149,8 +11282,8 @@ document.addEventListener("DOMContentLoaded", () => {
           state.invoices.push({
             id: invId,
             clientId: selectedClientId,
-            invoiceDate: document.getElementById("new-service-start").value,
-            dueDate: document.getElementById("new-service-start").value,
+            invoiceDate: (document.getElementById("new-service-start")?.value || ""),
+            dueDate: (document.getElementById("new-service-start")?.value || ""),
             serviceId: srvId,
             grossAmount: finalAmt,
             gstRate: state.settings.gstPercentage,
@@ -11540,19 +11673,19 @@ document.addEventListener("DOMContentLoaded", () => {
     let isAddAnother = false;
 
     // Track button click type
-    document.getElementById("save-add-another-btn").addEventListener("click", () => {
+    document.getElementById("save-add-another-btn")?.addEventListener("click", () => {
       isAddAnother = true;
     });
 
-    document.getElementById("save-employee-btn").addEventListener("click", () => {
+    document.getElementById("save-employee-btn")?.addEventListener("click", () => {
       isAddAnother = false;
     });
 
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       try {
-        const password = document.getElementById("new-emp-password").value;
-        const confirmPassword = document.getElementById("new-emp-confirm-password").value;
+        const password = (document.getElementById("new-emp-password")?.value || "");
+        const confirmPassword = (document.getElementById("new-emp-confirm-password")?.value || "");
 
         if (password !== confirmPassword) {
           Swal.fire({
@@ -11563,38 +11696,38 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        const name = document.getElementById("new-emp-name").value;
-        const designation = document.getElementById("new-emp-designation").value;
-        const department = document.getElementById("new-emp-department").value;
-        const salary = parseInt(document.getElementById("new-emp-salary").value) || 0;
-        const phone = document.getElementById("new-emp-phone").value;
-        const email = document.getElementById("new-emp-email").value;
-        const altPhone = document.getElementById("new-emp-alt-phone").value;
-        const gender = document.getElementById("new-emp-gender").value;
-        const dob = document.getElementById("new-emp-dob").value;
-        const bloodGroup = document.getElementById("new-emp-blood-group").value;
-        const maritalStatus = document.getElementById("new-emp-marital-status").value;
-        const photo = document.getElementById("new-emp-photo").value || `https://randomuser.me/api/portraits/men/${Math.floor(Math.random() * 99) + 1}.jpg`;
+        const name = (document.getElementById("new-emp-name")?.value || "");
+        const designation = (document.getElementById("new-emp-designation")?.value || "");
+        const department = (document.getElementById("new-emp-department")?.value || "");
+        const salary = parseInt((document.getElementById("new-emp-salary")?.value || "")) || 0;
+        const phone = (document.getElementById("new-emp-phone")?.value || "");
+        const email = (document.getElementById("new-emp-email")?.value || "");
+        const altPhone = (document.getElementById("new-emp-alt-phone")?.value || "");
+        const gender = (document.getElementById("new-emp-gender")?.value || "");
+        const dob = (document.getElementById("new-emp-dob")?.value || "");
+        const bloodGroup = (document.getElementById("new-emp-blood-group")?.value || "");
+        const maritalStatus = (document.getElementById("new-emp-marital-status")?.value || "");
+        const photo = (document.getElementById("new-emp-photo")?.value || "") || `https://randomuser.me/api/portraits/men/${Math.floor(Math.random() * 99) + 1}.jpg`;
 
-        const role = document.getElementById("new-emp-role").value;
-        const managerId = document.getElementById("new-emp-manager").value;
-        const employmentType = document.getElementById("new-emp-employment-type").value;
-        const joiningDate = document.getElementById("new-emp-joining-date").value;
-        const probation = parseInt(document.getElementById("new-emp-probation").value) || 0;
-        const shift = document.getElementById("new-emp-shift").value;
+        const role = (document.getElementById("new-emp-role")?.value || "");
+        const managerId = (document.getElementById("new-emp-manager")?.value || "");
+        const employmentType = (document.getElementById("new-emp-employment-type")?.value || "");
+        const joiningDate = (document.getElementById("new-emp-joining-date")?.value || "");
+        const probation = parseInt((document.getElementById("new-emp-probation")?.value || "")) || 0;
+        const shift = (document.getElementById("new-emp-shift")?.value || "");
 
-        const bankName = document.getElementById("new-emp-bank-name").value;
-        const accountNumber = document.getElementById("new-emp-account-number").value;
-        const ifsc = document.getElementById("new-emp-ifsc").value;
-        const pan = document.getElementById("new-emp-pan").value;
-        const aadhaar = document.getElementById("new-emp-aadhaar").value;
+        const bankName = (document.getElementById("new-emp-bank-name")?.value || "");
+        const accountNumber = (document.getElementById("new-emp-account-number")?.value || "");
+        const ifsc = (document.getElementById("new-emp-ifsc")?.value || "");
+        const pan = (document.getElementById("new-emp-pan")?.value || "");
+        const aadhaar = (document.getElementById("new-emp-aadhaar")?.value || "");
 
-        const emergencyName = document.getElementById("new-emp-emergency-name").value;
-        const emergencyRelation = document.getElementById("new-emp-emergency-relation").value;
-        const emergencyPhone = document.getElementById("new-emp-emergency-phone").value;
+        const emergencyName = (document.getElementById("new-emp-emergency-name")?.value || "");
+        const emergencyRelation = (document.getElementById("new-emp-emergency-relation")?.value || "");
+        const emergencyPhone = (document.getElementById("new-emp-emergency-phone")?.value || "");
 
-        const username = document.getElementById("new-emp-username").value;
-        const status = document.getElementById("new-emp-status").value;
+        const username = (document.getElementById("new-emp-username")?.value || "");
+        const status = (document.getElementById("new-emp-status")?.value || "");
 
         const newEmpId = "E" + (state.employees.length + 1).toString().padStart(3, "0");
 
@@ -12040,8 +12173,8 @@ document.addEventListener("DOMContentLoaded", () => {
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       try {
-        const password = document.getElementById("edit-emp-password").value;
-        const confirmPassword = document.getElementById("edit-emp-confirm-password").value;
+        const password = (document.getElementById("edit-emp-password")?.value || "");
+        const confirmPassword = (document.getElementById("edit-emp-confirm-password")?.value || "");
 
         if (password !== confirmPassword) {
           Swal.fire({
@@ -12058,39 +12191,39 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        state.employees[idx].name = document.getElementById("edit-emp-name").value;
-        state.employees[idx].designation = document.getElementById("edit-emp-designation").value;
-        state.employees[idx].department = document.getElementById("edit-emp-department").value;
-        state.employees[idx].salary = parseInt(document.getElementById("edit-emp-salary").value) || 0;
-        state.employees[idx].phone = document.getElementById("edit-emp-phone").value;
-        state.employees[idx].email = document.getElementById("edit-emp-email").value;
-        state.employees[idx].alternatePhone = document.getElementById("edit-emp-alt-phone").value;
-        state.employees[idx].gender = document.getElementById("edit-emp-gender").value;
-        state.employees[idx].dob = document.getElementById("edit-emp-dob").value;
-        state.employees[idx].bloodGroup = document.getElementById("edit-emp-blood-group").value;
-        state.employees[idx].maritalStatus = document.getElementById("edit-emp-marital-status").value;
-        state.employees[idx].photo = document.getElementById("edit-emp-photo").value || state.employees[idx].photo;
+        state.employees[idx].name = (document.getElementById("edit-emp-name")?.value || "");
+        state.employees[idx].designation = (document.getElementById("edit-emp-designation")?.value || "");
+        state.employees[idx].department = (document.getElementById("edit-emp-department")?.value || "");
+        state.employees[idx].salary = parseInt((document.getElementById("edit-emp-salary")?.value || "")) || 0;
+        state.employees[idx].phone = (document.getElementById("edit-emp-phone")?.value || "");
+        state.employees[idx].email = (document.getElementById("edit-emp-email")?.value || "");
+        state.employees[idx].alternatePhone = (document.getElementById("edit-emp-alt-phone")?.value || "");
+        state.employees[idx].gender = (document.getElementById("edit-emp-gender")?.value || "");
+        state.employees[idx].dob = (document.getElementById("edit-emp-dob")?.value || "");
+        state.employees[idx].bloodGroup = (document.getElementById("edit-emp-blood-group")?.value || "");
+        state.employees[idx].maritalStatus = (document.getElementById("edit-emp-marital-status")?.value || "");
+        state.employees[idx].photo = (document.getElementById("edit-emp-photo")?.value || "") || state.employees[idx].photo;
 
-        state.employees[idx].role = document.getElementById("edit-emp-role").value;
-        state.employees[idx].managerId = document.getElementById("edit-emp-manager").value;
-        state.employees[idx].employmentType = document.getElementById("edit-emp-employment-type").value;
-        state.employees[idx].joiningDate = document.getElementById("edit-emp-joining-date").value;
-        state.employees[idx].probationPeriod = parseInt(document.getElementById("edit-emp-probation").value) || 0;
-        state.employees[idx].shift = document.getElementById("edit-emp-shift").value;
+        state.employees[idx].role = (document.getElementById("edit-emp-role")?.value || "");
+        state.employees[idx].managerId = (document.getElementById("edit-emp-manager")?.value || "");
+        state.employees[idx].employmentType = (document.getElementById("edit-emp-employment-type")?.value || "");
+        state.employees[idx].joiningDate = (document.getElementById("edit-emp-joining-date")?.value || "");
+        state.employees[idx].probationPeriod = parseInt((document.getElementById("edit-emp-probation")?.value || "")) || 0;
+        state.employees[idx].shift = (document.getElementById("edit-emp-shift")?.value || "");
 
-        state.employees[idx].bankName = document.getElementById("edit-emp-bank-name").value;
-        state.employees[idx].accountNumber = document.getElementById("edit-emp-account-number").value;
-        state.employees[idx].ifscCode = document.getElementById("edit-emp-ifsc").value;
-        state.employees[idx].panNumber = document.getElementById("edit-emp-pan").value;
-        state.employees[idx].aadhaarNumber = document.getElementById("edit-emp-aadhaar").value;
+        state.employees[idx].bankName = (document.getElementById("edit-emp-bank-name")?.value || "");
+        state.employees[idx].accountNumber = (document.getElementById("edit-emp-account-number")?.value || "");
+        state.employees[idx].ifscCode = (document.getElementById("edit-emp-ifsc")?.value || "");
+        state.employees[idx].panNumber = (document.getElementById("edit-emp-pan")?.value || "");
+        state.employees[idx].aadhaarNumber = (document.getElementById("edit-emp-aadhaar")?.value || "");
 
         state.employees[idx].presentAddress = presentAddress.value;
         state.employees[idx].permanentAddress = permanentAddress.value;
-        state.employees[idx].emergencyContactName = document.getElementById("edit-emp-emergency-name").value;
-        state.employees[idx].emergencyContactRelationship = document.getElementById("edit-emp-emergency-relation").value;
-        state.employees[idx].emergencyContactPhone = document.getElementById("edit-emp-emergency-phone").value;
+        state.employees[idx].emergencyContactName = (document.getElementById("edit-emp-emergency-name")?.value || "");
+        state.employees[idx].emergencyContactRelationship = (document.getElementById("edit-emp-emergency-relation")?.value || "");
+        state.employees[idx].emergencyContactPhone = (document.getElementById("edit-emp-emergency-phone")?.value || "");
 
-        state.employees[idx].username = document.getElementById("edit-emp-username").value;
+        state.employees[idx].username = (document.getElementById("edit-emp-username")?.value || "");
         state.employees[idx].password = password;
         state.employees[idx].permissions = {
           crm: document.getElementById("edit-perm-crm").checked,
@@ -12099,7 +12232,7 @@ document.addEventListener("DOMContentLoaded", () => {
           marketing: document.getElementById("edit-perm-marketing").checked,
           admin: document.getElementById("edit-perm-admin").checked
         };
-        state.employees[idx].status = document.getElementById("edit-emp-status").value;
+        state.employees[idx].status = (document.getElementById("edit-emp-status")?.value || "");
 
         addTimelineEvent("employee", `Updated profile details for '${state.employees[idx].name}'`, "fa-user-gear");
         saveState();
@@ -12197,3 +12330,21 @@ document.addEventListener("DOMContentLoaded", () => {
   // RUN CHECKAUTH SYSTEM
   checkAuth();
 });
+
+
+    // Fix for BUG-016 & BUG-017: SEO Report Upload / Download
+    const handleSeoDownload = (reportId) => {
+      const report = state.seoReports ? state.seoReports.find(r => r.id === reportId) : null;
+      if (report && report.fileDataUrl) {
+        const link = document.createElement("a");
+        link.href = report.fileDataUrl;
+        link.download = report.filename || "SEO_Report.pdf";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        Swal.fire("Downloaded!", `Downloaded '${report.filename}'.`, "success");
+      } else {
+        Swal.fire("Download Failed", "Original uploaded report file content is not available in session state.", "warning");
+      }
+    };
+    window.handleSeoDownload = handleSeoDownload;
