@@ -2,6 +2,10 @@
 
 Complete Enterprise CRM & HRMS platform for digital agencies, powered by **Cloudflare Workers (Hono) + Cloudflare D1 (Serverless SQLite)** with modern responsive interface and Workers Static Assets.
 
+- **Official Production URL:** [https://project.thynkdigitalsolutions.com](https://project.thynkdigitalsolutions.com)
+- **Edge Development URL:** [https://thynk-crm-workers.gokul-digitalsolutions.workers.dev](https://thynk-crm-workers.gokul-digitalsolutions.workers.dev)
+- **Local Development URL:** [http://localhost:8080](http://localhost:8080)
+
 ---
 
 ## ⚡ Cloudflare Workers & Cloudflare D1 Deployment
