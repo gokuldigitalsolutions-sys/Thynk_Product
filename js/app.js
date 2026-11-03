@@ -1180,6 +1180,23 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    const forbiddenAccounts = ['ceo', 'cto', 'neha', 'sneha', 'deepak', 'e002', 'e003', 'e004', 'e005', 'e006', 'ceo@thynkdigital.in', 'cto@thynkdigital.in', 'neha@thynkdigital.in', 'sneha@thynkdigital.in', 'deepak@thynkdigital.in'];
+    if (forbiddenAccounts.includes(inputUser.toLowerCase())) {
+      Swal.fire({
+        icon: "error",
+        title: "Access Denied",
+        text: "This account has been removed. Please contact the administrator.",
+      });
+      return;
+    }
+
+    const submitBtn = loginForm.querySelector("button[type='submit']");
+    const originalBtnHtml = submitBtn ? submitBtn.innerHTML : "Sign In";
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Signing In...';
+    }
+
     try {
       let loggedUser = null;
       let authenticated = false;
@@ -1310,6 +1327,11 @@ document.addEventListener("DOMContentLoaded", () => {
         title: "Connection Error",
         text: "Could not connect to the authentication service.",
       });
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalBtnHtml;
+      }
     }
   });
 

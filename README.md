@@ -106,21 +106,15 @@ http://localhost/Anti-Thynk-Product/
 - **Password**: `admin123`
 - **Role**: Administrator (Full access to all CRM, HRMS, Accounts, Billing, Ads, SEO, Reports, and System Settings)
 
-### Team Employees
+### System Access
 | Name | Email / Username | Default Password | Department / Role |
 |---|---|---|---|
-| **Ankit Kumar** | `admin@thynkdigital.in` (`admin`) | `admin123` | Lead Web Developer (Administrator) |
-| **Rahul Verma** | `ceo@thynkdigital.in` (`ceo`) | `admin123` | Chief Executive Officer (Executive) |
-| **Rajesh Nair** | `cto@thynkdigital.in` (`cto`) | `admin123` | Chief Technology Officer (Executive) |
-| **Neha Sharma** | `neha@thynkdigital.in` (`neha`) | `123456` | Meta Ads Specialist (Marketing) |
-| **Sneha Patel** | `sneha@thynkdigital.in` (`sneha`) | `123456` | Account Manager (Client Relations) |
-| **Deepak Rawat** | `deepak@thynkdigital.in` (`deepak`) | `123456` | SEO Lead (Marketing) |
+| **Gokul R** | `admin@thynkdigital.in` (`admin`) | `admin123` | Lead Web Developer (Administrator) |
 
 > **Security & Access Control**:
 > - Passwords use native `password_hash()` and `password_verify()` with bcrypt (`PASSWORD_BCRYPT`).
 > - Every API endpoint enforces session-based authentication and CSRF token protection (`X-CSRF-Token`).
-> - Normal employees have strict data isolation: they can only access their own attendance, leaves, assigned tasks, and authorized modules.
-> - Administrators, CEO, and CTO have complete access across all modules and employees.
+> - Administrators have complete access across all modules and system controls.
 
 ---
 
