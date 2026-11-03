@@ -23,40 +23,66 @@
 
   <!-- ================= AUTHENTICATION OVERLAY ================= -->
   <div id="login-screen">
+    <!-- Atmospheric Cyber Orbs & Particle Matrix (Code/GPU rendered, zero image dependency) -->
+    <canvas id="login-particles-canvas" class="login-ambient-canvas"></canvas>
+    <div class="login-ambient-orb orb-1"></div>
+    <div class="login-ambient-orb orb-2"></div>
+    <div class="login-ambient-orb orb-3"></div>
+    <div class="login-grid-overlay"></div>
+
     <div class="login-card text-center" data-aos="zoom-in">
-      <div class="mb-4">
-        <img src="img/logo.png" alt="Thynk Digital Solution Logo" class="mb-3" style="width: 100px; height: 100px; object-fit: contain;">
-        <div class="login-logo mb-1">Thynk<span>Digital</span></div>
-        <p class="text-muted text-uppercase fw-bold tracking-wide" style="font-size: 0.75rem;">Agency CRM & HRMS Operating System</p>
+      <!-- Status Badge -->
+      <div class="login-status-badge">
+        <span class="pulse-dot"></span>
+        <span>SYSTEM ONLINE // 256-BIT ENCRYPTION</span>
+      </div>
+
+      <!-- Brand Identity -->
+      <div class="login-brand-wrapper">
+        <div class="login-brand-logo-frame">
+          <img src="img/logo.png" alt="Thynk Digital" onerror="this.src='public/img/logo.png'">
+        </div>
+        <h1 class="login-brand-title">THYNK DIGITAL</h1>
+        <p class="login-card-subtitle">NEXT-GEN CRM &amp; HRMS OPERATING SYSTEM</p>
       </div>
       
-      <form id="login-form">
-        <div class="form-floating mb-3">
-          <input type="email" class="form-control" id="login-email" placeholder="name@example.com" value="admin@thynkdigital.in" required>
-          <label for="login-email">Email Address</label>
-        </div>
-        <div class="form-floating mb-3 position-relative">
-          <input type="password" class="form-control pe-5" id="login-password" placeholder="Password" value="admin123" required>
-          <label for="login-password">Password</label>
-          <button type="button" id="toggle-password" class="btn position-absolute end-0 top-50 translate-middle-y border-0 bg-transparent text-secondary" style="z-index: 10; margin-right: 8px; outline: none; box-shadow: none;">
-            <i class="fa-solid fa-eye" id="toggle-password-icon"></i>
-          </button>
-        </div>
-        
-        <div class="d-flex justify-between align-items-center mb-4 text-start">
-          <div class="form-check">
-            <input class="form-check-input" type="checkbox" value="" id="remember-me" checked>
-            <label class="form-check-label text-muted" for="remember-me" style="font-size: 0.82rem;">Remember Me</label>
+      <form id="login-form" method="POST" action="#">
+        <div class="login-field-group">
+          <label for="login-email" class="login-field-label">User ID or Email</label>
+          <div class="login-input-wrapper">
+            <i class="fa-solid fa-user-astronaut login-input-icon"></i>
+            <input type="text" class="login-input" id="login-email" name="username" placeholder="Enter User ID or Email" required autocomplete="username">
           </div>
-          <a href="#" class="text-decoration-none ms-auto text-danger fw-semibold" id="forgot-password-link" style="font-size: 0.82rem;">Forgot Password?</a>
+        </div>
+
+        <div class="login-field-group">
+          <label for="login-password" class="login-field-label">Password</label>
+          <div class="login-input-wrapper">
+            <i class="fa-solid fa-shield-halved login-input-icon"></i>
+            <input type="password" class="login-input" id="login-password" name="password" placeholder="Enter password" required autocomplete="current-password">
+            <button type="button" id="toggle-password" class="login-toggle-btn" aria-label="Toggle password visibility">
+              <i class="fa-solid fa-eye-slash" id="toggle-password-icon"></i>
+            </button>
+          </div>
         </div>
         
-        <button type="submit" class="btn btn-danger w-100 py-3 rounded-3 fw-bold mb-2 shadow" style="background-color: var(--thynk-primary-dark); border: none;">
-          Sign In
+        <div class="login-meta-row">
+          <div class="d-flex align-items-center">
+            <input class="login-checkbox" type="checkbox" id="remember-me">
+            <label class="login-check-label" for="remember-me">Remember Session</label>
+          </div>
+          <a href="#" class="login-forgot-link" id="forgot-password-link">Forgot Password?</a>
+        </div>
+        
+        <button type="submit" class="login-submit-btn">
+          <span>Sign In</span>
+          <i class="fa-solid fa-arrow-right"></i>
         </button>
       </form>
-      <div class="mt-4 pt-3 border-top text-center text-muted" style="font-size: 0.75rem;">
-        &copy; 2026 Thynk Digital Solution. All rights reserved.
+
+      <div class="login-card-footer">
+        <i class="fa-solid fa-shield-halved"></i>
+        <span>Cloudflare Edge Secured &bull; &copy; 2026 Thynk Digital</span>
       </div>
     </div>
   </div>
@@ -79,8 +105,10 @@
     <aside id="sidebar">
       <div class="sidebar-header">
         <a href="#" class="sidebar-brand" id="logo-refresh">
-          <div class="sidebar-brand-logo" style="background: none;"><img src="img/logo.png" alt="Logo" style="width: 28px; height: 28px; object-fit: contain;"></div>
-          <span class="sidebar-brand-name">Thynk Digital</span>
+          <div class="sidebar-brand-logo bg-white p-1 rounded-2 shadow-sm" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; overflow: hidden; flex-shrink: 0;">
+            <img src="img/logo.png" alt="Logo" style="width: 100%; height: 100%; object-fit: contain;">
+          </div>
+          <span class="sidebar-brand-name fw-bold" style="font-size: 1.05rem;">Thynk Digital</span>
         </a>
         <button class="sidebar-toggle-btn d-none d-lg-flex" id="sidebar-toggle">
           <i class="fa-solid fa-chevron-left" id="toggle-icon"></i>
@@ -91,114 +119,114 @@
       </div>
 
       <div class="sidebar-menu">
-        <div class="sidebar-category">Main</div>
-        <a href="#" class="sidebar-item active" data-view="dashboard">
+        <div class="sidebar-category" data-category="dashboard">Dashboard</div>
+        <a href="#/crm/dashboard" class="sidebar-item active" data-view="dashboard" data-module="dashboard">
           <i class="fa-solid fa-chart-pie"></i>
           <span>Dashboard</span>
         </a>
 
-        <div class="sidebar-category">CRM</div>
-        <a href="#" class="sidebar-item" data-view="leads">
+        <div class="sidebar-category" data-category="main">Main</div>
+        <a href="#/crm/leads" class="sidebar-item" data-view="leads" data-module="main">
           <i class="fa-solid fa-bullhorn"></i>
           <span>Leads Pipeline</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="clients">
+        <a href="#/crm/clients" class="sidebar-item" data-view="clients" data-module="main">
           <i class="fa-solid fa-users"></i>
           <span>Clients List</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="followups">
+        <a href="#/crm/followups" class="sidebar-item" data-view="followups" data-module="main">
           <i class="fa-solid fa-phone-volume"></i>
           <span>Follow-ups</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="notes">
+        <a href="#/crm/notes" class="sidebar-item" data-view="notes" data-module="main">
           <i class="fa-solid fa-note-sticky"></i>
           <span>Notes Directory</span>
         </a>
 
-        <div class="sidebar-category">Core Ops</div>
-        <a href="#" class="sidebar-item" data-view="services">
+        <div class="sidebar-category" data-category="core_ops">Core Ops</div>
+        <a href="#/crm/services" class="sidebar-item" data-view="services" data-module="core_ops">
           <i class="fa-solid fa-cube"></i>
           <span>All Services</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="domain-hosting">
+        <a href="#/crm/domain-hosting" class="sidebar-item" data-view="domain-hosting" data-module="core_ops">
           <i class="fa-solid fa-server"></i>
           <span>Domain & Hosting</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="canva">
+        <a href="#/crm/canva" class="sidebar-item" data-view="canva" data-module="core_ops">
           <i class="fa-solid fa-palette"></i>
           <span>Canva Premium</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="billing-software">
+        <a href="#/crm/billing-software" class="sidebar-item" data-view="billing-software" data-module="core_ops">
           <i class="fa-solid fa-file-invoice"></i>
           <span>Billing Software</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="meta-ads">
+        <a href="#/crm/meta-ads" class="sidebar-item" data-view="meta-ads" data-module="core_ops">
           <i class="fa-brands fa-facebook"></i>
           <span>Meta Ads Campaigns</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="google-ads">
+        <a href="#/crm/google-ads" class="sidebar-item" data-view="google-ads" data-module="core_ops">
           <i class="fa-brands fa-google"></i>
           <span>Google Ads Campaigns</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="seo">
+        <a href="#/crm/seo" class="sidebar-item" data-view="seo" data-module="core_ops">
           <i class="fa-solid fa-magnifying-glass-chart"></i>
           <span>SEO Campaigns</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="projects">
+        <a href="#/crm/projects" class="sidebar-item" data-view="projects" data-module="core_ops">
           <i class="fa-solid fa-diagram-project"></i>
           <span>Website Projects</span>
         </a>
 
-        <div class="sidebar-category">Billing & Reminders</div>
-        <a href="#" class="sidebar-item" data-view="payments">
+        <div class="sidebar-category" data-category="billing_reminders">Billing & Reminders</div>
+        <a href="#/crm/payments" class="sidebar-item" data-view="payments" data-module="billing_reminders">
           <i class="fa-solid fa-money-bill-transfer"></i>
           <span>Payments Ledger</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="invoices">
+        <a href="#/crm/invoices" class="sidebar-item" data-view="invoices" data-module="billing_reminders">
           <i class="fa-solid fa-file-invoice-dollar"></i>
           <span>Invoices</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="reminders">
+        <a href="#/crm/reminders" class="sidebar-item" data-view="reminders" data-module="billing_reminders">
           <i class="fa-solid fa-bell"></i>
           <span>Reminders</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="calendar">
+        <a href="#/crm/calendar" class="sidebar-item" data-view="calendar" data-module="billing_reminders">
           <i class="fa-solid fa-calendar-days"></i>
           <span>Schedule Calendar</span>
         </a>
 
-        <div class="sidebar-category">HRMS & Tasks</div>
-        <a href="#" class="sidebar-item" data-view="employees">
+        <div class="sidebar-category" data-category="hrms_tasks">HRMS & Tasks</div>
+        <a href="#/crm/employees" class="sidebar-item" data-view="employees" data-module="hrms_tasks">
           <i class="fa-solid fa-user-tie"></i>
           <span>Employees HRMS</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="attendance">
+        <a href="#/crm/attendance" class="sidebar-item" data-view="attendance" data-module="hrms_tasks">
           <i class="fa-solid fa-clipboard-user"></i>
           <span>Attendance Panel</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="leave">
+        <a href="#/crm/leave" class="sidebar-item" data-view="leave" data-module="hrms_tasks">
           <i class="fa-solid fa-calendar-minus"></i>
           <span>Leave Management</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="my-tasks">
+        <a href="#/crm/my-tasks" class="sidebar-item" data-view="my-tasks" data-module="hrms_tasks">
           <i class="fa-solid fa-circle-check"></i>
           <span>My Tasks Board</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="employee-tasks">
+        <a href="#/crm/employee-tasks" class="sidebar-item" data-view="employee-tasks" data-module="hrms_tasks">
           <i class="fa-solid fa-list-check"></i>
           <span>Employee Tasks List</span>
         </a>
 
-        <div class="sidebar-category">Analytics & Logs</div>
-        <a href="#" class="sidebar-item" data-view="reports">
+        <div class="sidebar-category" data-category="analytics_logs">Analytics & Logs</div>
+        <a href="#/crm/reports" class="sidebar-item" data-view="reports" data-module="analytics_logs">
           <i class="fa-solid fa-file-contract"></i>
           <span>Reports Studio</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="timeline">
+        <a href="#/crm/timeline" class="sidebar-item" data-view="timeline" data-module="analytics_logs">
           <i class="fa-solid fa-clock-rotate-left"></i>
           <span>Timeline Logs</span>
         </a>
-        <a href="#" class="sidebar-item" data-view="settings">
+        <a href="#/crm/settings" class="sidebar-item" data-view="settings" data-module="analytics_logs">
           <i class="fa-solid fa-sliders"></i>
           <span>Settings</span>
         </a>
@@ -238,6 +266,7 @@
             <ul class="dropdown-menu dropdown-menu-end shadow border-light">
               <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#addLeadModal"><i class="fa-solid fa-bullhorn text-danger me-2"></i>New Lead</a></li>
               <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#addClientModal"><i class="fa-solid fa-user-plus text-danger me-2"></i>New Client</a></li>
+              <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#/hrms/employees/new" id="quick-add-employee-btn"><i class="fa-solid fa-user-tie text-danger me-2"></i>New Employee</a></li>
               <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#/crm/services/new"><i class="fa-solid fa-cube text-danger me-2"></i>New Service</a></li>
               <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#addPaymentModal"><i class="fa-solid fa-receipt text-danger me-2"></i>Log Payment</a></li>
               <li><a class="dropdown-item py-2 fw-semibold text-dark" href="#" data-bs-toggle="modal" data-bs-target="#addTaskModal"><i class="fa-solid fa-list-check text-danger me-2"></i>Assign Task</a></li>
@@ -271,11 +300,12 @@
           <!-- USER MENU -->
           <div class="dropdown">
             <div class="user-profile-menu dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-              <div class="user-avatar" id="user-avatar-element">A</div>
-              <span class="user-name d-none d-md-inline" id="user-name-element">Administrator</span>
+              <div class="user-avatar" id="user-avatar-element">G</div>
+              <span class="user-name d-none d-md-inline" id="user-name-element">Gokul R</span>
             </div>
             <ul class="dropdown-menu dropdown-menu-end shadow border-light">
               <li><a class="dropdown-item" href="#" id="view-profile-settings"><i class="fa-solid fa-user me-2 text-muted"></i>My Profile</a></li>
+              <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#changePasswordModal"><i class="fa-solid fa-key me-2 text-muted"></i>Change Password</a></li>
               <li><a class="dropdown-item" href="#" id="view-system-settings"><i class="fa-solid fa-sliders me-2 text-muted"></i>System Settings</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item text-danger fw-semibold" href="#" id="logout-menu-btn"><i class="fa-solid fa-arrow-right-from-bracket me-2"></i>Sign Out</a></li>
@@ -319,17 +349,17 @@
         <form id="add-lead-form">
           <div class="modal-body py-4">
             <div class="mb-3">
-              <label class="form-label fw-semibold">Company Name</label>
+              <label class="form-label fw-semibold">Company Name <span class="text-danger">*</span></label>
               <input type="text" class="form-control rounded-3" id="lead-company" required placeholder="e.g. Zenith Tech Labs">
             </div>
             <div class="mb-3">
-              <label class="form-label fw-semibold">Contact Person</label>
-              <input type="text" class="form-control rounded-3" id="lead-contact" placeholder="e.g. Rahul Sen">
+              <label class="form-label fw-semibold">Contact Person <span class="text-danger">*</span></label>
+              <input type="text" class="form-control rounded-3" id="lead-contact" required placeholder="e.g. Rahul Sen">
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Mobile Number</label>
-                <input type="tel" class="form-control rounded-3" id="lead-mobile" placeholder="e.g. 9876543210">
+                <label class="form-label fw-semibold">Mobile Number <span class="text-danger">*</span></label>
+                <input type="tel" class="form-control rounded-3" id="lead-mobile" required placeholder="e.g. 9876543210">
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Email Address</label>
@@ -338,9 +368,9 @@
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Lead Source</label>
-                <select class="form-select rounded-3" id="lead-source">
-                  <option value="" selected>Select Source...</option>
+                <label class="form-label fw-semibold">Lead Source <span class="text-danger">*</span></label>
+                <select class="form-select rounded-3" id="lead-source" required>
+                  <option value="" selected disabled>Select Source...</option>
                   <option value="Website Inquiry">Website Inquiry</option>
                   <option value="Instagram DM">Instagram DM</option>
                   <option value="LinkedIn Outreach">LinkedIn Outreach</option>
@@ -350,23 +380,23 @@
                 </select>
               </div>
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Est. Deal Value (₹)</label>
+                <label class="form-label fw-semibold">Est. Deal Value (â‚¹)</label>
                 <input type="number" class="form-control rounded-3" id="lead-value" placeholder="e.g. 45000">
               </div>
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Status Priority</label>
-                <select class="form-select rounded-3" id="lead-status">
-                  <option value="" selected>Select Status...</option>
+                <label class="form-label fw-semibold">Status Priority <span class="text-danger">*</span></label>
+                <select class="form-select rounded-3" id="lead-status" required>
+                  <option value="" selected disabled>Select Status...</option>
                   <option value="Hot">Hot (High Intent)</option>
                   <option value="Warm">Warm (Interested)</option>
                   <option value="Cold">Cold (Contacted)</option>
                 </select>
               </div>
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Assigned Employee</label>
-                <select class="form-select rounded-3" id="lead-assigned-employee">
+                <label class="form-label fw-semibold">Assigned Employee <span class="text-danger">*</span></label>
+                <select class="form-select rounded-3" id="lead-assigned-employee" required>
                   <!-- Populate via JS -->
                 </select>
               </div>
@@ -397,28 +427,28 @@
           <div class="modal-body py-4">
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Company Name</label>
+                <label class="form-label fw-semibold">Company Name <span class="text-danger">*</span></label>
                 <input type="text" class="form-control rounded-3" id="client-company" required placeholder="e.g. Zenith Tech Labs">
               </div>
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Client Name</label>
+                <label class="form-label fw-semibold">Client Name <span class="text-danger">*</span></label>
                 <input type="text" class="form-control rounded-3" id="client-name" required placeholder="e.g. Rahul Sen">
               </div>
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Mobile Phone</label>
+                <label class="form-label fw-semibold">Mobile Phone <span class="text-danger">*</span></label>
                 <input type="tel" class="form-control rounded-3" id="client-mobile" required placeholder="e.g. 9876501234">
               </div>
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">WhatsApp Number</label>
-                <input type="tel" class="form-control rounded-3" id="client-whatsapp" placeholder="e.g. Same as Mobile">
+                <label class="form-label fw-semibold">WhatsApp Number <span class="text-danger">*</span></label>
+                <input type="tel" class="form-control rounded-3" id="client-whatsapp" required placeholder="e.g. 9876501234">
               </div>
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Email Address</label>
-                <input type="email" class="form-control rounded-3" id="client-email" required placeholder="e.g. rahul@domain.com">
+                <input type="email" class="form-control rounded-3" id="client-email" placeholder="e.g. rahul@domain.com">
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Website URL</label>
@@ -427,7 +457,7 @@
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Business Category</label>
+                <label class="form-label fw-semibold">Business Category <span class="text-danger">*</span></label>
                 <input type="text" class="form-control rounded-3" id="client-category" required placeholder="e.g. IT Services / Wellness">
               </div>
               <div class="col-md-6 mb-3">
@@ -437,7 +467,7 @@
             </div>
             <div class="row">
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Client Source</label>
+                <label class="form-label fw-semibold">Client Source <span class="text-danger">*</span></label>
                 <select class="form-select rounded-3" id="client-source" required>
                   <option value="Google Ads">Google Ads</option>
                   <option value="Instagram Outreach">Instagram Outreach</option>
@@ -448,7 +478,7 @@
                 </select>
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Priority Level</label>
+                <label class="form-label fw-semibold">Priority Level <span class="text-danger">*</span></label>
                 <select class="form-select rounded-3" id="client-priority" required>
                   <option value="High">High Priority</option>
                   <option value="Medium">Medium Priority</option>
@@ -456,7 +486,7 @@
                 </select>
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Assigned Employee</label>
+                <label class="form-label fw-semibold">Assigned Employee <span class="text-danger">*</span></label>
                 <select class="form-select rounded-3" id="client-assigned-employee" required>
                   <!-- Populate via JS -->
                 </select>
@@ -481,56 +511,25 @@
               </div>
             </div>
 
-            <!-- Optional Domain & Hosting Integration Checkbox -->
-            <div class="form-check mb-3 mt-2">
-              <input class="form-check-input" type="checkbox" id="client-add-domain-hosting" data-bs-toggle="collapse" data-bs-target="#client-domain-hosting-fields">
-              <label class="form-check-label fw-semibold text-danger animate-pulse" for="client-add-domain-hosting">
-                <i class="fa-solid fa-server me-1"></i>Add Domain & Hosting details for this client
-              </label>
-            </div>
-
-            <!-- Collapsible Domain & Hosting Fields -->
-            <div class="collapse" id="client-domain-hosting-fields">
-              <div class="p-3 bg-light rounded-3 mb-3 border border-light-subtle">
-                <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="fa-solid fa-globe me-2 text-danger"></i>Domain & Hosting Properties</h6>
-                <div class="row">
-                  <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">Domain Registrar</label>
-                    <input type="text" class="form-control rounded-3" id="client-domain-registrar" value="GoDaddy">
-                  </div>
-                  <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">Hosting Provider</label>
-                    <input type="text" class="form-control rounded-3" id="client-hosting-provider" value="Hostinger">
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col-md-4 mb-3">
-                    <label class="form-label fw-semibold">Purchased Date</label>
-                    <input type="text" class="form-control rounded-3 flatpickr-date" id="client-domain-purchased" placeholder="Select Date">
-                  </div>
-                  <div class="col-md-4 mb-3">
-                    <label class="form-label fw-semibold">Renewal Date</label>
-                    <input type="text" class="form-control rounded-3 flatpickr-date" id="client-domain-expiry" placeholder="Select Date">
-                  </div>
-                  <div class="col-md-4 mb-3">
-                    <label class="form-label fw-semibold">Domain Price (₹)</label>
-                    <input type="number" class="form-control rounded-3" id="client-domain-cost" value="1200" placeholder="e.g. 1200">
-                  </div>
-                </div>
-                <div class="row">
-                  <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">Hosting Price (₹)</label>
-                    <input type="number" class="form-control rounded-3" id="client-hosting-cost" value="2500" placeholder="e.g. 2500">
-                  </div>
-                  <div class="col-md-6 mb-3">
-                    <label class="form-label fw-semibold">DNS Status</label>
-                    <select class="form-select rounded-3" id="client-domain-dns">
-                      <option value="OK">OK</option>
-                      <option value="Suspended">Suspended</option>
-                    </select>
-                  </div>
-                </div>
+            <!-- CLIENT SERVICES SECTION -->
+            <div class="p-3 bg-light rounded-3 mb-3 border border-light-subtle">
+              <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="fa-solid fa-cubes me-2 text-danger"></i>Client Services</h6>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Select Service Option</label>
+                <select class="form-select rounded-3" id="client-service-type">
+                  <option value="" selected>Select Service (Optional)...</option>
+                  <option value="Domain & Hosting">Domain & Hosting</option>
+                  <option value="Canva Premium">Canva Premium</option>
+                  <option value="Billing Software">Billing Software</option>
+                  <option value="Meta Ads Campaigns">Meta Ads Campaigns</option>
+                  <option value="Google Ads Campaigns">Google Ads Campaigns</option>
+                  <option value="SEO Campaigns">SEO Campaigns</option>
+                  <option value="Website Projects">Website Projects</option>
+                </select>
               </div>
+
+              <!-- Dynamic Service Detail Fields Container -->
+              <div id="client-service-details-container"></div>
             </div>
           </div>
           <div class="modal-footer border-top-0 pt-0">
@@ -703,11 +702,11 @@
             </div>
             <div class="row">
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Cost (₹)</label>
+                <label class="form-label fw-semibold">Cost (â‚¹)</label>
                 <input type="number" class="form-control rounded-3" id="service-cost" placeholder="e.g. 50000">
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Discount (₹)</label>
+                <label class="form-label fw-semibold">Discount (â‚¹)</label>
                 <input type="number" class="form-control rounded-3" id="service-discount" value="0" placeholder="e.g. 2000">
               </div>
               <div class="col-md-4 mb-3">
@@ -810,11 +809,11 @@
             </div>
             <div class="row">
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Cost (₹)</label>
+                <label class="form-label fw-semibold">Cost (â‚¹)</label>
                 <input type="number" class="form-control rounded-3" id="edit-service-cost" placeholder="e.g. 50000">
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Discount (₹)</label>
+                <label class="form-label fw-semibold">Discount (â‚¹)</label>
                 <input type="number" class="form-control rounded-3" id="edit-service-discount" placeholder="e.g. 2000">
               </div>
               <div class="col-md-4 mb-3">
@@ -866,7 +865,7 @@
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Payment Amount (₹)</label>
+                <label class="form-label fw-semibold">Payment Amount (â‚¹)</label>
                 <input type="number" class="form-control rounded-3" id="payment-amount" required placeholder="e.g. 25000">
               </div>
               <div class="col-md-6 mb-3">
@@ -1161,7 +1160,7 @@
               </div>
             </div>
             <div class="mb-3">
-              <label class="form-label fw-semibold">Ad Budget (₹)</label>
+              <label class="form-label fw-semibold">Ad Budget (â‚¹)</label>
               <input type="number" class="form-control rounded-3" id="meta-campaign-ad-budget" required min="1" placeholder="e.g. 10000">
               <div class="invalid-feedback">Budget must be greater than 0.</div>
             </div>
@@ -1191,7 +1190,7 @@
                 <input type="text" class="form-control rounded-3 flatpickr-date" id="daily-perf-date" required placeholder="Select Date">
               </div>
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Ad Spend (₹)</label>
+                <label class="form-label fw-semibold">Ad Spend (â‚¹)</label>
                 <input type="number" step="any" class="form-control rounded-3" id="daily-perf-spend" required placeholder="e.g. 350">
               </div>
             </div>
@@ -1239,7 +1238,7 @@
             <div class="col">
               <div class="p-3 bg-white rounded-3 shadow-sm border border-light-subtle text-center h-100">
                 <div class="text-secondary small fw-semibold"><i class="fa-solid fa-wallet text-danger me-1"></i>Spend</div>
-                <h4 class="fw-bold mt-1 mb-0 text-danger" id="meta-daily-summary-spend">₹0</h4>
+                <h4 class="fw-bold mt-1 mb-0 text-danger" id="meta-daily-summary-spend">â‚¹0</h4>
               </div>
             </div>
             <div class="col">
@@ -1263,7 +1262,7 @@
             <div class="col">
               <div class="p-3 bg-white rounded-3 shadow-sm border border-light-subtle text-center h-100">
                 <div class="text-secondary small fw-semibold"><i class="fa-solid fa-tags text-danger me-1"></i>Avg CPL</div>
-                <h4 class="fw-bold mt-1 mb-0 text-danger" id="meta-daily-summary-cpl">₹0.00</h4>
+                <h4 class="fw-bold mt-1 mb-0 text-danger" id="meta-daily-summary-cpl">â‚¹0.00</h4>
               </div>
             </div>
           </div>
@@ -1284,31 +1283,31 @@
                   </div>
                   <div class="row">
                     <div class="col-6 mb-3">
-                      <label class="form-label fw-semibold">Ad Spend (₹)</label>
+                      <label class="form-label fw-semibold">Ad Spend (â‚¹)</label>
                       <input type="number" step="any" min="0" class="form-control rounded-3" id="meta-daily-spend" required placeholder="0.00">
-                      <div class="invalid-feedback">Must be ≥ 0.</div>
+                      <div class="invalid-feedback">Must be â‰¥ 0.</div>
                     </div>
                     <div class="col-6 mb-3">
                       <label class="form-label fw-semibold">Leads</label>
                       <input type="number" min="0" class="form-control rounded-3" id="meta-daily-leads" required placeholder="0">
-                      <div class="invalid-feedback">Must be ≥ 0.</div>
+                      <div class="invalid-feedback">Must be â‰¥ 0.</div>
                     </div>
                   </div>
                   <div class="row">
                     <div class="col-6 mb-3">
                       <label class="form-label fw-semibold">Reach</label>
                       <input type="number" min="0" class="form-control rounded-3" id="meta-daily-reach" required placeholder="0">
-                      <div class="invalid-feedback">Must be ≥ 0.</div>
+                      <div class="invalid-feedback">Must be â‰¥ 0.</div>
                     </div>
                     <div class="col-6 mb-3">
                       <label class="form-label fw-semibold">Clicks</label>
                       <input type="number" min="0" class="form-control rounded-3" id="meta-daily-clicks" required placeholder="0">
-                      <div class="invalid-feedback">Must be ≥ 0.</div>
+                      <div class="invalid-feedback">Must be â‰¥ 0.</div>
                     </div>
                   </div>
                   <div class="mb-3">
-                    <label class="form-label fw-semibold">CPL (₹) <span class="text-muted small fw-normal">(Auto Calculated)</span></label>
-                    <input type="text" class="form-control rounded-3 bg-light font-monospace" id="meta-daily-cpl" readonly value="₹0.00">
+                    <label class="form-label fw-semibold">CPL (â‚¹) <span class="text-muted small fw-normal">(Auto Calculated)</span></label>
+                    <input type="text" class="form-control rounded-3 bg-light font-monospace" id="meta-daily-cpl" readonly value="â‚¹0.00">
                   </div>
                   <div class="mb-3">
                     <label class="form-label fw-semibold">Remarks</label>
@@ -1369,11 +1368,11 @@
                 <thead>
                   <tr>
                     <th>Date</th>
-                    <th>Ad Spend (₹)</th>
+                    <th>Ad Spend (â‚¹)</th>
                     <th>Reach</th>
                     <th>Clicks</th>
                     <th>Leads</th>
-                    <th>CPL (₹)</th>
+                    <th>CPL (â‚¹)</th>
                     <th>Remarks</th>
                     <th>Actions</th>
                   </tr>
@@ -1405,7 +1404,7 @@
                 <input type="text" class="form-control rounded-3 flatpickr-date" id="campaign-payment-date" required placeholder="Select Date">
               </div>
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Amount (₹)</label>
+                <label class="form-label fw-semibold">Amount (â‚¹)</label>
                 <input type="number" class="form-control rounded-3" id="campaign-payment-amount" required placeholder="e.g. 5000">
               </div>
             </div>
@@ -1564,7 +1563,7 @@
             </div>
             <div class="row">
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Price (₹)</label>
+                <label class="form-label fw-semibold">Price (â‚¹)</label>
                 <input type="number" class="form-control rounded-3" id="canva-price" required value="499" placeholder="499">
               </div>
               <div class="col-md-4 mb-3">
@@ -1617,7 +1616,7 @@
             </div>
             <div class="row">
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Price (₹)</label>
+                <label class="form-label fw-semibold">Price (â‚¹)</label>
                 <input type="number" class="form-control rounded-3" id="edit-canva-price" required placeholder="499">
               </div>
               <div class="col-md-4 mb-3">
@@ -1669,11 +1668,11 @@
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Software Price (₹)</label>
+                <label class="form-label fw-semibold">Software Price (â‚¹)</label>
                 <input type="number" class="form-control rounded-3" id="billing-software-price" required value="3500" placeholder="e.g. 3500">
               </div>
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Yearly Maintenance / AMC (₹)</label>
+                <label class="form-label fw-semibold">Yearly Maintenance / AMC (â‚¹)</label>
                 <input type="number" class="form-control rounded-3" id="billing-software-maintenance" required value="2500" placeholder="e.g. 2500">
               </div>
             </div>
@@ -1728,11 +1727,11 @@
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Software Price (₹)</label>
+                <label class="form-label fw-semibold">Software Price (â‚¹)</label>
                 <input type="number" class="form-control rounded-3" id="edit-billing-software-price" required placeholder="e.g. 3500">
               </div>
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Yearly Maintenance / AMC (₹)</label>
+                <label class="form-label fw-semibold">Yearly Maintenance / AMC (â‚¹)</label>
                 <input type="number" class="form-control rounded-3" id="edit-billing-software-maintenance" required placeholder="e.g. 2500">
               </div>
             </div>
@@ -1819,7 +1818,7 @@
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Renewal Cost (₹)</label>
+                <label class="form-label fw-semibold">Renewal Cost (â‚¹)</label>
                 <input type="number" class="form-control rounded-3" id="edit-domain-cost" required placeholder="e.g. 1200">
               </div>
               <div class="col-md-6 mb-3">
@@ -1901,7 +1900,7 @@
                 <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-hosting-expiry" required placeholder="Select Date">
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Renewal Cost (₹)</label>
+                <label class="form-label fw-semibold">Renewal Cost (â‚¹)</label>
                 <input type="number" class="form-control rounded-3" id="edit-hosting-cost" required placeholder="e.g. 24000">
               </div>
               <div class="col-md-4 mb-3">
@@ -1971,7 +1970,7 @@
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Renewal Cost (₹)</label>
+                <label class="form-label fw-semibold">Renewal Cost (â‚¹)</label>
                 <input type="number" class="form-control rounded-3" id="add-domain-cost" required placeholder="e.g. 1200">
               </div>
               <div class="col-md-6 mb-3">
@@ -2052,7 +2051,7 @@
                 <input type="text" class="form-control rounded-3 flatpickr-date" id="add-hosting-expiry" required placeholder="Select Date">
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Renewal Cost (₹)</label>
+                <label class="form-label fw-semibold">Renewal Cost (â‚¹)</label>
                 <input type="number" class="form-control rounded-3" id="add-hosting-cost" required placeholder="e.g. 24000">
               </div>
               <div class="col-md-4 mb-3">
@@ -2726,7 +2725,7 @@
                 <input type="text" class="form-control rounded-3" id="edit-google-objective" required placeholder="e.g. Sales / Signups">
               </div>
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Ad Budget (₹)</label>
+                <label class="form-label fw-semibold">Ad Budget (â‚¹)</label>
                 <input type="number" class="form-control rounded-3" id="edit-google-budget" required value="0">
               </div>
             </div>
@@ -2933,11 +2932,94 @@
     </div>
   </div>
 
+  <!-- MODAL: EDIT LEAVE ALLOCATION -->
+  <div class="modal fade" id="editLeaveAllocationModal" tabindex="-1" aria-labelledby="editLeaveAllocationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow-lg">
+        <div class="modal-header border-bottom-0 pb-0">
+          <h5 class="modal-title fw-bold text-danger" id="editLeaveAllocationModalLabel"><i class="fa-solid fa-sliders me-2"></i>Configure Employee Leave Allowance</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="edit-leave-allocation-form">
+          <div class="modal-body py-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Select Employee <span class="text-danger">*</span></label>
+              <select class="form-select rounded-3 fw-semibold text-dark" id="allocation-employee-id" required>
+                <!-- Populated via JS -->
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold d-block">Leave Allocation Type <span class="text-danger">*</span></label>
+              <div class="d-flex gap-4 p-3 bg-light rounded-3 border">
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="allocationTypeRadio" id="allocation-type-monthly" value="monthly" checked>
+                  <label class="form-check-label fw-semibold text-dark" for="allocation-type-monthly">
+                    Monthly Allocation
+                  </label>
+                  <div class="text-muted small">Resets each calendar month</div>
+                </div>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="allocationTypeRadio" id="allocation-type-yearly" value="yearly">
+                  <label class="form-check-label fw-semibold text-dark" for="allocation-type-yearly">
+                    Yearly Allocation
+                  </label>
+                  <div class="text-muted small">Annual cumulative quota</div>
+                </div>
+              </div>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Allowed Leave Days <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <input type="number" min="1" max="365" class="form-control rounded-start-3 fw-bold" id="allocation-allowed-days" required placeholder="e.g. 4 or 30">
+                <span class="input-group-text rounded-end-3 bg-light text-muted fw-semibold" id="allocation-unit-label">Days / Month</span>
+              </div>
+              <div class="form-text text-muted" id="allocation-helper-text">Allowed leave days allocated to the selected employee.</div>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">
+              <i class="fa-solid fa-floppy-disk me-1"></i>Save Allocation
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
-
-
-
-
+  <!-- ================= CHANGE PASSWORD MODAL ================= -->
+  <div class="modal fade" id="changePasswordModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
+        <div class="modal-header text-white" style="background-color: var(--thynk-primary-dark);">
+          <h5 class="modal-title fw-bold"><i class="fa-solid fa-lock me-2"></i>Change Password</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="change-password-form">
+          <div class="modal-body p-4">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Current Password</label>
+              <input type="password" class="form-control rounded-3" id="cp-current-password" placeholder="Enter current password" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">New Password</label>
+              <input type="password" class="form-control rounded-3" id="cp-new-password" placeholder="Minimum 6 characters" minlength="6" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Confirm New Password</label>
+              <input type="password" class="form-control rounded-3" id="cp-confirm-password" placeholder="Re-enter new password" minlength="6" required>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0 pt-0">
+            <button type="button" class="btn btn-light rounded-3 px-4 fw-semibold" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">
+              <i class="fa-solid fa-check me-1"></i>Update Password
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 
   <!-- CDNs for JS dependencies -->
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -2951,7 +3033,9 @@
   
   <!-- App JS & Data Modules -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-  <script src="js/mockData.js?v=8"></script>
-  <script src="js/app.js?v=8"></script>
+  <script src="js/mockData.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js?v=6"></script>
 </body>
 </html>
+

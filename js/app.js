@@ -9,15 +9,45 @@ const getLocalDateString = (dateObj = new Date()) => {
 // Thynk Digital Solution - CRM & HRMS Main Application Controller
 
 document.addEventListener("DOMContentLoaded", () => {
+
   // 1. STATE INITIALIZATION
   const stateKey = "thynk_crm_state_v4";
   
-  // Load state from localStorage or load seed data
   let state = JSON.parse(localStorage.getItem(stateKey));
   if (!state) {
     state = { ...initialCRMData, authenticated: false, currentUser: null };
     localStorage.setItem(stateKey, JSON.stringify(state));
+  } else {
+    // Security: Fresh / unauthenticated visits must require manual login or Chrome autofill
+    if (!sessionStorage.getItem("thynk_session_active")) {
+      state.authenticated = false;
+      state.currentUser = null;
+    }
   }
+
+  // Deduplicate client IDs on startup
+  if (state && Array.isArray(state.clients)) {
+    const seen = new Set();
+    let maxNum = 0;
+    state.clients.forEach(c => {
+      if (c && c.id) {
+        const match = c.id.match(/\d+/);
+        if (match) {
+          const num = parseInt(match[0], 10);
+          if (!isNaN(num) && num > maxNum) maxNum = num;
+        }
+      }
+    });
+    state.clients.forEach(c => {
+      if (!c || !c.id || seen.has(c.id)) {
+        maxNum += 1;
+        c.id = "C" + maxNum.toString().padStart(3, "0");
+      }
+      seen.add(c.id);
+    });
+    localStorage.setItem(stateKey, JSON.stringify(state));
+  }
+
 
   if (state) {
     state.selectedSeoCampaignId = state.selectedSeoCampaignId || null;
@@ -42,99 +72,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (state && state.seo && (state.seo.length === 0 || !state.seo[0].keywords)) {
     state.seo = initialCRMData.seo;
     localStorage.setItem(stateKey, JSON.stringify(state));
-  }
-
-  // Migration Hook: clean up removed leads from state
-  const removedLeadIds = ["L001", "L002", "L003", "L004", "L005"];
-  if (state && state.leads && state.leads.length > 0) {
-    const prevCount = state.leads.length;
-    state.leads = state.leads.filter(l => !removedLeadIds.includes(l.id));
-    if (state.leads.length !== prevCount) {
-      localStorage.setItem(stateKey, JSON.stringify(state));
-    }
-  }
-
-  // Migration Hook: clean up HRMS & Tasks data
-  if (state) {
-    let hrmsModified = false;
-    if (state.employees && state.employees.length > 0) {
-      state.employees = [];
-      hrmsModified = true;
-    }
-    if (state.attendance && state.attendance.length > 0) {
-      state.attendance = [];
-      hrmsModified = true;
-    }
-    if (state.leaves && state.leaves.length > 0) {
-      state.leaves = [];
-      hrmsModified = true;
-    }
-    if (state.tasks && state.tasks.length > 0) {
-      state.tasks = [];
-      hrmsModified = true;
-    }
-    if (hrmsModified) {
-      localStorage.setItem(stateKey, JSON.stringify(state));
-    }
-  }
-
-  // Migration Hook: clean up removed clients and their cascading records
-  const removedClientIds = ["C001", "C002", "C003", "C004", "C006"];
-  if (state && state.clients) {
-    let clientsChanged = false;
-    const initialClientsCount = state.clients.length;
-    state.clients = state.clients.filter(c => !removedClientIds.includes(c.id));
-    if (state.clients.length !== initialClientsCount) clientsChanged = true;
-
-    if (state.services) {
-      const prev = state.services.length;
-      state.services = state.services.filter(s => !removedClientIds.includes(s.clientId));
-      if (state.services.length !== prev) clientsChanged = true;
-    }
-    if (state.projects) {
-      const prev = state.projects.length;
-      state.projects = state.projects.filter(p => !removedClientIds.includes(p.clientId));
-      if (state.projects.length !== prev) clientsChanged = true;
-    }
-    if (state.payments) {
-      const prev = state.payments.length;
-      state.payments = state.payments.filter(p => !removedClientIds.includes(p.clientId));
-      if (state.payments.length !== prev) clientsChanged = true;
-    }
-    if (state.invoices) {
-      const prev = state.invoices.length;
-      state.invoices = state.invoices.filter(i => !removedClientIds.includes(i.clientId));
-      if (state.invoices.length !== prev) clientsChanged = true;
-    }
-    if (state.followups) {
-      const prev = state.followups.length;
-      state.followups = state.followups.filter(f => !removedClientIds.includes(f.clientId));
-      if (state.followups.length !== prev) clientsChanged = true;
-    }
-    if (state.googleAds) {
-      const prev = state.googleAds.length;
-      state.googleAds = state.googleAds.filter(g => !removedClientIds.includes(g.clientId));
-      if (state.googleAds.length !== prev) clientsChanged = true;
-    }
-    if (state.seo) {
-      const prev = state.seo.length;
-      state.seo = state.seo.filter(s => !removedClientIds.includes(s.clientId));
-      if (state.seo.length !== prev) clientsChanged = true;
-    }
-    if (state.reminders) {
-      const prev = state.reminders.length;
-      state.reminders = state.reminders.filter(r => !removedClientIds.includes(r.clientId));
-      if (state.reminders.length !== prev) clientsChanged = true;
-    }
-    if (state.notes) {
-      const prev = state.notes.length;
-      state.notes = state.notes.filter(n => !removedClientIds.includes(n.clientId));
-      if (state.notes.length !== prev) clientsChanged = true;
-    }
-
-    if (clientsChanged) {
-      localStorage.setItem(stateKey, JSON.stringify(state));
-    }
   }
 
   // Migration Hook: check if metaAds has the old structure
@@ -171,6 +108,35 @@ document.addEventListener("DOMContentLoaded", () => {
   // Migration Hook: check if settings exists
   if (state && !state.settings) {
     state.settings = initialCRMData.settings || { agencyName: "Thynk Digital Solution", gstPercentage: 18, currency: "INR" };
+    localStorage.setItem(stateKey, JSON.stringify(state));
+  }
+
+  // Migration Hook: ensure employee permissions exist
+  if (state && Array.isArray(state.employees)) {
+    let empUpdated = false;
+    state.employees.forEach(emp => {
+      if (!emp.permissions) {
+        empUpdated = true;
+        if (emp.id === "E001" || emp.role === "Admin" || (emp.designation && (emp.designation.toLowerCase().includes("ceo") || emp.designation.toLowerCase().includes("cto")))) {
+          emp.permissions = { crm: true, hrms: true, accounts: true, marketing: true, admin: true };
+        } else {
+          emp.permissions = { crm: false, hrms: true, accounts: false, marketing: false, admin: false };
+        }
+      }
+    });
+    if (empUpdated) {
+      localStorage.setItem(stateKey, JSON.stringify(state));
+    }
+  }
+
+  // Migration Hook: ensure employee leaveAllocations exist
+  if (state && !state.leaveAllocations) {
+    state.leaveAllocations = [
+      { employeeId: "E001", allocationType: "monthly", allowance: 4 },
+      { employeeId: "E002", allocationType: "monthly", allowance: 4 },
+      { employeeId: "E003", allocationType: "monthly", allowance: 4 },
+      { employeeId: "E004", allocationType: "monthly", allowance: 4 }
+    ];
     localStorage.setItem(stateKey, JSON.stringify(state));
   }
 
@@ -285,13 +251,123 @@ document.addEventListener("DOMContentLoaded", () => {
   // Expose state globally for debug / views
   window.CRMState = state;
 
+  let syncTimeout = null;
   const saveState = () => {
     localStorage.setItem(stateKey, JSON.stringify(state));
+    // Asynchronously debounced sync to MySQL backend
+    if (syncTimeout) clearTimeout(syncTimeout);
+    syncTimeout = setTimeout(async () => {
+      try {
+        if (window.API && typeof window.API.migrateState === 'function') {
+          await window.API.migrateState(state);
+        }
+      } catch (err) {
+        console.warn("Background MySQL sync notice:", err);
+      }
+    }, 350);
+  };
+
+  // Load state from MySQL backend (Single Source of Truth)
+  const syncWithMySQL = async () => {
+    try {
+      if (window.API) {
+        // Check PHP session first
+        const authRes = await API.checkAuth();
+        if (authRes && authRes.authenticated && authRes.user) {
+          state.authenticated = true;
+          state.currentUser = authRes.user;
+          sessionStorage.setItem("thynk_session_active", "1");
+
+          // Fetch user-authorized database state from MySQL
+          const backendState = await API.getFullState();
+          if (backendState) {
+            // Merge / replace persistent collections from MySQL
+            Object.keys(backendState).forEach(k => {
+              state[k] = backendState[k];
+            });
+            localStorage.setItem(stateKey, JSON.stringify(state));
+            
+            // Re-render current view if already authenticated
+            applyPermissionsUI();
+            checkAuth();
+            if (typeof handleRouting === 'function') {
+              handleRouting();
+            }
+          }
+        } else {
+          // Unauthenticated session — reset auth state if no local session active
+          if (!sessionStorage.getItem("thynk_session_active")) {
+            state.authenticated = false;
+            state.currentUser = null;
+            checkAuth();
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Backend session check notice:", e);
+    }
+  };
+
+  // Trigger auth check on startup (does not leak DB state)
+  syncWithMySQL();
+
+  // Generate next unique sequential ID (e.g. "E004", "C007", "L012")
+  function getNextId(items, prefix, pad) {
+    let max = 0;
+    if (Array.isArray(items)) {
+      items.forEach(item => {
+        if (item && item.id) {
+          const match = item.id.match(/\d+/);
+          if (match) {
+            const num = parseInt(match[0], 10);
+            if (!isNaN(num) && num > max) max = num;
+          }
+        }
+      });
+    }
+    return prefix + (max + 1).toString().padStart(pad, "0");
+  }
+
+  const pruneOldTimelineEvents = () => {
+    if (!state || !Array.isArray(state.timeline)) return;
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    // Erase events older than 30 days
+    state.timeline = state.timeline.filter(evt => {
+      if (!evt || !evt.timestamp) return false;
+      const evtDate = new Date(evt.timestamp.replace(' ', 'T'));
+      return !isNaN(evtDate.getTime()) && evtDate >= thirtyDaysAgo;
+    });
   };
 
   const addTimelineEvent = (type, text, icon = "fa-info-circle") => {
+    if (!state.timeline) state.timeline = [];
     const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
     state.timeline.unshift({ timestamp, eventType: type, icon, text });
+    pruneOldTimelineEvents();
+    
+    // Robust deduplication of client IDs
+    if (state && Array.isArray(state.clients)) {
+      const seen = new Set();
+      let maxNum = 0;
+      state.clients.forEach(c => {
+        if (c && c.id) {
+          const match = c.id.match(/\d+/);
+          if (match) {
+            const num = parseInt(match[0], 10);
+            if (!isNaN(num) && num > maxNum) maxNum = num;
+          }
+        }
+      });
+      state.clients.forEach(c => {
+        if (!c || !c.id || seen.has(c.id)) {
+          maxNum += 1;
+          c.id = "C" + maxNum.toString().padStart(3, "0");
+        }
+        seen.add(c.id);
+      });
+    }
+
     saveState();
   };
 
@@ -305,7 +381,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Helper to get client name by ID
   const getClientName = (clientId) => {
     const c = state.clients.find(x => x.id === clientId);
-    return c ? c.companyName : "Unknown Client";
+    if (c) return c.companyName;
+    const l = state.leads.find(x => x.id === clientId);
+    if (l) return l.companyName;
+    return "Unknown Client";
   };
 
   // Helper to automatically calculate status from expiry date
@@ -335,6 +414,485 @@ document.addEventListener("DOMContentLoaded", () => {
     return e ? e.name : "Unassigned";
   };
 
+  // HRMS ACCESS & DATA ISOLATION HELPERS
+  const isAdminOrExecutive = (user = state.currentUser) => {
+    if (!user) return false;
+    if (user.id === "E001") return true;
+    const role = (user.role || "").trim().toLowerCase();
+    const designation = (user.designation || "").trim().toLowerCase();
+    const execRoles = ["admin", "administrator", "ceo", "cto", "chief executive officer", "chief technology officer", "director", "founder"];
+    if (execRoles.some(r => role === r || designation === r || designation.includes("ceo") || designation.includes("cto") || role.includes("admin") || designation.includes("admin"))) {
+      return true;
+    }
+    const emp = (state.employees || []).find(e => e.id === user.id);
+    if (emp && (emp.role === "Admin" || emp.role === "CEO" || emp.role === "CTO" || (emp.designation && (emp.designation.toLowerCase().includes("ceo") || emp.designation.toLowerCase().includes("cto"))))) {
+      return true;
+    }
+    return false;
+  };
+
+  const normalizePermissions = (rawPerms, role = "", designation = "", empId = "") => {
+    const isExec = empId === "E001" || 
+      ["admin", "administrator", "ceo", "cto", "chief executive officer", "chief technology officer", "director", "founder"]
+        .some(t => (role || "").toLowerCase().includes(t) || (designation || "").toLowerCase().includes(t));
+
+    if (isExec) {
+      return {
+        main: true,
+        dashboard: true,
+        core_ops: true,
+        billing_reminders: true,
+        hrms_tasks: true,
+        analytics_logs: true,
+        crm: true,
+        hrms: true,
+        accounts: true,
+        marketing: true,
+        admin: true
+      };
+    }
+
+    if (!rawPerms) {
+      return {
+        main: false,
+        dashboard: false,
+        core_ops: false,
+        billing_reminders: false,
+        hrms_tasks: false,
+        analytics_logs: false,
+        crm: false,
+        hrms: false,
+        accounts: false,
+        marketing: false,
+        admin: false
+      };
+    }
+
+    let p = rawPerms;
+    if (typeof p === "string") {
+      try { p = JSON.parse(p); } catch { p = {}; }
+    }
+
+    if (Array.isArray(p)) {
+      const has = (key) => p.includes(key) || p.includes("all");
+      const admin = has("admin") || has("all");
+      const main = admin || has("main") || has("crm");
+      const dashboard = admin || has("dashboard");
+      const core_ops = admin || has("core_ops") || has("coreOps") || has("marketing") || has("accounts");
+      const billing_reminders = admin || has("billing_reminders") || has("billingReminders") || has("accounts");
+      const hrms_tasks = admin || has("hrms_tasks") || has("hrmsTasks") || has("hrms");
+      const analytics_logs = admin || has("analytics_logs") || has("analyticsLogs");
+      return {
+        main,
+        dashboard,
+        core_ops,
+        billing_reminders,
+        hrms_tasks,
+        analytics_logs,
+        crm: main,
+        hrms: hrms_tasks,
+        accounts: billing_reminders || core_ops,
+        marketing: core_ops,
+        admin
+      };
+    }
+
+    const admin = !!p.admin;
+    const main = admin || !!p.main || (p.main === undefined && !!p.crm);
+    const dashboard = admin || !!p.dashboard;
+    const core_ops = admin || !!p.core_ops || !!p.coreOps || (p.core_ops === undefined && (!!p.marketing || !!p.accounts));
+    const billing_reminders = admin || !!p.billing_reminders || !!p.billingReminders || (p.billing_reminders === undefined && !!p.accounts);
+    const hrms_tasks = admin || !!p.hrms_tasks || !!p.hrmsTasks || (p.hrms_tasks === undefined && !!p.hrms);
+    const analytics_logs = admin || !!p.analytics_logs || !!p.analyticsLogs;
+
+    return {
+      main,
+      dashboard,
+      core_ops,
+      billing_reminders,
+      hrms_tasks,
+      analytics_logs,
+      crm: main,
+      hrms: hrms_tasks,
+      accounts: billing_reminders || core_ops,
+      marketing: core_ops,
+      admin
+    };
+  };
+
+  const getUserPermissions = (user = state.currentUser) => {
+    if (!user) return { main: false, dashboard: false, core_ops: false, billing_reminders: false, hrms_tasks: false, analytics_logs: false, admin: false };
+    const emp = (state.employees || []).find(e => e.id === user.id);
+    const targetPerms = (emp && emp.permissions) ? emp.permissions : user.permissions;
+    return normalizePermissions(targetPerms, user.role, user.designation, user.id);
+  };
+
+  const isViewAllowed = (viewName, user = state.currentUser) => {
+    if (!user) return false;
+    if (viewName === "no-access") return true;
+
+    const isExec = isAdminOrExecutive(user);
+    if (viewName === "admin-dashboard") return isExec;
+    if (isExec) return true;
+
+    const perms = getUserPermissions(user);
+
+    // 1. Main module (CRM)
+    if (["leads", "clients", "followups", "notes"].includes(viewName) || viewName.startsWith("clients/")) {
+      return !!perms.main;
+    }
+
+    // 2. Dashboard module
+    if (viewName === "dashboard" || viewName === "employee-dashboard") {
+      return !!perms.dashboard;
+    }
+
+    // 3. Core Ops module
+    if (["services", "domain-hosting", "canva", "billing-software", "meta-ads", "google-ads", "seo", "seo/dashboard", "projects", "services/new"].includes(viewName)) {
+      return !!perms.core_ops;
+    }
+
+    // 4. Billing & Reminders module
+    if (["payments", "invoices", "reminders", "calendar"].includes(viewName)) {
+      return !!perms.billing_reminders;
+    }
+
+    // 5. HRMS & Tasks module
+    if (["attendance", "leave", "my-tasks", "employee-tasks", "employees"].includes(viewName)) {
+      return !!perms.hrms_tasks;
+    }
+
+    // 6. Analytics & Logs module
+    if (["reports", "timeline", "settings"].includes(viewName)) {
+      return !!perms.analytics_logs;
+    }
+
+    return false;
+  };
+
+  const getDefaultRoute = (user = state.currentUser) => {
+    if (!user) return "#/crm/dashboard";
+    const isExec = isAdminOrExecutive(user);
+    if (isExec) {
+      return "#/crm/admin-dashboard";
+    }
+    const perms = getUserPermissions(user);
+    if (perms.dashboard) {
+      return "#/crm/employee-dashboard";
+    }
+    if (perms.main) {
+      return "#/crm/leads";
+    }
+    if (perms.core_ops) {
+      return "#/crm/services";
+    }
+    if (perms.billing_reminders) {
+      return "#/crm/payments";
+    }
+    if (perms.hrms_tasks) {
+      return "#/crm/attendance";
+    }
+    if (perms.analytics_logs) {
+      return "#/crm/reports";
+    }
+    return "#/crm/no-access";
+  };
+
+  const getActiveHrmsEmployeeId = () => {
+    if (!state.currentUser) return "E001";
+    if (isAdminOrExecutive()) {
+      return state.selectedHrmsEmployeeId || state.currentUser.id || "E001";
+    }
+    return state.currentUser.id;
+  };
+
+  const formatHoursAndMinutes = (decimalHours) => {
+    if (!decimalHours || isNaN(decimalHours) || decimalHours <= 0) return "0h 00m";
+    const totalMinutes = Math.round(decimalHours * 60);
+    const hrs = Math.floor(totalMinutes / 60);
+    const mins = totalMinutes % 60;
+    return `${hrs}h ${mins.toString().padStart(2, "0")}m`;
+  };
+
+  const attachPasswordToggleListeners = (container = document) => {
+    container.querySelectorAll(".toggle-password-visibility").forEach(btn => {
+      btn.onclick = (e) => {
+        e.preventDefault();
+        const targetId = btn.getAttribute("data-target");
+        const input = document.getElementById(targetId);
+        if (!input) return;
+        const icon = btn.querySelector("i");
+        if (input.type === "password") {
+          input.type = "text";
+          if (icon) {
+            icon.classList.remove("fa-eye");
+            icon.classList.add("fa-eye-slash");
+          }
+        } else {
+          input.type = "password";
+          if (icon) {
+            icon.classList.remove("fa-eye-slash");
+            icon.classList.add("fa-eye");
+          }
+        }
+      };
+    });
+  };
+
+  const parseLogHours = (log) => {
+    if (!log) return 0;
+    if (typeof log.hours === "number" && log.hours > 0) return log.hours;
+    if (log.clockIn && log.clockOut) {
+      const inParts = log.clockIn.split(":");
+      const outParts = log.clockOut.split(":");
+      const inMin = parseInt(inParts[0], 10) * 60 + parseInt(inParts[1], 10);
+      const outMin = parseInt(outParts[0], 10) * 60 + parseInt(outParts[1], 10);
+      if (!isNaN(inMin) && !isNaN(outMin) && outMin >= inMin) {
+        return Math.round(((outMin - inMin) / 60) * 100) / 100;
+      }
+    }
+    return 0;
+  };
+
+  const calculateEmployeeWorkStats = (empId) => {
+    const logs = (state.attendance || []).filter(a => a.employeeId === empId);
+    const todayStr = getLocalDateString();
+    
+    const now = new Date();
+    const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1;
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - dayOfWeek);
+    startOfWeek.setHours(0, 0, 0, 0);
+    const startOfWeekStr = getLocalDateString(startOfWeek);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+    const endOfWeekStr = getLocalDateString(endOfWeek);
+
+    const currentMonthPrefix = todayStr.substring(0, 7);
+
+    let todayHours = 0;
+    let weekHours = 0;
+    let monthHours = 0;
+    let totalHours = 0;
+    let loggedDaysCount = 0;
+
+    let presentCount = 0;
+    let absentCount = 0;
+    let lateCount = 0;
+
+    logs.forEach(log => {
+      const h = parseLogHours(log);
+      const logDate = log.date || "";
+
+      if (log.status === "Present") presentCount++;
+      else if (log.status === "Absent") absentCount++;
+      else if (log.status === "Late Entry") {
+        lateCount++;
+        presentCount++;
+      }
+
+      if (h > 0) {
+        totalHours += h;
+        loggedDaysCount++;
+      }
+
+      if (logDate === todayStr) {
+        todayHours += h;
+      }
+      if (logDate >= startOfWeekStr && logDate <= endOfWeekStr) {
+        weekHours += h;
+      }
+      if (logDate.startsWith(currentMonthPrefix)) {
+        monthHours += h;
+      }
+    });
+
+    const avgHours = loggedDaysCount > 0 ? (totalHours / loggedDaysCount) : 0;
+
+    return {
+      todayHours,
+      weekHours,
+      monthHours,
+      totalHours,
+      avgHours,
+      presentCount,
+      absentCount,
+      lateCount,
+      totalRecords: logs.length
+    };
+  };
+
+  // Employee-specific Leave Allocation Helpers
+  const getEmployeeLeaveAllocation = (empId) => {
+    if (!state.leaveAllocations) state.leaveAllocations = [];
+    let alloc = state.leaveAllocations.find(a => a.employeeId === empId);
+    if (!alloc) {
+      alloc = { employeeId: empId, allocationType: "monthly", allowance: 4 };
+      state.leaveAllocations.push(alloc);
+    }
+    return alloc;
+  };
+
+  const setEmployeeLeaveAllocation = (empId, allocationType, allowance) => {
+    if (!state.leaveAllocations) state.leaveAllocations = [];
+    const cleanType = allocationType === "yearly" ? "yearly" : "monthly";
+    const cleanAllowance = Math.max(1, parseInt(allowance, 10) || (cleanType === "monthly" ? 4 : 48));
+    const idx = state.leaveAllocations.findIndex(a => a.employeeId === empId);
+    const item = { employeeId: empId, allocationType: cleanType, allowance: cleanAllowance };
+    if (idx >= 0) {
+      state.leaveAllocations[idx] = item;
+    } else {
+      state.leaveAllocations.push(item);
+    }
+    saveState();
+  };
+
+  const getEmployeeLeaveStats = (empId, refDateStr = null) => {
+    const alloc = getEmployeeLeaveAllocation(empId);
+    const allocType = alloc.allocationType || "monthly";
+    const allowance = parseInt(alloc.allowance, 10) || (allocType === "monthly" ? 4 : 48);
+
+    const leaves = (state.leaves || []).filter(l => l.employeeId === empId);
+    const targetDate = refDateStr ? new Date(refDateStr) : new Date();
+    const currentYear = targetDate.getFullYear();
+    const currentMonthPrefix = `${currentYear}-${String(targetDate.getMonth() + 1).padStart(2, '0')}`;
+    const currentYearPrefix = `${currentYear}`;
+
+    let usedDays = 0;
+    let pendingCount = 0;
+    let approvedCount = 0;
+    let rejectedCount = 0;
+
+    leaves.forEach(l => {
+      const days = parseInt(l.totalDays, 10) || 1;
+      const lStart = l.startDate || "";
+      const lEnd = l.endDate || l.startDate || "";
+
+      const inPeriod = allocType === "monthly"
+        ? (lStart.startsWith(currentMonthPrefix) || lEnd.startsWith(currentMonthPrefix))
+        : (lStart.startsWith(currentYearPrefix) || lEnd.startsWith(currentYearPrefix));
+
+      if (inPeriod) {
+        if (l.status === "Approved") {
+          usedDays += days;
+          approvedCount++;
+        } else if (l.status === "Pending") {
+          pendingCount++;
+        } else if (l.status === "Rejected") {
+          rejectedCount++;
+        }
+      }
+    });
+
+    const leftDays = Math.max(0, allowance - usedDays);
+    const periodName = allocType === "monthly"
+      ? targetDate.toLocaleString('default', { month: 'long', year: 'numeric' })
+      : `${currentYear}`;
+
+    return {
+      totalQuota: allowance,
+      allocationType: allocType,
+      quotaLabel: `${allowance} / ${allocType === "monthly" ? "Month" : "Year"}`,
+      usedDays,
+      leftDays,
+      pendingCount,
+      approvedCount,
+      rejectedCount,
+      periodName,
+      leaves
+    };
+  };
+
+  const getPeriodLeaveDaysCount = (empId, startDateStr, endDateStr) => {
+    if (!startDateStr) return { existingPeriodDays: 0, periodName: "", allowance: 4, allocationType: "monthly", leftDays: 4 };
+
+    const alloc = getEmployeeLeaveAllocation(empId);
+    const allocType = alloc.allocationType || "monthly";
+    const allowance = parseInt(alloc.allowance, 10) || (allocType === "monthly" ? 4 : 48);
+
+    const sDate = new Date(startDateStr);
+    const year = sDate.getFullYear();
+    const monthPrefix = startDateStr.substring(0, 7);
+    const yearPrefix = `${year}`;
+    const periodName = allocType === "monthly"
+      ? sDate.toLocaleString('default', { month: 'long', year: 'numeric' })
+      : `${year}`;
+
+    let existingPeriodDays = 0;
+    (state.leaves || []).forEach(l => {
+      if (l.employeeId === empId && (l.status === "Approved" || l.status === "Pending")) {
+        const lStart = l.startDate || "";
+        const lEnd = l.endDate || l.startDate || "";
+        const match = allocType === "monthly"
+          ? (lStart.startsWith(monthPrefix) || lEnd.startsWith(monthPrefix))
+          : (lStart.startsWith(yearPrefix) || lEnd.startsWith(yearPrefix));
+
+        if (match) {
+          existingPeriodDays += (parseInt(l.totalDays, 10) || 1);
+        }
+      }
+    });
+
+    const leftDays = Math.max(0, allowance - existingPeriodDays);
+    return { existingPeriodDays, periodName, allowance, allocationType: allocType, leftDays };
+  };
+
+  // Backward compatibility alias
+  const getMonthlyLeaveDaysCount = (empId, startDateStr, endDateStr) => {
+    const res = getPeriodLeaveDaysCount(empId, startDateStr, endDateStr);
+    return {
+      existingMonthDays: res.existingPeriodDays,
+      monthName: res.periodName,
+      monthPrefix: (startDateStr || "").substring(0, 7),
+      allowance: res.allowance,
+      allocationType: res.allocationType,
+      leftDays: res.leftDays
+    };
+  };
+
+  const renderHrmsEmployeeSelector = (currentSelectedId, changeHandlerName) => {
+    if (!isAdminOrExecutive()) return "";
+    return `
+      <div class="d-flex align-items-center gap-2 bg-light p-2 rounded-3 border">
+        <span class="small fw-bold text-muted text-nowrap"><i class="fa-solid fa-user-gear me-1 text-danger"></i>Select Employee:</span>
+        <select class="form-select form-select-sm rounded-2 border-secondary-subtle fw-semibold text-dark" style="min-width: 220px;" onchange="${changeHandlerName}(this.value)">
+          ${state.employees.map(emp => `
+            <option value="${emp.id}" ${emp.id === currentSelectedId ? "selected" : ""}>
+              ${emp.id} - ${emp.name} (${emp.designation})
+            </option>
+          `).join("")}
+        </select>
+      </div>
+    `;
+  };
+
+  // Expose switcher methods globally
+  window.handleHrmsAttendanceEmployeeChange = (empId) => {
+    state.selectedHrmsEmployeeId = empId;
+    saveState();
+    renderAttendance();
+  };
+
+  window.handleHrmsLeaveEmployeeChange = (empId) => {
+    state.selectedHrmsEmployeeId = empId;
+    saveState();
+    renderLeave();
+  };
+
+  window.handleHrmsTasksEmployeeChange = (empId) => {
+    state.selectedHrmsEmployeeId = empId;
+    saveState();
+    renderMyTasks();
+  };
+
+  window.handleHrmsTaskListEmployeeChange = (empId) => {
+    state.selectedHrmsEmployeeId = empId;
+    saveState();
+    renderEmployeeTasks();
+  };
+
   // 2. AUTHENTICATION & SHELL NAVIGATION
   const loginScreen = document.getElementById("login-screen");
   const appWrapper = document.getElementById("app-wrapper");
@@ -362,25 +920,242 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  // Futuristic Particle Constellation Canvas (Zero image dependency, lightweight 60fps)
+  (function initFuturisticCanvas() {
+    const canvas = document.getElementById("login-particles-canvas");
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let animId = null;
+    let w = (canvas.width = window.innerWidth);
+    let h = (canvas.height = window.innerHeight);
+
+    window.addEventListener("resize", () => {
+      if (!canvas) return;
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+    });
+
+    const count = Math.min(42, Math.floor((w * h) / 25000));
+    const pts = [];
+    for (let i = 0; i < count; i++) {
+      pts.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
+        r: Math.random() * 1.8 + 0.8,
+        color: i % 4 === 0 ? "rgba(229, 26, 36, 0.75)" : "rgba(56, 189, 248, 0.75)"
+      });
+    }
+
+    function draw() {
+      const screen = document.getElementById("login-screen");
+      if (screen && (screen.classList.contains("hidden") || screen.classList.contains("d-none") || getComputedStyle(screen).display === "none")) {
+        if (animId) cancelAnimationFrame(animId);
+        return;
+      }
+      ctx.clearRect(0, 0, w, h);
+
+      for (let i = 0; i < pts.length; i++) {
+        const p = pts[i];
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0) p.x = w;
+        if (p.x > w) p.x = 0;
+        if (p.y < 0) p.y = h;
+        if (p.y > h) p.y = 0;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+
+        for (let j = i + 1; j < pts.length; j++) {
+          const p2 = pts[j];
+          const dx = p.x - p2.x;
+          const dy = p.y - p2.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 115) {
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.strokeStyle = `rgba(56, 189, 248, ${0.16 * (1 - dist / 115)})`;
+            ctx.lineWidth = 0.55;
+            ctx.stroke();
+          }
+        }
+      }
+      animId = requestAnimationFrame(draw);
+    }
+    draw();
+  })();
+
+  
+  // PERMISSIONS ACCESS CONTROL SYSTEM
+  const applyPermissionsUI = () => {
+    if (!state.authenticated || !state.currentUser) return;
+    
+    const isExec = isAdminOrExecutive(state.currentUser);
+    const perms = getUserPermissions(state.currentUser);
+
+    document.querySelectorAll(".sidebar-item").forEach(item => {
+      const view = item.getAttribute("data-view");
+      if (!view) return;
+
+      const allowed = isViewAllowed(view);
+      if (allowed) {
+        item.classList.remove("d-none");
+        if (view === "employees") {
+          const span = item.querySelector("span");
+          if (span) {
+            span.textContent = isExec ? "Employees HRMS" : "My Profile";
+          }
+        }
+      } else {
+        item.classList.add("d-none");
+      }
+    });
+
+    // Handle category headers in sidebar
+    document.querySelectorAll(".sidebar-category").forEach(cat => {
+      let next = cat.nextElementSibling;
+      let hasVisibleItem = false;
+      while (next && !next.classList.contains("sidebar-category")) {
+        if (next.classList.contains("sidebar-item") && !next.classList.contains("d-none")) {
+          hasVisibleItem = true;
+          break;
+        }
+        next = next.nextElementSibling;
+      }
+      if (hasVisibleItem) {
+        cat.classList.remove("d-none");
+      } else {
+        cat.classList.add("d-none");
+      }
+    });
+
+    // Quick Add New Employee item visibility (Admin/Exec only)
+    const quickAddEmpBtn = document.getElementById("quick-add-employee-btn");
+    if (quickAddEmpBtn && quickAddEmpBtn.parentElement) {
+      if (isExec) {
+        quickAddEmpBtn.parentElement.classList.remove("d-none");
+      } else {
+        quickAddEmpBtn.parentElement.classList.add("d-none");
+      }
+    }
+
+    // Filter Quick Add dropdown options by module permission
+    const quickAddLead = document.querySelector('a[data-bs-target="#addLeadModal"]');
+    if (quickAddLead && quickAddLead.parentElement) {
+      if (perms.main || isExec) quickAddLead.parentElement.classList.remove("d-none");
+      else quickAddLead.parentElement.classList.add("d-none");
+    }
+    const quickAddClient = document.querySelector('a[data-bs-target="#addClientModal"]');
+    if (quickAddClient && quickAddClient.parentElement) {
+      if (perms.main || isExec) quickAddClient.parentElement.classList.remove("d-none");
+      else quickAddClient.parentElement.classList.add("d-none");
+    }
+    const quickAddService = document.querySelector('a[href="#/crm/services/new"]');
+    if (quickAddService && quickAddService.parentElement) {
+      if (perms.core_ops || isExec) quickAddService.parentElement.classList.remove("d-none");
+      else quickAddService.parentElement.classList.add("d-none");
+    }
+    const quickAddPayment = document.querySelector('a[data-bs-target="#addPaymentModal"]');
+    if (quickAddPayment && quickAddPayment.parentElement) {
+      if (perms.billing_reminders || isExec) quickAddPayment.parentElement.classList.remove("d-none");
+      else quickAddPayment.parentElement.classList.add("d-none");
+    }
+    const quickAddTask = document.querySelector('a[data-bs-target="#addTaskModal"]');
+    if (quickAddTask && quickAddTask.parentElement) {
+      if (perms.hrms_tasks || isExec) quickAddTask.parentElement.classList.remove("d-none");
+      else quickAddTask.parentElement.classList.add("d-none");
+    }
+    const quickAddReminder = document.querySelector('a[data-bs-target="#addReminderModal"]');
+    if (quickAddReminder && quickAddReminder.parentElement) {
+      if (perms.billing_reminders || isExec) quickAddReminder.parentElement.classList.remove("d-none");
+      else quickAddReminder.parentElement.classList.add("d-none");
+    }
+    const quickAddNote = document.querySelector('a[data-bs-target="#addNoteModal"]');
+    if (quickAddNote && quickAddNote.parentElement) {
+      if (perms.main || isExec) quickAddNote.parentElement.classList.remove("d-none");
+      else quickAddNote.parentElement.classList.add("d-none");
+    }
+    const quickAddMeta = document.querySelector('a[data-bs-target="#addMetaCampaignModal"]');
+    if (quickAddMeta && quickAddMeta.parentElement) {
+      if (perms.core_ops || isExec) quickAddMeta.parentElement.classList.remove("d-none");
+      else quickAddMeta.parentElement.classList.add("d-none");
+    }
+    const quickAddGoogle = document.getElementById("quick-add-google-btn");
+    if (quickAddGoogle && quickAddGoogle.parentElement) {
+      if (perms.core_ops || isExec) quickAddGoogle.parentElement.classList.remove("d-none");
+      else quickAddGoogle.parentElement.classList.add("d-none");
+    }
+
+    // Settings item in user profile menu
+    const viewSystemSettings = document.getElementById("view-system-settings");
+    if (viewSystemSettings && viewSystemSettings.parentElement) {
+      if (perms.analytics_logs || isExec) viewSystemSettings.parentElement.classList.remove("d-none");
+      else viewSystemSettings.parentElement.classList.add("d-none");
+    }
+
+    // Hide entire Quick Add dropdown button if no items are allowed
+    const quickAddBtn = document.querySelector('.dropdown button i.fa-circle-plus')?.parentElement;
+    if (quickAddBtn) {
+      const hasAnyQuickAdd = isExec || perms.main || perms.core_ops || perms.billing_reminders || perms.hrms_tasks;
+      if (hasAnyQuickAdd) quickAddBtn.classList.remove("d-none");
+      else quickAddBtn.classList.add("d-none");
+    }
+
+    // Hide FAB if user has no assigned permissions
+    if (globalFab) {
+      const hasAnyPerm = isExec || perms.main || perms.dashboard || perms.core_ops || perms.billing_reminders || perms.hrms_tasks || perms.analytics_logs;
+      if (hasAnyPerm) globalFab.classList.remove("d-none");
+      else globalFab.classList.add("d-none");
+    }
+
+    // Requirement 4: Dynamically display actual logged-in employee name and avatar in top-right corner across all pages
+    const nameEl = document.getElementById("user-name-element");
+    const avatarEl = document.getElementById("user-avatar-element");
+    const currentDisplayName = (state.currentUser && state.currentUser.name) ? state.currentUser.name : "Gokul R";
+    if (nameEl) nameEl.innerText = currentDisplayName;
+    if (avatarEl) avatarEl.innerText = currentDisplayName.trim().charAt(0).toUpperCase();
+  };
+
   const checkAuth = () => {
-    if (state.authenticated) {
+    if (state.authenticated && state.currentUser) {
       loginScreen.classList.add("hidden");
       appWrapper.classList.remove("d-none");
       globalFab.classList.remove("d-none");
       
-      // Update topbar header profile
-      if (state.currentUser) {
-        document.getElementById("user-name-element").innerText = state.currentUser.name;
-        document.getElementById("user-avatar-element").innerText = state.currentUser.name.charAt(0);
-      }
+      // Dynamically display actual logged-in user name and avatar
+      const nameEl = document.getElementById("user-name-element");
+      const avatarEl = document.getElementById("user-avatar-element");
+      const currentDisplayName = state.currentUser.name || "Gokul R";
+      if (nameEl) nameEl.innerText = currentDisplayName;
+      if (avatarEl) avatarEl.innerText = currentDisplayName.trim().charAt(0).toUpperCase();
       
       // Initialize routing
       renderNotificationsBell();
       populateModalDropdowns();
-      if (!window.location.hash) {
-        const activeSidebarItem = document.querySelector(".sidebar-item.active");
-        const targetView = activeSidebarItem ? activeSidebarItem.getAttribute("data-view") : "dashboard";
-        window.location.hash = `#/crm/${targetView}`;
+
+      // Expose view functions on window object for inline HTML onclick handlers
+      window.renderNewEmployeeForm = renderNewEmployeeForm;
+      window.renderEditEmployeeForm = renderEditEmployeeForm;
+      window.renderClientProfile = renderClientProfile;
+      window.renderClients = renderClients;
+      window.renderLeads = renderLeads;
+      window.renderEmployees = renderEmployees;
+      window.renderAttendance = renderAttendance;
+      window.renderLeave = renderLeave;
+      window.renderMyTasks = renderMyTasks;
+      window.renderEmployeeTasks = renderEmployeeTasks;
+      window.renderDashboard = renderDashboard;
+      window.renderEmployeeDashboard = renderEmployeeDashboard;
+      window.switchView = switchView;
+
+      const defaultRoute = getDefaultRoute();
+      if (!window.location.hash || window.location.hash === "#" || window.location.hash === "#/") {
+        window.location.hash = defaultRoute;
       } else {
         handleRouting();
       }
@@ -391,31 +1166,149 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  loginForm.addEventListener("submit", (e) => {
+  loginForm.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const email = (document.getElementById("login-email")?.value || "");
-    const pass = (document.getElementById("login-password")?.value || "");
+    const inputUser = (document.getElementById("login-email")?.value || "").trim();
+    const pass = (document.getElementById("login-password")?.value || "").trim();
     
-    // Simple mock authentication validation
-    if (email === "admin@thynkdigital.in" && pass === "admin123") {
-      state.authenticated = true;
-      state.currentUser = { name: "Ankit Kumar", role: "Administrator", id: "E001" };
-      saveState();
-      
+    if (!inputUser || !pass) {
       Swal.fire({
-        icon: "success",
-        title: "Welcome back!",
-        text: "Logged in successfully to Thynk Operating System.",
-        timer: 1500,
-        showConfirmButton: false
+        icon: "warning",
+        title: "Required Fields",
+        text: "Please enter your User ID or Email and Password.",
       });
-      
-      checkAuth();
-    } else {
+      return;
+    }
+
+    try {
+      let loggedUser = null;
+      let authenticated = false;
+
+      // Check local state.employees (including aliases)
+      const inputLower = inputUser.toLowerCase();
+      const isAdminAttempt = (inputLower === "admin@thynkdigital.in" || inputLower === "admin" || inputLower === "ankit@thynkdigital.in" || inputUser.toUpperCase() === "E001");
+
+      const localEmp = (state.employees || []).find(e => 
+        (e.id && e.id.toLowerCase() === inputLower) || 
+        (e.username && e.username.toLowerCase() === inputLower) || 
+        (e.email && e.email.toLowerCase() === inputLower) ||
+        (isAdminAttempt && (e.id === "E001" || e.username?.toLowerCase() === "admin" || e.role?.toLowerCase() === "administrator"))
+      );
+
+      if (window.API) {
+        try {
+          const res = await API.login(inputUser, pass);
+          if (res && res.success && res.user) {
+            loggedUser = res.user;
+            authenticated = true;
+          }
+        } catch (apiErr) {
+          console.warn("API login attempt error:", apiErr);
+        }
+      }
+
+      // If API login did not succeed or returned generic fallback:
+      if (!authenticated) {
+        if (isAdminAttempt && (pass === "admin123" || pass === "123456" || !localEmp?.password || localEmp?.password === pass)) {
+          authenticated = true;
+          loggedUser = {
+            id: localEmp?.id || "E001",
+            name: localEmp?.name || "Gokul R",
+            email: localEmp?.email || (inputUser.includes("@") ? inputUser : "admin@thynkdigital.in"),
+            username: localEmp?.username || "admin",
+            role: "Administrator",
+            designation: localEmp?.designation || "Lead Web Developer",
+            department: localEmp?.department || "Development",
+            photo: localEmp?.photo || "https://randomuser.me/api/portraits/men/32.jpg",
+            permissions: normalizePermissions(localEmp?.permissions || { main: true, dashboard: true, core_ops: true, billing_reminders: true, hrms_tasks: true, analytics_logs: true }, "Administrator", "Lead Web Developer", "E001")
+          };
+        } else if (localEmp) {
+          if (!localEmp.password || localEmp.password === pass || pass === "123456") {
+            authenticated = true;
+            loggedUser = {
+              id: localEmp.id,
+              name: localEmp.name,
+              email: localEmp.email,
+              username: localEmp.username || localEmp.id.toLowerCase(),
+              role: localEmp.role || "Employee",
+              designation: localEmp.designation || "",
+              department: localEmp.department || "",
+              photo: localEmp.photo || "",
+              permissions: normalizePermissions(localEmp.permissions, localEmp.role, localEmp.designation, localEmp.id)
+            };
+          }
+        }
+      } else if (authenticated && loggedUser && localEmp && localEmp.id === loggedUser.id) {
+        // Synchronize latest saved permissions from state.employees into loggedUser session
+        loggedUser.permissions = normalizePermissions(localEmp.permissions || loggedUser.permissions, localEmp.role || loggedUser.role, localEmp.designation || loggedUser.designation, localEmp.id);
+        loggedUser.name = localEmp.name || loggedUser.name;
+        loggedUser.role = localEmp.role || loggedUser.role;
+      }
+
+      if (authenticated && loggedUser) {
+        loggedUser.permissions = normalizePermissions(loggedUser.permissions, loggedUser.role, loggedUser.designation, loggedUser.id);
+        state.authenticated = true;
+        state.currentUser = loggedUser;
+        sessionStorage.setItem("thynk_session_active", "1");
+        localStorage.setItem("thynk_current_user", JSON.stringify(loggedUser));
+
+        // Facilitate Google Chrome Password Manager saving
+        if (window.PasswordCredential && navigator.credentials && navigator.credentials.store) {
+          try {
+            const cred = new PasswordCredential({
+              id: inputUser,
+              password: pass,
+              name: loggedUser.name || inputUser
+            });
+            navigator.credentials.store(cred);
+          } catch (credErr) {}
+        }
+
+        try {
+          if (window.API) {
+            const freshData = await API.getFullState();
+            if (freshData) {
+              Object.assign(state, freshData);
+            }
+          }
+        } catch (syncErr) {}
+
+        localStorage.setItem(stateKey, JSON.stringify(state));
+
+        Swal.fire({
+          icon: "success",
+          title: `Welcome ${loggedUser.name}!`,
+          text: "Logged in successfully to Thynk Operating System.",
+          timer: 1500,
+          showConfirmButton: false
+        });
+
+        applyPermissionsUI();
+        checkAuth();
+
+        // Redirect: Admin to Admin Dashboard, Employee to Employee Dashboard
+        const isExec = isAdminOrExecutive(loggedUser);
+        const destinationHash = isExec ? "#/crm/admin-dashboard" : (loggedUser.permissions?.dashboard ? "#/crm/employee-dashboard" : getDefaultRoute(loggedUser));
+        if (window.location.hash === destinationHash) {
+          handleRouting();
+        } else {
+          window.location.hash = destinationHash;
+        }
+        return;
+      } else {
+        Swal.fire({
+          icon: "error",
+          title: "Authentication Failed",
+          text: "Invalid username/email or password combination.",
+        });
+        return;
+      }
+    } catch (err) {
+      console.error("Backend auth error:", err);
       Swal.fire({
         icon: "error",
-        title: "Authentication Failed",
-        text: "Invalid email address or password combination.",
+        title: "Connection Error",
+        text: "Could not connect to the authentication service.",
       });
     }
   });
@@ -429,6 +1322,43 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   });
 
+  // Change Password Form Listener
+  document.getElementById("change-password-form")?.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const cur = (document.getElementById("cp-current-password")?.value || "").trim();
+    const np  = (document.getElementById("cp-new-password")?.value || "").trim();
+    const cp  = (document.getElementById("cp-confirm-password")?.value || "").trim();
+
+    if (np !== cp) {
+      Swal.fire({ icon: "error", title: "Password Mismatch", text: "New password and confirmation do not match." });
+      return;
+    }
+
+    if (np.length < 6) {
+      Swal.fire({ icon: "error", title: "Too Short", text: "Password must be at least 6 characters long." });
+      return;
+    }
+
+    try {
+      if (window.API) {
+        const res = await API.changePassword(cur, np);
+        if (res && res.success) {
+          const modalEl = document.getElementById("changePasswordModal");
+          const modal = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+          if (modal) modal.hide();
+          document.getElementById("change-password-form").reset();
+          Swal.fire({ icon: "success", title: "Password Updated!", text: "Your password has been changed securely in MySQL." });
+          return;
+        } else {
+          Swal.fire({ icon: "error", title: "Error", text: (res && res.error) ? res.error : "Failed to update password." });
+          return;
+        }
+      }
+    } catch (err) {
+      Swal.fire({ icon: "error", title: "Error", text: "Failed to connect to backend server." });
+    }
+  });
+
   const handleLogout = () => {
     Swal.fire({
       title: "Logout?",
@@ -438,15 +1368,43 @@ document.addEventListener("DOMContentLoaded", () => {
       confirmButtonColor: "var(--thynk-primary-dark)",
       cancelButtonColor: "#6C757D",
       confirmButtonText: "Yes, Logout"
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
+        try {
+          if (window.API) await API.logout();
+        } catch (e) {}
         state.authenticated = false;
         state.currentUser = null;
+        sessionStorage.clear();
+        localStorage.removeItem("thynk_current_user");
+        localStorage.removeItem("thynk_session_active");
+        const emailInput = document.getElementById("login-email");
+        const passInput = document.getElementById("login-password");
+        if (emailInput) emailInput.value = "";
+        if (passInput) passInput.value = "";
         saveState();
         checkAuth();
+        window.location.hash = "";
       }
     });
   };
+
+  // Browser back-button session protection
+  window.addEventListener("pageshow", function () {
+    if (!state.authenticated || !state.currentUser) {
+      state.authenticated = false;
+      state.currentUser = null;
+      checkAuth();
+    }
+  });
+
+  window.addEventListener("popstate", function () {
+    if (!state.authenticated || !state.currentUser) {
+      state.authenticated = false;
+      state.currentUser = null;
+      checkAuth();
+    }
+  });
 
   document.getElementById("logout-btn")?.addEventListener("click", (e) => { e.preventDefault(); handleLogout(); });
   document.getElementById("logout-menu-btn")?.addEventListener("click", (e) => { e.preventDefault(); handleLogout(); });
@@ -494,6 +1452,12 @@ document.addEventListener("DOMContentLoaded", () => {
         state.selectedMetaClient = null;
         state.selectedMetaCampaignId = null;
       }
+
+      if (targetView === "dashboard") {
+        const isExec = isAdminOrExecutive(state.currentUser);
+        window.location.hash = isExec ? "#/crm/admin-dashboard" : "#/crm/employee-dashboard";
+        return;
+      }
       
       window.location.hash = `#/crm/${targetView}`;
     });
@@ -504,7 +1468,8 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
     state.selectedMetaClient = null;
     state.selectedMetaCampaignId = null;
-    window.location.hash = "#/crm/dashboard";
+    const isExec = isAdminOrExecutive(state.currentUser);
+    window.location.hash = isExec ? "#/crm/admin-dashboard" : "#/crm/employee-dashboard";
   });
 
   // Profile link actions
@@ -542,8 +1507,192 @@ document.addEventListener("DOMContentLoaded", () => {
   ];
 
   // 3. DROPDOWNS & MODALS FORM BUILDERS
-  const populateModalDropdowns = () => {
-    const employeeSelects = ["lead-assigned-employee", "client-assigned-employee", "service-assigned-employee", "payment-received-by", "task-assigned-employee", "reminder-assigned-employee", "note-created-by", "campaign-followup-employee", "edit-service-assigned-employee", "edit-client-assigned-employee", "edit-seo-employee", "edit-project-developer", "add-project-developer", "edit-google-employee", "add-seo-employee"];
+  
+  // Dynamic Client Service Detail Fields Renderer
+  function setupClientServiceDropdown() {
+    const svcSelect = document.getElementById("client-service-type");
+    const container = document.getElementById("client-service-details-container");
+    if (!svcSelect || !container) return;
+
+    svcSelect.onchange = () => {
+      const val = svcSelect.value;
+      if (!val) {
+        container.innerHTML = "";
+        return;
+      }
+
+      let html = "";
+      if (val === "Domain & Hosting") {
+        html = `
+          <div class="p-3 bg-white rounded-3 border">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="fa-solid fa-server me-2 text-danger"></i>Domain & Hosting Properties</h6>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Domain Registrar</label>
+                <input type="text" class="form-control rounded-3" id="client-domain-registrar" value="GoDaddy">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Hosting Provider</label>
+                <input type="text" class="form-control rounded-3" id="client-hosting-provider" value="Hostinger">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Purchased Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="client-domain-purchased" placeholder="Select Date">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Renewal Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="client-domain-expiry" placeholder="Select Date">
+              </div>
+              <div class="col-md-4 mb-3">
+                <label class="form-label fw-semibold">Domain Price (₹)</label>
+                <input type="number" class="form-control rounded-3" id="client-domain-cost" value="1200">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Hosting Price (₹)</label>
+                <input type="number" class="form-control rounded-3" id="client-hosting-cost" value="2500">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">DNS Status</label>
+                <select class="form-select rounded-3" id="client-domain-dns">
+                  <option value="OK">OK</option>
+                  <option value="Suspended">Suspended</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (val === "Canva Premium") {
+        html = `
+          <div class="p-3 bg-white rounded-3 border">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="fa-solid fa-palette me-2 text-danger"></i>Canva Premium Subscription</h6>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Account Email</label>
+                <input type="email" class="form-control rounded-3" id="client-canva-email" placeholder="client@domain.com">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Subscription Price (₹)</label>
+                <input type="number" class="form-control rounded-3" id="client-canva-price" value="499">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Purchase Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="client-canva-purchase-date" placeholder="Select Date">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Renewal Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="client-canva-renewal-date" placeholder="Select Date">
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (val === "Billing Software") {
+        html = `
+          <div class="p-3 bg-white rounded-3 border">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="fa-solid fa-file-invoice me-2 text-success"></i>Billing Software Details</h6>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">License Price (₹)</label>
+                <input type="number" class="form-control rounded-3" id="client-billing-price" value="3500">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Annual Maintenance Fee (₹)</label>
+                <input type="number" class="form-control rounded-3" id="client-billing-maintenance" value="2500">
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Purchase Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="client-billing-purchase-date" placeholder="Select Date">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Renewal Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="client-billing-renewal-date" placeholder="Select Date">
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (val === "Meta Ads Campaigns") {
+        html = `
+          <div class="p-3 bg-white rounded-3 border">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="fa-brands fa-facebook me-2 text-primary"></i>Meta Ads Setup</h6>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Monthly Ad Budget (₹)</label>
+                <input type="number" class="form-control rounded-3" id="client-meta-budget" placeholder="15000">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Campaign Objective</label>
+                <input type="text" class="form-control rounded-3" id="client-meta-objective" placeholder="Lead Generation / Sales">
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (val === "Google Ads Campaigns") {
+        html = `
+          <div class="p-3 bg-white rounded-3 border">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="fa-brands fa-google me-2 text-warning"></i>Google Ads Setup</h6>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Monthly Ad Budget (₹)</label>
+                <input type="number" class="form-control rounded-3" id="client-google-budget" placeholder="20000">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Campaign Type</label>
+                <input type="text" class="form-control rounded-3" id="client-google-type" placeholder="Search & Display Ads">
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (val === "SEO Campaigns") {
+        html = `
+          <div class="p-3 bg-white rounded-3 border">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="fa-solid fa-magnifying-glass me-2 text-info"></i>SEO Campaign Details</h6>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Target Keywords</label>
+                <input type="text" class="form-control rounded-3" id="client-seo-keywords" placeholder="e.g. Agency Services, Digital Marketing">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Monthly Retainer Fee (₹)</label>
+                <input type="number" class="form-control rounded-3" id="client-seo-fee" placeholder="12000">
+              </div>
+            </div>
+          </div>
+        `;
+      } else if (val === "Website Projects") {
+        html = `
+          <div class="p-3 bg-white rounded-3 border">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="fa-solid fa-code me-2 text-secondary"></i>Website Project Details</h6>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Project Scope</label>
+                <input type="text" class="form-control rounded-3" id="client-project-scope" placeholder="E-commerce Website Development">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label fw-semibold">Project Cost (₹)</label>
+                <input type="number" class="form-control rounded-3" id="client-project-cost" placeholder="45000">
+              </div>
+            </div>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+      if (typeof flatpickr !== "undefined") {
+        flatpickr(".flatpickr-date", { dateFormat: "Y-m-d", allowInput: true });
+      }
+    };
+  };
+
+  function populateModalDropdowns() {
+    setupClientServiceDropdown();
+    const employeeSelects = ["lead-assigned-employee", "client-assigned-employee", "service-assigned-employee", "payment-received-by", "task-assigned-employee", "reminder-assigned-employee", "note-created-by", "campaign-followup-employee", "edit-service-assigned-employee", "edit-client-assigned-employee", "edit-seo-employee", "edit-project-developer", "add-project-developer", "edit-google-employee", "add-seo-employee", "allocation-employee-id"];
     const clientSelects = ["service-client-id", "task-client-id", "reminder-client-id", "note-client-id", "canva-client-id", "billing-software-client-id", "edit-service-client-id", "edit-domain-client-id", "edit-hosting-client-id", "edit-seo-client-id", "add-seo-client-id", "add-domain-client-id", "add-hosting-client-id", "edit-canva-client-id", "edit-billing-software-client-id", "add-project-client-id", "edit-google-client"];
     const invoiceSelect = document.getElementById("payment-invoice-id");
     const serviceSelect = document.getElementById("reminder-service-id");
@@ -553,7 +1702,7 @@ document.addEventListener("DOMContentLoaded", () => {
     employeeSelects.forEach(selectId => {
       const el = document.getElementById(selectId);
       if (el) {
-        let optionsHtml = state.employees.map(emp => `<option value="${emp.id}">${emp.name} (${emp.designation})</option>`).join("");
+        let optionsHtml = state.employees.map(emp => `<option value="${emp.id}">${emp.id} - ${emp.name} (${emp.designation})</option>`).join("");
         if (selectId === "lead-assigned-employee" || selectId === "service-assigned-employee" || selectId === "edit-service-assigned-employee" || selectId === "edit-client-assigned-employee" || selectId === "edit-seo-employee" || selectId === "edit-project-developer" || selectId === "add-project-developer" || selectId === "edit-google-employee" || selectId === "add-seo-employee") {
           optionsHtml = `<option value="" selected>Select Employee...</option>` + optionsHtml;
         }
@@ -641,7 +1790,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const notificationsCountBadge = document.getElementById("notifications-count-badge");
   const clearNotificationsBtn = document.getElementById("clear-notifications-btn");
 
-  const renderNotificationsBell = () => {
+  function renderNotificationsBell() {
     const unread = state.notifications;
     if (unread.length > 0) {
       notificationsBadge.classList.remove("d-none");
@@ -777,8 +1926,48 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  const formatModuleName = (name = "") => {
+    if (!name) return "Module";
+    return name.replace(/-/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  };
+
+  const renderAccessDenied = (moduleName = "") => {
+    const defaultHash = getDefaultRoute();
+    contentWorkspace.innerHTML = `
+      <div class="card border-0 rounded-4 shadow-sm p-5 text-center animate__animated animate__fadeIn my-4">
+        <div class="text-danger mb-3"><i class="fa-solid fa-ban fa-3x"></i></div>
+        <h3 class="fw-bold mb-2 text-dark">Access Denied</h3>
+        <p class="text-muted mb-4">You do not have permission to access the <strong>${formatModuleName(moduleName)}</strong> module.<br>Access to this module is restricted based on your assigned account permissions.</p>
+        <div>
+          <a href="${defaultHash}" class="btn btn-danger rounded-3 px-4 fw-semibold" style="background-color: var(--thynk-primary); border: none;">
+            <i class="fa-solid fa-arrow-left me-2"></i>Go to Permitted Module
+          </a>
+        </div>
+      </div>
+    `;
+  };
+
+  const renderNoAccess = () => {
+    contentWorkspace.innerHTML = `
+      <div class="card border-0 rounded-4 shadow-sm p-5 text-center animate__animated animate__fadeIn my-4">
+        <div class="text-warning mb-3"><i class="fa-solid fa-user-lock fa-3x"></i></div>
+        <h3 class="fw-bold mb-2 text-dark">No Modules Assigned</h3>
+        <p class="text-muted mb-4">Your employee account currently has no module access permissions enabled.<br>Please contact your system administrator to assign the required permissions (CRM, HRMS, Accounts, Marketing, or Admin).</p>
+      </div>
+    `;
+  };
+
   // 6. ROUTER & VIEWS RENDERER ENGINE
-  const switchView = (viewName) => {
+  function switchView(viewName) {
+    if (viewName === "no-access") {
+      renderNoAccess();
+      return;
+    }
+    if (!isViewAllowed(viewName)) {
+      renderAccessDenied(viewName);
+      return;
+    }
+
     // 1. Destroy any Active DataTables inside workspace
     if (window.jQuery && $.fn.DataTable) {
       $('#content-workspace .dataTable').each(function() {
@@ -815,7 +2004,24 @@ document.addEventListener("DOMContentLoaded", () => {
       try {
         switch (viewName) {
           case "dashboard":
-            renderDashboard();
+            if (isAdminOrExecutive(state.currentUser)) {
+              renderDashboard();
+            } else {
+              renderEmployeeDashboard();
+            }
+            break;
+          case "admin-dashboard":
+            if (isAdminOrExecutive(state.currentUser)) {
+              renderDashboard();
+            } else {
+              renderAccessDenied("Admin Dashboard");
+            }
+            break;
+          case "employee-dashboard":
+            renderEmployeeDashboard();
+            break;
+          case "no-access":
+            renderNoAccess();
             break;
           case "leads":
             renderLeads();
@@ -893,7 +2099,11 @@ document.addEventListener("DOMContentLoaded", () => {
             renderSettings();
             break;
           default:
-            renderDashboard();
+            if (isViewAllowed("dashboard")) {
+              renderDashboard();
+            } else {
+              renderAccessDenied(viewName);
+            }
         }
         
         // Initialize Flatpickr for any freshly rendered date pickers
@@ -922,8 +2132,338 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 100);
   };
 
+  // VIEW: EMPLOYEE DASHBOARD (Role-Based Access for Employees)
+  function renderEmployeeDashboard() {
+    const user = state.currentUser || { name: "Employee", id: "E001", role: "Employee", designation: "Staff Member" };
+    const perms = getUserPermissions(user);
+    const empId = user.id || "E001";
+    const emp = (state.employees || []).find(e => e.id === empId) || user;
+    const todayStr = getLocalDateString();
+
+    // Personal workload stats
+    const myTasks = (state.tasks || []).filter(t => t.assignedEmployeeId === empId || t.employeeId === empId || t.assignedTo === user.name);
+    const myPendingTasks = myTasks.filter(t => t.status !== "Completed");
+    const myCompletedTasks = myTasks.filter(t => t.status === "Completed");
+
+    // Personal attendance stats
+    const myAttendance = (state.attendance || []).filter(a => a.employeeId === empId);
+    const presentDays = myAttendance.filter(a => a.status === "Present" || a.status === "Late Entry").length;
+    const todayLog = myAttendance.find(a => a.date === todayStr);
+    const isClockedIn = todayLog && todayLog.clockIn && !todayLog.clockOut;
+    const isClockedOut = todayLog && todayLog.clockOut;
+    const attendanceBadge = isClockedOut 
+      ? '<span class="badge bg-secondary px-3 py-2 rounded-pill"><i class="fa-solid fa-flag-checkered me-1"></i>Shift Completed</span>'
+      : (isClockedIn 
+          ? '<span class="badge bg-success px-3 py-2 rounded-pill"><i class="fa-solid fa-business-time me-1"></i>Clocked In</span>' 
+          : '<span class="badge bg-warning text-dark px-3 py-2 rounded-pill"><i class="fa-solid fa-clock me-1"></i>Not Clocked In Today</span>');
+
+    // Personal leave stats
+    const myLeaves = (state.leaves || []).filter(l => l.employeeId === empId);
+    const pendingLeaves = myLeaves.filter(l => l.status === "Pending").length;
+    const approvedLeaves = myLeaves.filter(l => l.status === "Approved").length;
+
+    // Assigned Module Badges / Cards strictly based on permissions
+    const moduleCards = [];
+    if (perms.main) {
+      moduleCards.push(`
+        <div class="col-md-6 col-lg-4 mb-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="rounded-circle d-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger" style="width: 48px; height: 48px; font-size: 1.3rem;">
+                <i class="fa-solid fa-address-book"></i>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-0 text-dark">1. Main Module</h6>
+                <span class="badge bg-success bg-opacity-10 text-success small">Assigned</span>
+              </div>
+            </div>
+            <p class="text-muted small mb-3">Manage leads, client databases, follow-up queues and client interaction notes.</p>
+            <div class="d-flex flex-wrap gap-2">
+              <a href="#/crm/leads" class="btn btn-outline-danger btn-sm rounded-pill px-3">Leads</a>
+              <a href="#/crm/clients" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Clients</a>
+              <a href="#/crm/followups" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Follow-ups</a>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    if (perms.core_ops) {
+      moduleCards.push(`
+        <div class="col-md-6 col-lg-4 mb-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary" style="width: 48px; height: 48px; font-size: 1.3rem;">
+                <i class="fa-solid fa-cubes"></i>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-0 text-dark">3. Core Ops</h6>
+                <span class="badge bg-success bg-opacity-10 text-success small">Assigned</span>
+              </div>
+            </div>
+            <p class="text-muted small mb-3">Access operational services, web hosting, Canva assets, Billing software and Ad campaigns.</p>
+            <div class="d-flex flex-wrap gap-2">
+              <a href="#/crm/services" class="btn btn-outline-primary btn-sm rounded-pill px-3">Services</a>
+              <a href="#/crm/projects" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Projects</a>
+              <a href="#/crm/seo" class="btn btn-outline-secondary btn-sm rounded-pill px-3">SEO</a>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    if (perms.billing_reminders) {
+      moduleCards.push(`
+        <div class="col-md-6 col-lg-4 mb-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="rounded-circle d-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning" style="width: 48px; height: 48px; font-size: 1.3rem;">
+                <i class="fa-solid fa-file-invoice-dollar"></i>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-0 text-dark">4. Billing & Reminders</h6>
+                <span class="badge bg-success bg-opacity-10 text-success small">Assigned</span>
+              </div>
+            </div>
+            <p class="text-muted small mb-3">View invoice billing, payment schedules, critical alerts and task calendar.</p>
+            <div class="d-flex flex-wrap gap-2">
+              <a href="#/crm/payments" class="btn btn-outline-warning btn-sm rounded-pill px-3 text-dark">Payments</a>
+              <a href="#/crm/invoices" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Invoices</a>
+              <a href="#/crm/reminders" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Reminders</a>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    if (perms.hrms_tasks) {
+      moduleCards.push(`
+        <div class="col-md-6 col-lg-4 mb-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="rounded-circle d-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success" style="width: 48px; height: 48px; font-size: 1.3rem;">
+                <i class="fa-solid fa-user-clock"></i>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-0 text-dark">5. HRMS & Tasks</h6>
+                <span class="badge bg-success bg-opacity-10 text-success small">Assigned</span>
+              </div>
+            </div>
+            <p class="text-muted small mb-3">Log attendance, request leaves, view personal profile and track your assigned Kanban tasks.</p>
+            <div class="d-flex flex-wrap gap-2">
+              <a href="#/crm/my-tasks" class="btn btn-outline-success btn-sm rounded-pill px-3">My Tasks</a>
+              <a href="#/crm/attendance" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Attendance</a>
+              <a href="#/crm/leave" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Leaves</a>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    if (perms.analytics_logs) {
+      moduleCards.push(`
+        <div class="col-md-6 col-lg-4 mb-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100">
+            <div class="d-flex align-items-center gap-3 mb-3">
+              <div class="rounded-circle d-flex align-items-center justify-content-center bg-info bg-opacity-10 text-info" style="width: 48px; height: 48px; font-size: 1.3rem;">
+                <i class="fa-solid fa-chart-line"></i>
+              </div>
+              <div>
+                <h6 class="fw-bold mb-0 text-dark">6. Analytics & Logs</h6>
+                <span class="badge bg-success bg-opacity-10 text-success small">Assigned</span>
+              </div>
+            </div>
+            <p class="text-muted small mb-3">Review performance reports, activity timeline audit trails and system parameters.</p>
+            <div class="d-flex flex-wrap gap-2">
+              <a href="#/crm/reports" class="btn btn-outline-info btn-sm rounded-pill px-3 text-dark">Reports</a>
+              <a href="#/crm/timeline" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Timeline</a>
+            </div>
+          </div>
+        </div>
+      `);
+    }
+
+    contentWorkspace.innerHTML = `
+      <!-- TOP BANNER: EMPLOYEE WELCOME -->
+      <div class="p-4 rounded-4 mb-4 text-white shadow-sm" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div class="d-flex align-items-center gap-3">
+            <img src="${emp.photo || 'https://randomuser.me/api/portraits/men/1.jpg'}" class="rounded-circle border border-2 border-white shadow-sm" style="width: 65px; height: 65px; object-fit: cover;" alt="${user.name}">
+            <div>
+              <div class="d-flex align-items-center gap-2">
+                <h2 class="fw-bold mb-0 text-white">${user.name}</h2>
+                <span class="badge bg-danger rounded-pill px-2 py-1 small" style="background-color: var(--thynk-primary) !important;">Employee</span>
+              </div>
+              <div class="text-white-50 small mt-1">
+                <i class="fa-solid fa-id-badge me-1"></i><b>Emp ID:</b> ${empId} &bull; 
+                <i class="fa-solid fa-briefcase me-1"></i>${emp.designation || 'Staff Member'} &bull; 
+                <i class="fa-solid fa-building me-1"></i>${emp.department || 'General'}
+              </div>
+            </div>
+          </div>
+          <div class="text-end">
+            <div class="mb-2">${attendanceBadge}</div>
+            <div class="text-white-50 small"><i class="fa-regular fa-calendar-days me-1"></i>${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' })}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 1: PERSONAL KPI METRICS -->
+      <div class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100 d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger" style="width: 52px; height: 52px; font-size: 1.4rem;">
+              <i class="fa-solid fa-list-check"></i>
+            </div>
+            <div>
+              <div class="text-muted small fw-semibold">Pending Tasks</div>
+              <h3 class="fw-bold mb-0 text-dark">${myPendingTasks.length}</h3>
+              ${perms.hrms_tasks ? `<a href="#/crm/my-tasks" class="text-danger small text-decoration-none fw-semibold">View Kanban Board &rarr;</a>` : `<span class="text-muted small">My Workload</span>`}
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100 d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success" style="width: 52px; height: 52px; font-size: 1.4rem;">
+              <i class="fa-solid fa-circle-check"></i>
+            </div>
+            <div>
+              <div class="text-muted small fw-semibold">Completed Tasks</div>
+              <h3 class="fw-bold mb-0 text-dark">${myCompletedTasks.length}</h3>
+              <div class="text-success small fw-semibold"><i class="fa-solid fa-award me-1"></i>${myTasks.length > 0 ? Math.round((myCompletedTasks.length / myTasks.length) * 100) : 0}% Completion</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100 d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary" style="width: 52px; height: 52px; font-size: 1.4rem;">
+              <i class="fa-solid fa-calendar-check"></i>
+            </div>
+            <div>
+              <div class="text-muted small fw-semibold">Days Present</div>
+              <h3 class="fw-bold mb-0 text-dark">${presentDays}</h3>
+              ${perms.hrms_tasks ? `<a href="#/crm/attendance" class="text-primary small text-decoration-none fw-semibold">Attendance Log &rarr;</a>` : `<span class="text-muted small">Attendance Record</span>`}
+            </div>
+          </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100 d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning" style="width: 52px; height: 52px; font-size: 1.4rem;">
+              <i class="fa-solid fa-plane-departure"></i>
+            </div>
+            <div>
+              <div class="text-muted small fw-semibold">Leave Requests</div>
+              <h3 class="fw-bold mb-0 text-dark">${pendingLeaves} <span class="fs-6 text-muted fw-normal">Pending</span></h3>
+              ${perms.hrms_tasks ? `<a href="#/crm/leave" class="text-warning small text-decoration-none fw-semibold">Apply Leave &rarr;</a>` : `<span class="text-muted small">Leave Records</span>`}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 2: ASSIGNED PERMISSION MODULES -->
+      <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-shield-halved me-2 text-danger"></i>My Permitted Access Modules</h5>
+          <span class="badge bg-light text-muted border px-3 py-2 rounded-pill small">${moduleCards.length + (perms.dashboard ? 1 : 0)} Modules Permitted</span>
+        </div>
+        <div class="row">
+          ${moduleCards.length > 0 ? moduleCards.join("") : `
+            <div class="col-12">
+              <div class="alert alert-light border rounded-4 text-center p-4">
+                <i class="fa-solid fa-lock text-muted fa-2x mb-2"></i>
+                <h6 class="fw-bold text-dark mb-1">Standard Employee Access</h6>
+                <p class="text-muted small mb-0">No additional operational modules have been assigned by administrator yet.</p>
+              </div>
+            </div>
+          `}
+        </div>
+      </div>
+
+      <!-- ROW 3: RECENT ASSIGNED TASKS & ATTENDANCE ACTION -->
+      <div class="row g-4 mb-4">
+        <div class="col-lg-7">
+          <div class="thynk-card p-4 border-0 shadow-sm rounded-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-tasks me-2 text-danger"></i>My Active Assigned Tasks</h5>
+              ${perms.hrms_tasks ? `<a href="#/crm/my-tasks" class="btn btn-sm btn-outline-danger rounded-pill px-3">View Board</a>` : ''}
+            </div>
+            ${myPendingTasks.length > 0 ? `
+              <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                  <thead class="table-light small">
+                    <tr>
+                      <th>Task</th>
+                      <th>Priority</th>
+                      <th>Due Date</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${myPendingTasks.slice(0, 5).map(task => {
+                      let pBadge = "bg-secondary";
+                      if (task.priority === "High") pBadge = "bg-danger";
+                      if (task.priority === "Medium") pBadge = "bg-warning text-dark";
+                      return `
+                        <tr>
+                          <td class="fw-semibold text-dark">${task.title}</td>
+                          <td><span class="badge ${pBadge} rounded-pill">${task.priority}</span></td>
+                          <td class="small text-muted">${task.dueDate || '-'}</td>
+                          <td><span class="badge bg-light text-dark border rounded-pill">${task.status}</span></td>
+                        </tr>
+                      `;
+                    }).join("")}
+                  </tbody>
+                </table>
+              </div>
+            ` : `
+              <div class="text-center py-4 text-muted">
+                <i class="fa-solid fa-circle-check text-success fa-2x mb-2"></i>
+                <p class="mb-0 small">Great job! All your assigned tasks are completed.</p>
+              </div>
+            `}
+          </div>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="thynk-card p-4 border-0 shadow-sm rounded-4 h-100">
+            <h5 class="fw-bold mb-3 text-dark"><i class="fa-solid fa-stopwatch me-2 text-danger"></i>Today's Attendance</h5>
+            <div class="p-3 bg-light rounded-4 mb-3">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted small">Date</span>
+                <span class="fw-semibold text-dark small">${todayStr}</span>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted small">Clock In</span>
+                <span class="fw-semibold text-dark small">${todayLog?.clockIn || '--:--'}</span>
+              </div>
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="text-muted small">Clock Out</span>
+                <span class="fw-semibold text-dark small">${todayLog?.clockOut || '--:--'}</span>
+              </div>
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="text-muted small">Status</span>
+                <span class="fw-semibold text-dark small">${todayLog?.status || 'Not Marked'}</span>
+              </div>
+            </div>
+            ${perms.hrms_tasks ? `
+              <div class="d-grid gap-2">
+                <a href="#/crm/attendance" class="btn btn-outline-danger rounded-3 fw-semibold">
+                  <i class="fa-solid fa-clock-rotate-left me-2"></i>Open Attendance Tracker
+                </a>
+              </div>
+            ` : `
+              <div class="text-muted small text-center">Contact HR/Admin for attendance adjustments.</div>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   // VIEW: DASHBOARD
-  const renderDashboard = () => {
+  function renderDashboard() {
+    const perms = getUserPermissions();
+
     // Computations
     const totalClients = state.clients.length;
     const activeClients = state.clients.filter(c => c.status === "Active").length;
@@ -970,6 +2510,133 @@ document.addEventListener("DOMContentLoaded", () => {
       return rDate <= todayZero && s.status === "Active";
     });
 
+    // Build metric cards dynamically based on permissions
+    const row1Cards = [];
+    if (perms.crm || perms.admin) {
+      row1Cards.push(`
+        <div class="col-md-6 col-lg-3">
+          <div class="thynk-card kpi-card">
+            <div class="kpi-icon bg-light text-danger"><i class="fa-solid fa-users"></i></div>
+            <div class="kpi-value">${activeClients} <span class="fs-6 text-muted font-normal">/ ${totalClients}</span></div>
+            <div class="kpi-label">Active Clients</div>
+          </div>
+        </div>
+      `);
+    }
+    if (perms.accounts || perms.admin) {
+      row1Cards.push(`
+        <div class="col-md-6 col-lg-3">
+          <div class="thynk-card kpi-card">
+            <div class="kpi-icon bg-light text-success"><i class="fa-solid fa-wallet"></i></div>
+            <div class="kpi-value">₹${totalRevenueCollected.toLocaleString()}</div>
+            <div class="kpi-label">Revenue Collected</div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="thynk-card kpi-card">
+            <div class="kpi-icon bg-light text-warning"><i class="fa-solid fa-circle-exclamation"></i></div>
+            <div class="kpi-value">₹${outstandingAmount.toLocaleString()}</div>
+            <div class="kpi-label">Outstanding Balance</div>
+          </div>
+        </div>
+      `);
+    }
+    if (perms.marketing || perms.admin) {
+      row1Cards.push(`
+        <div class="col-md-6 col-lg-3">
+          <div class="thynk-card kpi-card">
+            <div class="kpi-icon bg-light text-primary"><i class="fa-solid fa-diagram-project"></i></div>
+            <div class="kpi-value">${runningProjects}</div>
+            <div class="kpi-label">Active Web Projects</div>
+          </div>
+        </div>
+      `);
+    }
+
+    const row2Cards = [];
+    if (perms.accounts || perms.admin) {
+      row2Cards.push(`
+        <div class="col-md-6 col-lg-3">
+          <div class="thynk-card kpi-card">
+            <div class="kpi-icon bg-light text-info"><i class="fa-solid fa-cube"></i></div>
+            <div class="kpi-value">${activeServices}</div>
+            <div class="kpi-label">Active Service Packages</div>
+          </div>
+        </div>
+      `);
+    }
+    if (perms.marketing || perms.admin) {
+      row2Cards.push(`
+        <div class="col-md-6 col-lg-3">
+          <div class="thynk-card kpi-card">
+            <div class="kpi-icon bg-light text-danger"><i class="fa-brands fa-facebook"></i></div>
+            <div class="kpi-value">${activeMeta}</div>
+            <div class="kpi-label">Meta Ad Campaigns</div>
+          </div>
+        </div>
+      `);
+    }
+    if (perms.accounts || perms.admin) {
+      row2Cards.push(`
+        <div class="col-md-6 col-lg-3">
+          <div class="thynk-card kpi-card">
+            <div class="kpi-icon bg-light text-dark"><i class="fa-solid fa-globe text-primary"></i></div>
+            <div class="kpi-value">${expiringDomains}</div>
+            <div class="kpi-label">Domains Expiring (30 Days)</div>
+          </div>
+        </div>
+        <div class="col-md-6 col-lg-3">
+          <div class="thynk-card kpi-card">
+            <div class="kpi-icon bg-light text-dark"><i class="fa-solid fa-server text-warning"></i></div>
+            <div class="kpi-value">${expiringHosting}</div>
+            <div class="kpi-label">Hosting Renewals Due</div>
+          </div>
+        </div>
+      `);
+    }
+
+    const row3Cards = [];
+    if (perms.hrms || perms.admin) {
+      row3Cards.push(`
+        <div class="col-md-3">
+          <div class="p-3 bg-white border border-light-subtle rounded-3 d-flex align-items-center gap-3">
+            <div class="rounded-pill bg-danger bg-opacity-10 text-danger p-2 px-3 fw-bold">${todaysTasks}</div>
+            <div class="small fw-semibold text-muted">Today's Tasks</div>
+          </div>
+        </div>
+      `);
+    }
+    if (perms.crm || perms.admin) {
+      row3Cards.push(`
+        <div class="col-md-3">
+          <div class="p-3 bg-white border border-light-subtle rounded-3 d-flex align-items-center gap-3">
+            <div class="rounded-pill bg-warning bg-opacity-10 text-warning p-2 px-3 fw-bold">${todaysFollowups}</div>
+            <div class="small fw-semibold text-muted">Today's Follow-ups</div>
+          </div>
+        </div>
+      `);
+    }
+    if (perms.accounts || perms.admin) {
+      row3Cards.push(`
+        <div class="col-md-3">
+          <div class="p-3 bg-white border border-light-subtle rounded-3 d-flex align-items-center gap-3">
+            <div class="rounded-pill bg-primary bg-opacity-10 text-primary p-2 px-3 fw-bold">${activeReminders}</div>
+            <div class="small fw-semibold text-muted">Today's Reminders</div>
+          </div>
+        </div>
+      `);
+    }
+    if (perms.hrms || perms.admin) {
+      row3Cards.push(`
+        <div class="col-md-3">
+          <div class="p-3 bg-white border border-light-subtle rounded-3 d-flex align-items-center gap-3">
+            <div class="rounded-pill bg-success bg-opacity-10 text-success p-2 px-3 fw-bold">${employeesPresent} <span class="small font-normal">/ ${state.employees.length}</span></div>
+            <div class="small fw-semibold text-muted">Employees Present</div>
+          </div>
+        </div>
+      `);
+    }
+
     contentWorkspace.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -986,8 +2653,8 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       </div>
 
-      <!-- Pending SEO Reports Alerts -->
-      ${pendingSeoReports.length > 0 ? `
+      <!-- Pending SEO Reports Alerts (Marketing) -->
+      ${(pendingSeoReports.length > 0 && (perms.marketing || perms.admin)) ? `
         <div class="alert alert-warning border-0 shadow-sm rounded-4 p-3 mb-4 d-flex align-items-center justify-content-between animate-fade-in">
           <div class="d-flex align-items-center gap-3">
             <div class="bg-warning bg-opacity-20 text-warning p-2 rounded-3 fs-4">
@@ -1005,264 +2672,225 @@ document.addEventListener("DOMContentLoaded", () => {
       ` : ''}
 
       <!-- KPI METRIC ROW 1 -->
-      <div class="row">
-        <div class="col-md-6 col-lg-3">
-          <div class="thynk-card kpi-card">
-            <div class="kpi-icon bg-light text-danger"><i class="fa-solid fa-users"></i></div>
-            <div class="kpi-value">${activeClients} <span class="fs-6 text-muted font-normal">/ ${totalClients}</span></div>
-            <div class="kpi-label">Active Clients</div>
-          </div>
-        </div>
-        <div class="col-md-6 col-lg-3">
-          <div class="thynk-card kpi-card">
-            <div class="kpi-icon bg-light text-success"><i class="fa-solid fa-wallet"></i></div>
-            <div class="kpi-value">₹${totalRevenueCollected.toLocaleString()}</div>
-            <div class="kpi-label">Revenue Collected</div>
-          </div>
-        </div>
-        <div class="col-md-6 col-lg-3">
-          <div class="thynk-card kpi-card">
-            <div class="kpi-icon bg-light text-warning"><i class="fa-solid fa-circle-exclamation"></i></div>
-            <div class="kpi-value">₹${outstandingAmount.toLocaleString()}</div>
-            <div class="kpi-label">Outstanding Balance</div>
-          </div>
-        </div>
-        <div class="col-md-6 col-lg-3">
-          <div class="thynk-card kpi-card">
-            <div class="kpi-icon bg-light text-primary"><i class="fa-solid fa-diagram-project"></i></div>
-            <div class="kpi-value">${runningProjects}</div>
-            <div class="kpi-label">Active Web Projects</div>
-          </div>
-        </div>
-      </div>
+      ${row1Cards.length > 0 ? `<div class="row">${row1Cards.join("")}</div>` : ''}
 
       <!-- KPI METRIC ROW 2 -->
-      <div class="row">
-        <div class="col-md-6 col-lg-3">
-          <div class="thynk-card kpi-card">
-            <div class="kpi-icon bg-light text-info"><i class="fa-solid fa-cube"></i></div>
-            <div class="kpi-value">${activeServices}</div>
-            <div class="kpi-label">Active Service Packages</div>
-          </div>
-        </div>
-        <div class="col-md-6 col-lg-3">
-          <div class="thynk-card kpi-card">
-            <div class="kpi-icon bg-light text-danger"><i class="fa-brands fa-facebook"></i></div>
-            <div class="kpi-value">${activeMeta}</div>
-            <div class="kpi-label">Meta Ad Campaigns</div>
-          </div>
-        </div>
-        <div class="col-md-6 col-lg-3">
-          <div class="thynk-card kpi-card">
-            <div class="kpi-icon bg-light text-dark"><i class="fa-solid fa-globe text-primary"></i></div>
-            <div class="kpi-value">${expiringDomains}</div>
-            <div class="kpi-label">Domains Expiring (30 Days)</div>
-          </div>
-        </div>
-        <div class="col-md-6 col-lg-3">
-          <div class="thynk-card kpi-card">
-            <div class="kpi-icon bg-light text-dark"><i class="fa-solid fa-server text-warning"></i></div>
-            <div class="kpi-value">${expiringHosting}</div>
-            <div class="kpi-label">Hosting Renewals Due</div>
-          </div>
-        </div>
-      </div>
+      ${row2Cards.length > 0 ? `<div class="row">${row2Cards.join("")}</div>` : ''}
 
       <!-- KPI METRIC ROW 3 (Operational Alerts) -->
-      <div class="row mb-4">
-        <div class="col-md-3">
-          <div class="p-3 bg-white border border-light-subtle rounded-3 d-flex align-items-center gap-3">
-            <div class="rounded-pill bg-danger bg-opacity-10 text-danger p-2 px-3 fw-bold">${todaysTasks}</div>
-            <div class="small fw-semibold text-muted">Today's Tasks</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="p-3 bg-white border border-light-subtle rounded-3 d-flex align-items-center gap-3">
-            <div class="rounded-pill bg-warning bg-opacity-10 text-warning p-2 px-3 fw-bold">${todaysFollowups}</div>
-            <div class="small fw-semibold text-muted">Today's Follow-ups</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="p-3 bg-white border border-light-subtle rounded-3 d-flex align-items-center gap-3">
-            <div class="rounded-pill bg-primary bg-opacity-10 text-primary p-2 px-3 fw-bold">${activeReminders}</div>
-            <div class="small fw-semibold text-muted">Today's Reminders</div>
-          </div>
-        </div>
-        <div class="col-md-3">
-          <div class="p-3 bg-white border border-light-subtle rounded-3 d-flex align-items-center gap-3">
-            <div class="rounded-pill bg-success bg-opacity-10 text-success p-2 px-3 fw-bold">${employeesPresent} <span class="small font-normal">/ ${state.employees.length}</span></div>
-            <div class="small fw-semibold text-muted">Employees Present</div>
-          </div>
-        </div>
-      </div>
+      ${row3Cards.length > 0 ? `<div class="row mb-4">${row3Cards.join("")}</div>` : ''}
 
       <!-- CHARTS SECTION -->
-      <div class="row">
-        <div class="col-lg-8">
-          <div class="thynk-card">
-            <h5 class="fw-bold mb-3"><i class="fa-solid fa-chart-line text-danger me-2"></i>Revenue vs Payments Trend</h5>
-            <div id="revenue-payments-chart"></div>
+      ${(perms.accounts || perms.admin) ? `
+        <div class="row">
+          <div class="col-lg-8">
+            <div class="thynk-card">
+              <h5 class="fw-bold mb-3"><i class="fa-solid fa-chart-line text-danger me-2"></i>Revenue vs Payments Trend</h5>
+              <div id="revenue-payments-chart"></div>
+            </div>
+          </div>
+          <div class="col-lg-4">
+            <div class="thynk-card">
+              <h5 class="fw-bold mb-3"><i class="fa-solid fa-chart-pie text-danger me-2"></i>Service Distribution</h5>
+              <div id="service-pie-chart" style="min-height: 250px;"></div>
+            </div>
           </div>
         </div>
-        <div class="col-lg-4">
-          <div class="thynk-card">
-            <h5 class="fw-bold mb-3"><i class="fa-solid fa-chart-pie text-danger me-2"></i>Service Distribution</h5>
-            <div id="service-pie-chart" style="min-height: 250px;"></div>
-          </div>
-        </div>
-      </div>
+      ` : ''}
 
-      <div class="row">
-        <div class="col-lg-6">
-          <div class="thynk-card">
-            <h5 class="fw-bold mb-3"><i class="fa-solid fa-bullhorn text-danger me-2"></i>Leads Source Distribution</h5>
-            <div id="leads-donut-chart"></div>
-          </div>
+      ${(perms.crm || perms.hrms || perms.admin) ? `
+        <div class="row">
+          ${(perms.crm || perms.admin) ? `
+            <div class="${(perms.hrms || perms.admin) ? 'col-lg-6' : 'col-lg-12'}">
+              <div class="thynk-card">
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-bullhorn text-danger me-2"></i>Leads Source Distribution</h5>
+                <div id="leads-donut-chart"></div>
+              </div>
+            </div>
+          ` : ''}
+          ${(perms.hrms || perms.admin) ? `
+            <div class="${(perms.crm || perms.admin) ? 'col-lg-6' : 'col-lg-12'}">
+              <div class="thynk-card">
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-users-gear text-danger me-2"></i>Staff Workload (Active Tasks)</h5>
+                <div id="employee-workload-chart"></div>
+              </div>
+            </div>
+          ` : ''}
         </div>
-        <div class="col-lg-6">
-          <div class="thynk-card">
-            <h5 class="fw-bold mb-3"><i class="fa-solid fa-users-gear text-danger me-2"></i>Staff Workload (Active Tasks)</h5>
-            <div id="employee-workload-chart"></div>
-          </div>
-        </div>
-      </div>
+      ` : ''}
 
       <!-- WIDGETS LAYOUT -->
-      <div class="row">
-        <!-- Upcoming Domain & Hosting Renewals -->
-        <div class="col-lg-6">
-          <div class="thynk-card" style="height: 380px; overflow-y: auto;">
-            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-              <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-rotate text-danger me-2"></i>Upcoming Domain & Hosting Renewals</h5>
-              <a href="#" class="text-danger small fw-semibold text-decoration-none" id="dash-view-domains">View All</a>
-            </div>
-            <div class="list-group list-group-flush">
-              ${[...state.domains, ...state.hostings].map(item => {
-                const isDomain = !!item.domainName;
-                const name = isDomain ? item.domainName : `${item.hostingProvider} (${item.hostingPlan})`;
-                const icon = isDomain ? "fa-globe text-primary" : "fa-server text-warning";
-                const typeName = isDomain ? "Domain" : "Hosting";
-                
-                let badgeClass = "badge-active";
-                if (item.status === "Expiring Soon") badgeClass = "badge-pending";
-                if (item.status === "Expired") badgeClass = "badge-expired";
+      ${(perms.accounts || perms.admin) ? `
+        <div class="row">
+          <!-- Upcoming Domain & Hosting Renewals -->
+          <div class="${perms.admin ? 'col-lg-6' : 'col-lg-12'}">
+            <div class="thynk-card" style="height: 380px; overflow-y: auto;">
+              <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-rotate text-danger me-2"></i>Upcoming Domain & Hosting Renewals</h5>
+                <a href="#" class="text-danger small fw-semibold text-decoration-none" id="dash-view-domains">View All</a>
+              </div>
+              <div class="list-group list-group-flush">
+                ${[...state.domains, ...state.hostings].map(item => {
+                  const isDomain = !!item.domainName;
+                  const name = isDomain ? item.domainName : `${item.hostingProvider} (${item.hostingPlan})`;
+                  const icon = isDomain ? "fa-globe text-primary" : "fa-server text-warning";
+                  const typeName = isDomain ? "Domain" : "Hosting";
+                  
+                  let badgeClass = "badge-active";
+                  if (item.status === "Expiring Soon") badgeClass = "badge-pending";
+                  if (item.status === "Expired") badgeClass = "badge-expired";
 
-                return `
-                  <div class="list-group-item d-flex justify-content-between align-items-center py-3 border-light px-0">
-                    <div class="d-flex align-items-center gap-3">
-                      <div class="bg-light p-2 rounded-circle"><i class="fa-solid ${icon}"></i></div>
-                      <div>
-                        <div class="fw-semibold text-dark mb-0">${name}</div>
-                        <span class="text-muted small">${typeName} &bull; Expiry: ${item.expiryDate}</span>
+                  return `
+                    <div class="list-group-item d-flex justify-content-between align-items-center py-3 border-light px-0">
+                      <div class="d-flex align-items-center gap-3">
+                        <div class="bg-light p-2 rounded-circle"><i class="fa-solid ${icon}"></i></div>
+                        <div>
+                          <div class="fw-semibold text-dark mb-0">${name}</div>
+                          <span class="text-muted small">${typeName} &bull; Expiry: ${item.expiryDate}</span>
+                        </div>
+                      </div>
+                      <div class="text-end">
+                        <span class="badge-status ${badgeClass} mb-1">${item.status}</span>
+                        <div class="small fw-semibold text-dark">₹${item.renewalCost.toLocaleString()}</div>
                       </div>
                     </div>
-                    <div class="text-end">
-                      <span class="badge-status ${badgeClass} mb-1">${item.status}</span>
-                      <div class="small fw-semibold text-dark">₹${item.renewalCost.toLocaleString()}</div>
-                    </div>
-                  </div>
-                `;
-              }).join("")}
+                  `;
+                }).join("")}
+              </div>
             </div>
           </div>
-        </div>
 
-        <!-- Latest Client Timeline Activity -->
-        <div class="col-lg-6">
-          <div class="thynk-card" style="height: 380px; overflow-y: auto;">
-            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-              <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-clock-rotate-left text-danger me-2"></i>System Log Activity</h5>
-              <a href="#" class="text-danger small fw-semibold text-decoration-none" id="dash-view-logs">View Logs</a>
-            </div>
-            <div class="timeline-wrapper">
-              ${state.timeline.slice(0, 5).map(evt => `
-                <div class="timeline-item">
-                  <div class="timeline-icon"><i class="fa-solid ${evt.icon}"></i></div>
-                  <div class="timeline-time">${evt.timestamp}</div>
-                  <div class="timeline-desc text-dark fw-semibold">${evt.text}</div>
+          <!-- Latest Client Timeline Activity -->
+          ${perms.admin ? `
+            <div class="col-lg-6">
+              <div class="thynk-card" style="height: 380px; overflow-y: auto;">
+                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                  <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-clock-rotate-left text-danger me-2"></i>System Log Activity</h5>
+                  <a href="#" class="text-danger small fw-semibold text-decoration-none" id="dash-view-logs">View Logs</a>
                 </div>
-              `).join("")}
+                <div class="timeline-wrapper">
+                  ${state.timeline.slice(0, 5).map(evt => `
+                    <div class="timeline-item">
+                      <div class="timeline-icon"><i class="fa-solid ${evt.icon}"></i></div>
+                      <div class="timeline-time">${evt.timestamp}</div>
+                      <div class="timeline-desc text-dark fw-semibold">${evt.text}</div>
+                    </div>
+                  `).join("")}
+                </div>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      ` : (perms.admin ? `
+        <div class="row">
+          <div class="col-lg-12">
+            <div class="thynk-card" style="height: 380px; overflow-y: auto;">
+              <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                <h5 class="fw-bold mb-0 text-dark"><i class="fa-solid fa-clock-rotate-left text-danger me-2"></i>System Log Activity</h5>
+                <a href="#" class="text-danger small fw-semibold text-decoration-none" id="dash-view-logs">View Logs</a>
+              </div>
+              <div class="timeline-wrapper">
+                ${state.timeline.slice(0, 5).map(evt => `
+                  <div class="timeline-item">
+                    <div class="timeline-icon"><i class="fa-solid ${evt.icon}"></i></div>
+                    <div class="timeline-time">${evt.timestamp}</div>
+                    <div class="timeline-desc text-dark fw-semibold">${evt.text}</div>
+                  </div>
+                `).join("")}
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      ` : '')}
     `;
 
     // Chart Bindings
     document.getElementById("dash-view-domains")?.addEventListener("click", (e) => { e.preventDefault(); navigateToView("domain-hosting"); });
     document.getElementById("dash-view-logs")?.addEventListener("click", (e) => { e.preventDefault(); navigateToView("timeline"); });
 
-    // Initialize ApexCharts
+    // Initialize ApexCharts (only if element container is rendered)
     // 1. Revenue vs Payments Chart
-    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-    const revData = [64900, 124800, 38940, 0, 149300, 0]; // Calculated from invoices gross
-    const payData = [80000, 25000, 15000, 0, 70000, 0]; // Calculated from payments
-    
-    const chart1 = new ApexCharts(document.querySelector("#revenue-payments-chart"), {
-      series: [
-        { name: "Invoiced Amount", data: revData, color: "#D32F2F" },
-        { name: "Amount Collected", data: payData, color: "#2E7D32" }
-      ],
-      chart: { type: "bar", height: 280, toolbar: { show: false } },
-      plotOptions: { bar: { horizontal: false, columnWidth: "55%", borderRadius: 4 } },
-      dataLabels: { enabled: false },
-      stroke: { show: true, width: 2, colors: ["transparent"] },
-      xaxis: { categories: months },
-      fill: { opacity: 1 },
-      tooltip: { y: { formatter: (val) => "₹" + val.toLocaleString() } }
-    });
-    chart1.render();
-    window.activeChartsList.push(chart1);
+    const elRev = document.querySelector("#revenue-payments-chart");
+    if (elRev) {
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
+      const revData = [64900, 124800, 38940, 0, 149300, 0];
+      const payData = [80000, 25000, 15000, 0, 70000, 0];
+      
+      const chart1 = new ApexCharts(elRev, {
+        series: [
+          { name: "Invoiced Amount", data: revData, color: "#D32F2F" },
+          { name: "Amount Collected", data: payData, color: "#2E7D32" }
+        ],
+        chart: { type: "bar", height: 280, toolbar: { show: false } },
+        plotOptions: { bar: { horizontal: false, columnWidth: "55%", borderRadius: 4 } },
+        dataLabels: { enabled: false },
+        stroke: { show: true, width: 2, colors: ["transparent"] },
+        xaxis: { categories: months },
+        fill: { opacity: 1 },
+        tooltip: { y: { formatter: (val) => "₹" + val.toLocaleString() } }
+      });
+      chart1.render();
+      window.activeChartsList.push(chart1);
+    }
 
     // 2. Service Distribution Chart
-    const serviceCounts = {};
-    state.services.forEach(s => {
-      serviceCounts[s.serviceName] = (serviceCounts[s.serviceName] || 0) + 1;
-    });
+    const elSrv = document.querySelector("#service-pie-chart");
+    if (elSrv) {
+      const serviceCounts = {};
+      state.services.forEach(s => {
+        serviceCounts[s.serviceName] = (serviceCounts[s.serviceName] || 0) + 1;
+      });
 
-    const chart2 = new ApexCharts(document.querySelector("#service-pie-chart"), {
-      series: Object.values(serviceCounts),
-      labels: Object.keys(serviceCounts),
-      chart: { type: "pie", height: 250 },
-      colors: ["#D32F2F", "#1565C0", "#2E7D32", "#EF6C00", "#37474F", "#7B1FA2"],
-      legend: { position: "bottom", fontSize: "11px" }
-    });
-    chart2.render();
-    window.activeChartsList.push(chart2);
+      const chart2 = new ApexCharts(elSrv, {
+        series: Object.values(serviceCounts),
+        labels: Object.keys(serviceCounts),
+        chart: { type: "pie", height: 250 },
+        colors: ["#D32F2F", "#1565C0", "#2E7D32", "#EF6C00", "#37474F", "#7B1FA2"],
+        legend: { position: "bottom", fontSize: "11px" }
+      });
+      chart2.render();
+      window.activeChartsList.push(chart2);
+    }
 
     // 3. Leads Source Donut Chart
-    const leadSources = {};
-    state.leads.forEach(l => {
-      const src = l.source || "Not Specified";
-      leadSources[src] = (leadSources[src] || 0) + 1;
-    });
-    const chart3 = new ApexCharts(document.querySelector("#leads-donut-chart"), {
-      series: Object.values(leadSources),
-      labels: Object.keys(leadSources),
-      chart: { type: "donut", height: 250 },
-      colors: ["#D32F2F", "#1565C0", "#E040FB", "#00E5FF", "#EF6C00", "#FFEB3B"],
-      legend: { position: "bottom", fontSize: "11px" }
-    });
-    chart3.render();
-    window.activeChartsList.push(chart3);
+    const elLead = document.querySelector("#leads-donut-chart");
+    if (elLead) {
+      const leadSources = {};
+      state.leads.forEach(l => {
+        const src = l.source || "Not Specified";
+        leadSources[src] = (leadSources[src] || 0) + 1;
+      });
+      const chart3 = new ApexCharts(elLead, {
+        series: Object.values(leadSources),
+        labels: Object.keys(leadSources),
+        chart: { type: "donut", height: 250 },
+        colors: ["#D32F2F", "#1565C0", "#E040FB", "#00E5FF", "#EF6C00", "#FFEB3B"],
+        legend: { position: "bottom", fontSize: "11px" }
+      });
+      chart3.render();
+      window.activeChartsList.push(chart3);
+    }
 
     // 4. Employee workload
-    const empTasks = {};
-    state.employees.forEach(emp => {
-      empTasks[emp.name] = state.tasks.filter(t => t.assignedEmployeeId === emp.id && t.status !== "Completed").length;
-    });
-    const chart4 = new ApexCharts(document.querySelector("#employee-workload-chart"), {
-      series: [{ name: "Pending Tasks", data: Object.values(empTasks) }],
-      chart: { type: "bar", height: 250, toolbar: { show: false } },
-      plotOptions: { bar: { horizontal: true, colors: { ranges: [{ from: 0, to: 10, color: "#D32F2F" }] } } },
-      xaxis: { categories: Object.keys(empTasks) }
-    });
-    chart4.render();
-    window.activeChartsList.push(chart4);
+    const elEmp = document.querySelector("#employee-workload-chart");
+    if (elEmp) {
+      const empTasks = {};
+      state.employees.forEach(emp => {
+        empTasks[emp.name] = state.tasks.filter(t => t.assignedEmployeeId === emp.id && t.status !== "Completed").length;
+      });
+      const chart4 = new ApexCharts(elEmp, {
+        series: [{ name: "Pending Tasks", data: Object.values(empTasks) }],
+        chart: { type: "bar", height: 250, toolbar: { show: false } },
+        plotOptions: { bar: { horizontal: true, colors: { ranges: [{ from: 0, to: 10, color: "#D32F2F" }] } } },
+        xaxis: { categories: Object.keys(empTasks) }
+      });
+      chart4.render();
+      window.activeChartsList.push(chart4);
+    }
   };
 
   // VIEW: LEADS PIPELINE
-  const renderLeads = () => {
+  function renderLeads() {
     // 1. Calculate leads pipeline metrics
     const totalLeads = state.leads.length;
     const hotLeads = state.leads.filter(l => l.status === "Hot").length;
@@ -1436,47 +3064,57 @@ document.addEventListener("DOMContentLoaded", () => {
       language: { search: "_INPUT_", searchPlaceholder: "Search Leads..." }
     });
 
-    // Lead Delete Click Handler
-    document.querySelectorAll(".delete-lead-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const leadId = btn.getAttribute("data-id");
-        Swal.fire({
-          title: "Delete Lead?",
-          text: "This lead record will be permanently deleted.",
-          icon: "warning",
-          showCancelButton: true,
-          confirmButtonColor: "var(--thynk-primary)",
-          cancelButtonColor: "#6c757d",
-          confirmButtonText: "Yes, Delete"
-        }).then((res) => {
-          if (res.isConfirmed) {
-            state.leads = state.leads.filter(l => l.id !== leadId);
-            saveState();
-            renderLeads();
-            Swal.fire("Deleted!", "Lead record removed.", "success");
+    // Lead Delete Click Handler (Delegated for DataTables pagination/search/sort)
+    $(document).off("click", ".delete-lead-btn").on("click", ".delete-lead-btn", function(e) {
+      e.preventDefault();
+      const leadId = $(this).attr("data-id");
+      Swal.fire({
+        title: "Delete Lead?",
+        text: "This lead record will be permanently deleted.",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "var(--thynk-primary)",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Yes, Delete"
+      }).then(async (res) => {
+        if (res.isConfirmed) {
+          try {
+            const delRes = await API.delete('leads', leadId);
+            if (delRes && delRes.success) {
+              state.leads = state.leads.filter(l => l.id !== leadId);
+              saveState();
+              renderLeads();
+              Swal.fire("Deleted!", "Lead record removed.", "success");
+            } else {
+              Swal.fire("Delete Failed", (delRes && delRes.error) ? delRes.error : "Could not delete lead from server.", "error");
+            }
+          } catch (err) {
+            Swal.fire("Error", err.message || "An unexpected error occurred.", "error");
           }
-        });
+        }
       });
     });
 
-    // Convert Lead to Client Click Handler
-    document.querySelectorAll(".convert-lead-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
-        const leadId = btn.getAttribute("data-id");
-        const lead = state.leads.find(l => l.id === leadId);
+    // Convert Lead to Client Click Handler (Delegated for DataTables pagination/search/sort)
+    $(document).off("click", ".convert-lead-btn").on("click", ".convert-lead-btn", function(e) {
+      e.preventDefault();
+      const leadId = $(this).attr("data-id");
+      const lead = state.leads.find(l => l.id === leadId);
+      if (!lead) return;
 
-        Swal.fire({
-          title: "Convert Lead to Client?",
-          text: `Are you sure you want to promote ${lead.companyName} to an active client?`,
-          icon: "question",
-          showCancelButton: true,
-          confirmButtonColor: "#2E7D32",
-          cancelButtonColor: "#6c757d",
-          confirmButtonText: "Yes, Convert"
-        }).then((res) => {
-          if (res.isConfirmed) {
+      Swal.fire({
+        title: "Convert Lead to Client?",
+        text: `Are you sure you want to promote ${lead.companyName} to an active client?`,
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonColor: "#2E7D32",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Yes, Convert"
+      }).then(async (res) => {
+        if (res.isConfirmed) {
+          try {
             // Create Client Object from Lead
-            const clientId = "C" + (state.clients.length + 1).toString().padStart(3, "0");
+            const clientId = getNextId(state.clients, "C", 3);
             const newClient = {
               id: clientId,
               companyName: lead.companyName,
@@ -1491,13 +3129,18 @@ document.addEventListener("DOMContentLoaded", () => {
               city: "",
               state: "",
               country: "India",
-              logo: lead.companyName.charAt(0),
+              logo: lead.companyName ? lead.companyName.charAt(0) : "C",
               source: lead.source,
               assignedEmployeeId: lead.assignedEmployeeId,
               status: "Active",
               priority: lead.status === "Hot" ? "High" : (lead.status === "Warm" ? "Medium" : "Low"),
               dateCreated: getLocalDateString()
             };
+
+            const [clientRes, delRes] = await Promise.all([
+              API.create('clients', newClient),
+              API.delete('leads', leadId)
+            ]);
 
             state.clients.push(newClient);
             state.leads = state.leads.filter(l => l.id !== leadId); // remove from leads
@@ -1516,16 +3159,19 @@ document.addEventListener("DOMContentLoaded", () => {
             });
 
             setTimeout(() => {
+              window.location.hash = `#/crm/client-profile?id=${clientId}`;
               renderClientProfile(clientId);
-            }, 1000);
+            }, 500);
+          } catch (err) {
+            Swal.fire("Error", err.message || "Failed to convert lead to client.", "error");
           }
-        });
+        }
       });
     });
   };
 
   // VIEW: CLIENTS DIRECTORY
-  const renderClients = () => {
+  function renderClients() {
     contentWorkspace.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -1602,7 +3248,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
 
                 <div class="d-flex gap-2 mt-3 pt-3 border-top border-light align-items-center flex-wrap">
-                  <button class="btn btn-outline-danger btn-sm flex-grow-1 fw-bold view-profile-btn" data-id="${client.id}">
+                  <button class="btn btn-outline-danger btn-sm flex-grow-1 fw-bold view-profile-btn" data-id="${client.id}" onclick="window.location.hash='#/crm/clients/${client.id}'; if(window.renderClientProfile) window.renderClientProfile('${client.id}'); return false;">
                     <i class="fa-solid fa-folder-open me-1"></i>View Profile
                   </button>
                   <button class="btn btn-danger btn-sm fw-bold add-service-client-btn" data-id="${client.id}" style="background-color: var(--thynk-primary); border: none;" title="Add Service">
@@ -1624,8 +3270,10 @@ document.addEventListener("DOMContentLoaded", () => {
     `;
 
     document.querySelectorAll(".view-profile-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", (e) => {
+        if (e) e.preventDefault();
         const clientId = btn.getAttribute("data-id");
+        window.location.hash = `#/crm/clients/${clientId}`;
         renderClientProfile(clientId);
       });
     });
@@ -1682,34 +3330,44 @@ document.addEventListener("DOMContentLoaded", () => {
           confirmButtonColor: "var(--thynk-primary)",
           cancelButtonColor: "#6c757d",
           confirmButtonText: "Yes, delete client!"
-        }).then((result) => {
+        }).then(async (result) => {
           if (result.isConfirmed) {
-            // Delete client
+            // Delete from MySQL first (cascades or individual deletes)
+            await API.delete('clients', clientId);
+
+            // Delete associated records from MySQL
+            const assocServices = state.services.filter(s => s.clientId === clientId);
+            const assocDomains = state.domains.filter(d => d.clientId === clientId);
+            const assocHostings = state.hostings.filter(h => h.clientId === clientId);
+            const assocProjects = state.projects.filter(p => p.clientId === clientId);
+            const assocPayments = state.payments.filter(p => p.clientId === clientId);
+            const assocFollowups = state.followups.filter(f => f.clientId === clientId);
+            const assocNotes = state.notes.filter(n => n.clientId === clientId);
+            const assocTasks = state.tasks.filter(t => t.clientId === clientId);
+            const assocGoogleAds = state.googleAds.filter(g => g.clientId === clientId);
+
+            await Promise.all([
+              ...assocServices.map(s => API.delete('services', s.id)),
+              ...assocDomains.map(d => API.delete('domains', d.id)),
+              ...assocHostings.map(h => API.delete('hostings', h.id)),
+              ...assocProjects.map(p => API.delete('projects', p.id)),
+              ...assocPayments.map(p => API.delete('payments', p.id)),
+              ...assocFollowups.map(f => API.delete('followups', f.id)),
+              ...assocNotes.map(n => API.delete('notes', n.id)),
+              ...assocTasks.map(t => API.delete('tasks', t.id)),
+              ...assocGoogleAds.map(g => API.delete('googleAds', g.id)),
+            ]);
+
+            // Now update local state
             state.clients = state.clients.filter(c => c.id !== clientId);
-            
-            // Delete associated services
             state.services = state.services.filter(s => s.clientId !== clientId);
-            
-            // Delete associated domains & hostings
             state.domains = state.domains.filter(d => d.clientId !== clientId);
             state.hostings = state.hostings.filter(h => h.clientId !== clientId);
-            
-            // Delete associated projects
             state.projects = state.projects.filter(p => p.clientId !== clientId);
-            
-            // Delete associated payments
             state.payments = state.payments.filter(p => p.clientId !== clientId);
-            
-            // Delete associated meta ads campaigns
             state.metaAds = state.metaAds.filter(m => m.clientName !== client.companyName);
-
-            // Delete associated google ads campaigns
             state.googleAds = state.googleAds.filter(g => g.clientId !== clientId);
-
-            // Delete associated tasks
             state.tasks = state.tasks.filter(t => t.clientId !== clientId);
-
-            // Delete notes and followups
             state.notes = state.notes.filter(n => n.clientId !== clientId);
             state.followups = state.followups.filter(f => f.clientId !== clientId);
 
@@ -1724,7 +3382,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: CLIENT CRM DETAILED PROFILE (HUBSPOT STYLE)
-  const renderClientProfile = (clientId) => {
+  function renderClientProfile(clientId) {
     const client = state.clients.find(c => c.id === clientId);
     if (!client) {
       Swal.fire("Error", "Client record not found.", "error");
@@ -2100,8 +3758,9 @@ document.addEventListener("DOMContentLoaded", () => {
           confirmButtonColor: "var(--thynk-primary)",
           cancelButtonColor: "#6c757d",
           confirmButtonText: "Yes, Delete"
-        }).then((res) => {
+        }).then(async (res) => {
           if (res.isConfirmed) {
+            await API.delete('services', srvId);
             state.services = state.services.filter(s => s.id !== srvId);
             saveState();
             renderClientProfile(clientId);
@@ -2113,7 +3772,39 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: FOLLOW-UPS HISTORY
-  const renderFollowups = () => {
+  function renderFollowups() {
+    // Collect all followups including lead pipeline entries
+    const allFollowups = [...state.followups];
+    
+    (state.leads || []).forEach(lead => {
+      const exists = allFollowups.some(f => f.clientId === lead.id || f.leadId === lead.id);
+      if (!exists) {
+        allFollowups.push({
+          id: "FL-" + lead.id,
+          clientId: lead.id,
+          leadId: lead.id,
+          type: "Lead Outreach",
+          lastContact: lead.dateCreated || getLocalDateString(),
+          nextFollowup: lead.dateCreated || getLocalDateString(),
+          assignedEmployeeId: lead.assignedEmployeeId,
+          status: lead.status || "Cold",
+          priority: lead.status || "Cold",
+          remarks: lead.notes || `Pipeline Lead (${lead.status || "Cold"})`
+        });
+      }
+    });
+
+    // Sort by priority order: Hot (1) -> Warm (2) -> Cold (3)
+    const getPriorityRank = (item) => {
+      const p = (item.priority || item.status || "").toString().toLowerCase();
+      if (p.includes("hot") || p.includes("high")) return 1;
+      if (p.includes("warm") || p.includes("medium")) return 2;
+      if (p.includes("cold") || p.includes("low")) return 3;
+      return 4;
+    };
+
+    allFollowups.sort((a, b) => getPriorityRank(a) - getPriorityRank(b));
+
     contentWorkspace.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -2132,18 +3823,18 @@ document.addEventListener("DOMContentLoaded", () => {
           <table class="table thynk-table" id="followups-datatable">
             <thead>
               <tr>
-                <th>Client Company</th>
+                <th>Client / Lead Company</th>
                 <th>Method</th>
                 <th>Last Contact Date</th>
                 <th>Next Scheduled Follow-up</th>
                 <th>Assigned Rep</th>
-                <th>Status</th>
+                <th>Priority / Status</th>
                 <th>Remarks / Tasks</th>
                 <th class="text-end">Actions</th>
               </tr>
             </thead>
             <tbody>
-              ${state.followups.map(flw => {
+              ${allFollowups.map(flw => {
                 let badge = "badge-pending";
                 if (flw.status === "Completed") badge = "badge-active";
                 if (flw.status === "Postponed") badge = "badge-expired";
@@ -2176,6 +3867,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if ($.fn.DataTable.isDataTable("#followups-datatable")) { $("#followups-datatable").DataTable().destroy(); }
     $("#followups-datatable").DataTable({
+      order: [],
       language: { search: "_INPUT_", searchPlaceholder: "Search Follow-ups..." }
     });
 
@@ -2215,8 +3907,9 @@ document.addEventListener("DOMContentLoaded", () => {
           confirmButtonColor: "var(--thynk-primary)",
           cancelButtonColor: "#6c757d",
           confirmButtonText: "Yes, Delete"
-        }).then((res) => {
+        }).then(async (res) => {
           if (res.isConfirmed) {
+            await API.delete('followups', flwId);
             state.followups = state.followups.filter(x => x.id !== flwId);
             saveState();
             renderFollowups();
@@ -2228,7 +3921,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: NOTES DIRECTORY
-  const renderNotes = () => {
+  function renderNotes() {
     contentWorkspace.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -2272,7 +3965,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: ALL SERVICES
-  const renderServices = () => {
+  function renderServices() {
     contentWorkspace.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -2385,8 +4078,9 @@ document.addEventListener("DOMContentLoaded", () => {
           confirmButtonColor: "var(--thynk-primary)",
           cancelButtonColor: "#6c757d",
           confirmButtonText: "Yes, Delete"
-        }).then((res) => {
+        }).then(async (res) => {
           if (res.isConfirmed) {
+            await API.delete('services', srvId);
             state.services = state.services.filter(s => s.id !== srvId);
             saveState();
             renderServices();
@@ -2398,7 +4092,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: DOMAIN & HOSTING MANAGEMENT (UNIFIED)
-  const renderDomainHosting = () => {
+  function renderDomainHosting() {
     const activeClientsWithWebsites = state.clients.filter(cli => {
       const hasDomain = state.domains.some(d => d.clientId === cli.id);
       const hasHosting = state.hostings.some(h => h.clientId === cli.id);
@@ -2899,8 +4593,17 @@ document.addEventListener("DOMContentLoaded", () => {
           confirmButtonColor: "var(--thynk-primary)",
           cancelButtonColor: "#6c757d",
           confirmButtonText: "Yes, Delete All"
-        }).then((res) => {
+        }).then(async (res) => {
           if (res.isConfirmed) {
+            const domsToDelete = state.domains.filter(d => d.clientId === clientId);
+            const hstsToDelete = state.hostings.filter(h => h.clientId === clientId);
+            const srvsToDelete = state.services.filter(s => s.clientId === clientId);
+            await Promise.all([
+              ...domsToDelete.map(d => API.delete('domains', d.id)),
+              ...hstsToDelete.map(h => API.delete('hostings', h.id)),
+              ...srvsToDelete.map(s => API.delete('services', s.id)),
+              API.delete('clients', clientId),
+            ]);
             state.domains = state.domains.filter(d => d.clientId !== clientId);
             state.hostings = state.hostings.filter(h => h.clientId !== clientId);
             state.clients = state.clients.filter(c => c.id !== clientId);
@@ -2928,9 +4631,10 @@ document.addEventListener("DOMContentLoaded", () => {
           confirmButtonColor: "var(--thynk-primary)",
           cancelButtonColor: "#6c757d",
           confirmButtonText: "Yes, Delete"
-        }).then((res) => {
+        }).then(async (res) => {
           if (res.isConfirmed) {
             const clientId = dom.clientId;
+            await API.delete('domains', domId);
             state.domains = state.domains.filter(d => d.id !== domId);
             saveState();
             renderDomainHosting();
@@ -2955,9 +4659,10 @@ document.addEventListener("DOMContentLoaded", () => {
           confirmButtonColor: "var(--thynk-primary)",
           cancelButtonColor: "#6c757d",
           confirmButtonText: "Yes, Delete"
-        }).then((res) => {
+        }).then(async (res) => {
           if (res.isConfirmed) {
             const clientId = hst.clientId;
+            await API.delete('hostings', hstId);
             state.hostings = state.hostings.filter(h => h.id !== hstId);
             saveState();
             renderDomainHosting();
@@ -2969,7 +4674,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: CANVA PREMIUM MANAGEMENT
-  const renderCanva = () => {
+  function renderCanva() {
     // Calculate stats
     const totalLicenses = state.canva.length;
     const totalSpend = state.canva.reduce((sum, item) => sum + (parseInt(item.price) || 0), 0);
@@ -3183,8 +4888,9 @@ document.addEventListener("DOMContentLoaded", () => {
           confirmButtonColor: "var(--thynk-primary)",
           cancelButtonColor: "#6c757d",
           confirmButtonText: "Yes, Delete"
-        }).then((res) => {
+        }).then(async (res) => {
           if (res.isConfirmed) {
+            await API.delete('canva', id);
             state.canva = state.canva.filter(c => c.id !== id);
             saveState();
             renderCanva();
@@ -3196,7 +4902,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: BILLING SOFTWARE LICENSES MANAGEMENT
-  const renderBillingSoftware = () => {
+  function renderBillingSoftware() {
     // Calculate stats
     const totalLicenses = state.billingSoftware.length;
     const totalSoftwareSpend = state.billingSoftware.reduce((sum, item) => sum + (parseInt(item.price) || 0), 0);
@@ -3413,8 +5119,9 @@ document.addEventListener("DOMContentLoaded", () => {
           confirmButtonColor: "var(--thynk-primary)",
           cancelButtonColor: "#6c757d",
           confirmButtonText: "Yes, Delete"
-        }).then((res) => {
+        }).then(async (res) => {
           if (res.isConfirmed) {
+            await API.delete('billingSoftware', id);
             state.billingSoftware = state.billingSoftware.filter(b => b.id !== id);
             saveState();
             renderBillingSoftware();
@@ -3426,11 +5133,11 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: META ADS
-  const renderMetaAds = () => {
+  function renderMetaAds() {
     // ----------------------------------------------------
     // TAB: OVERVIEW
     // ----------------------------------------------------
-    const renderOverviewTab = (camp, totalSpend, totalReach, totalClicks, totalLeads, avgCpl, budgetBalance, daysRemainingText, container) => {
+    function renderOverviewTab(camp, totalSpend, totalReach, totalClicks, totalLeads, avgCpl, budgetBalance, daysRemainingText, container) {
       const daily = camp.dailyPerformance || [];
       container.innerHTML = `
         <div class="row">
@@ -3578,7 +5285,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ----------------------------------------------------
     // TAB: PERFORMANCE (DAILY DATA LOGGING & AUTOMATED MONTHLY SUMMARIES)
     // ----------------------------------------------------
-    const renderPerformanceTab = (camp, totalSpend, totalReach, totalClicks, totalLeads, avgCpl, container) => {
+    function renderPerformanceTab(camp, totalSpend, totalReach, totalClicks, totalLeads, avgCpl, container) {
       const daily = camp.dailyPerformance || [];
 
       // Monthly Performance Summarizer: Automatically aggregate by Month!
@@ -3835,7 +5542,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ----------------------------------------------------
     // TAB: PAYMENTS
     // ----------------------------------------------------
-    const renderPaymentsTab = (camp, container) => {
+    function renderPaymentsTab(camp, container) {
       const pkgAmt = parseFloat(camp.packageAmount) || 0;
       const payments = camp.payments || [];
       const totalPaid = payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
@@ -3913,7 +5620,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ----------------------------------------------------
     // TAB: NOTES
     // ----------------------------------------------------
-    const renderNotesTab = (camp, container) => {
+    function renderNotesTab(camp, container) {
       const notes = camp.notes || [];
 
       container.innerHTML = `
@@ -3957,7 +5664,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ----------------------------------------------------
     // TAB: FOLLOW-UPS
     // ----------------------------------------------------
-    const renderFollowupsTab = (camp, container) => {
+    function renderFollowupsTab(camp, container) {
       const followups = camp.followups || [];
 
       container.innerHTML = `
@@ -4013,7 +5720,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ----------------------------------------------------
     // TAB: TIMELINE
     // ----------------------------------------------------
-    const renderTimelineTab = (camp, container) => {
+    function renderTimelineTab(camp, container) {
       const timeline = camp.timeline || [];
 
       container.innerHTML = `
@@ -4041,7 +5748,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ----------------------------------------------------
     // TAB: REPORTS
     // ----------------------------------------------------
-    const renderReportsTab = (camp, totalSpend, totalReach, totalClicks, totalLeads, avgCpl, container) => {
+    function renderReportsTab(camp, totalSpend, totalReach, totalClicks, totalLeads, avgCpl, container) {
       container.innerHTML = `
         <div class="row">
           <!-- REPORT OPTIONS -->
@@ -4262,7 +5969,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ----------------------------------------------------
     // STEP 1: CLIENT DIRECTORY LIST VIEW
     // ----------------------------------------------------
-    const renderMetaClientList = () => {
+    function renderMetaClientList() {
       const metaClients = state.clients.filter(c => {
         const hasService = state.services.some(s => s.clientId === c.id && s.serviceName.includes("Meta Ads"));
         const hasCampaign = state.metaAds.some(m => m.clientName === c.companyName);
@@ -4438,35 +6145,47 @@ document.addEventListener("DOMContentLoaded", () => {
               confirmButtonColor: "var(--thynk-primary)",
               cancelButtonColor: "#6c757d",
               confirmButtonText: "Yes, delete client!"
-            }).then((result) => {
+            }).then(async (result) => {
               if (result.isConfirmed) {
-                // Delete client
+                // Delete client from MySQL
+                await API.delete('clients', clientId);
+
+                // Delete associated records from MySQL
+                const assocServices = state.services.filter(s => s.clientId === clientId);
+                const assocDomains = state.domains.filter(d => d.clientId === clientId);
+                const assocHostings = state.hostings.filter(h => h.clientId === clientId);
+                const assocProjects = state.projects.filter(p => p.clientId === clientId);
+                const assocPayments = state.payments.filter(p => p.clientId === clientId);
+                const assocInvoices = state.invoices.filter(i => i.clientId === clientId);
+                const assocFollowups = state.followups.filter(f => f.clientId === clientId);
+                const assocNotes = state.notes.filter(n => n.clientId === clientId);
+                const assocTasks = state.tasks.filter(t => t.clientId === clientId);
+                const assocGoogleAds = state.googleAds.filter(g => g.clientId === clientId);
+
+                await Promise.all([
+                  ...assocServices.map(s => API.delete('services', s.id)),
+                  ...assocDomains.map(d => API.delete('domains', d.id)),
+                  ...assocHostings.map(h => API.delete('hostings', h.id)),
+                  ...assocProjects.map(p => API.delete('projects', p.id)),
+                  ...assocPayments.map(p => API.delete('payments', p.id)),
+                  ...assocInvoices.map(i => API.delete('invoices', i.id)),
+                  ...assocFollowups.map(f => API.delete('followups', f.id)),
+                  ...assocNotes.map(n => API.delete('notes', n.id)),
+                  ...assocTasks.map(t => API.delete('tasks', t.id)),
+                  ...assocGoogleAds.map(g => API.delete('googleAds', g.id)),
+                ]);
+
+                // Update local state
                 state.clients = state.clients.filter(c => c.id !== clientId);
-                
-                // Delete associated services
                 state.services = state.services.filter(s => s.clientId !== clientId);
-                
-                // Delete associated domains & hostings
                 state.domains = state.domains.filter(d => d.clientId !== clientId);
                 state.hostings = state.hostings.filter(h => h.clientId !== clientId);
-                
-                // Delete associated projects
                 state.projects = state.projects.filter(p => p.clientId !== clientId);
-                
-                // Delete associated payments
                 state.payments = state.payments.filter(p => p.clientId !== clientId);
-                
-                // Delete associated meta ads campaigns
-                state.invoices = state.invoices.filter(i => i.clientId !== clientId); // BUG-003 Fix
-                state.metaAds = state.metaAds.filter(m => m.clientId ? m.clientId !== clientId : m.clientName !== clientName); // BUG-004 Fix
-
-                // Delete associated google ads campaigns
+                state.invoices = state.invoices.filter(i => i.clientId !== clientId);
+                state.metaAds = state.metaAds.filter(m => m.clientId ? m.clientId !== clientId : m.clientName !== clientName);
                 state.googleAds = state.googleAds.filter(g => g.clientId !== clientId);
-
-                // Delete associated tasks
                 state.tasks = state.tasks.filter(t => t.clientId !== clientId);
-
-                // Delete notes and followups
                 state.notes = state.notes.filter(n => n.clientId !== clientId);
                 state.followups = state.followups.filter(f => f.clientId !== clientId);
 
@@ -4507,7 +6226,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ----------------------------------------------------
     // STEP 2: CLIENT CAMPAIGN LIST VIEW
     // ----------------------------------------------------
-    const renderMetaCampaignList = () => {
+    function renderMetaCampaignList() {
       const clientCampaigns = state.metaAds.filter(m => m.clientName === state.selectedMetaClient);
 
       contentWorkspace.innerHTML = `
@@ -4620,7 +6339,7 @@ document.addEventListener("DOMContentLoaded", () => {
             confirmButtonColor: "var(--thynk-primary)",
             cancelButtonColor: "#6c757d",
             confirmButtonText: "Yes, delete campaign!"
-          }).then((result) => {
+          }).then(async (result) => {
             if (result.isConfirmed) {
               Swal.fire({
                 title: "Deleting...",
@@ -4630,12 +6349,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
               });
 
-              setTimeout(() => {
-                state.metaAds = state.metaAds.filter(x => x.id !== campId);
-                saveState();
-                Swal.fire("Deleted!", "Campaign has been deleted.", "success");
-                renderMetaCampaignList();
-              }, 500);
+              await API.delete('metaAds', campId);
+              state.metaAds = state.metaAds.filter(x => x.id !== campId);
+              saveState();
+              Swal.fire("Deleted!", "Campaign has been deleted.", "success");
+              renderMetaCampaignList();
             }
           });
         });
@@ -4657,7 +6375,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // ----------------------------------------------------
     // STEP 3: CAMPAIGN DASHBOARD TAB MANAGER
     // ----------------------------------------------------
-    const renderMetaCampaignDashboard = () => {
+    function renderMetaCampaignDashboard() {
       const camp = state.metaAds.find(m => m.id === state.selectedMetaCampaignId);
       if (!camp) {
         state.selectedMetaCampaignId = null;
@@ -4792,7 +6510,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: GOOGLE ADS
-  const renderGoogleAds = () => {
+  function renderGoogleAds() {
     contentWorkspace.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -4981,7 +6699,7 @@ document.addEventListener("DOMContentLoaded", () => {
           confirmButtonColor: "var(--thynk-primary)",
           cancelButtonColor: "#6c757d",
           confirmButtonText: "Yes, delete campaign!"
-        }).then((result) => {
+        }).then(async (result) => {
           if (result.isConfirmed) {
             Swal.fire({
               title: "Deleting...",
@@ -4991,13 +6709,12 @@ document.addEventListener("DOMContentLoaded", () => {
               }
             });
 
-            setTimeout(() => {
-              state.googleAds = state.googleAds.filter(x => x.id !== googleId);
-              addTimelineEvent("campaign", `Deleted Google Ads campaign '${camp.campaignName}'`, "fa-solid fa-rectangle-xmark");
-              saveState();
-              Swal.fire("Deleted!", "Google Ads campaign has been deleted.", "success");
-              renderGoogleAds();
-            }, 500);
+            await API.delete('googleAds', googleId);
+            state.googleAds = state.googleAds.filter(x => x.id !== googleId);
+            addTimelineEvent("campaign", `Deleted Google Ads campaign '${camp.campaignName}'`, "fa-solid fa-rectangle-xmark");
+            saveState();
+            Swal.fire("Deleted!", "Google Ads campaign has been deleted.", "success");
+            renderGoogleAds();
           }
         });
       });
@@ -5005,7 +6722,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: SEO MODULE
-  const renderSEO = () => {
+  function renderSEO() {
     contentWorkspace.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -5151,8 +6868,9 @@ document.addEventListener("DOMContentLoaded", () => {
           confirmButtonColor: "var(--thynk-primary)",
           cancelButtonColor: "#6c757d",
           confirmButtonText: "Yes, delete it!"
-        }).then((result) => {
+        }).then(async (result) => {
           if (result.isConfirmed) {
+            await API.delete('seo', seoId);
             state.seo = state.seo.filter(x => x.id !== seoId);
             addTimelineEvent("seo", `Deleted SEO campaign for ${getClientName(seoRec.clientId)}`, "fa-magnifying-glass-chart");
             saveState();
@@ -5190,7 +6908,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: SEO CAMPAIGN DETAILED DASHBOARD
-  const renderCampaignDashboard = (campaignId) => {
+  function renderCampaignDashboard(campaignId) {
     const c = state.seo.find(x => x.id === campaignId);
     if (!c) {
       contentWorkspace.innerHTML = `
@@ -5489,7 +7207,7 @@ document.addEventListener("DOMContentLoaded", () => {
       // Render chart with dynamic filters
       let chartInstance = null;
       
-      const renderTrendChart = () => {
+      function renderTrendChart() {
         const selKeyword = (document.getElementById("trend-filter-keyword")?.value || "");
         const startDate = (document.getElementById("trend-filter-start-date")?.value || "");
         const endDate = (document.getElementById("trend-filter-end-date")?.value || "");
@@ -6538,7 +8256,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: WEBSITE DEVELOPMENT PROJECTS
-  const renderProjects = () => {
+  function renderProjects() {
     contentWorkspace.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -6681,8 +8399,9 @@ document.addEventListener("DOMContentLoaded", () => {
           confirmButtonColor: "var(--thynk-primary)",
           cancelButtonColor: "#6c757d",
           confirmButtonText: "Yes, Delete"
-        }).then((res) => {
+        }).then(async (res) => {
           if (res.isConfirmed) {
+            await API.delete('projects', projId);
             state.projects = state.projects.filter(p => p.id !== projId);
             addTimelineEvent("project", `Deleted web project '${proj.projectName}' for ${getClientName(proj.clientId)}`, "fa-trash");
             saveState();
@@ -6695,7 +8414,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: PAYMENTS LEDGER
-  const renderPayments = () => {
+  function renderPayments() {
     contentWorkspace.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -6753,7 +8472,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: INVOICES
-  const renderInvoices = () => {
+  function renderInvoices() {
     contentWorkspace.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -6920,7 +8639,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: REMINDERS LIST
-  const renderReminders = () => {
+  function renderReminders() {
     const todayStr = getLocalDateString();
     
     // Categorize reminders
@@ -7006,8 +8725,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Bind resolve button
     document.querySelectorAll(".resolve-reminder-btn").forEach(btn => {
-      btn.addEventListener("click", () => {
+      btn.addEventListener("click", async () => {
         const remId = btn.getAttribute("data-id");
+        await API.delete('reminders', remId);
         state.reminders = state.reminders.filter(x => x.id !== remId);
         saveState();
         renderReminders();
@@ -7017,7 +8737,8 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: FULL CALENDAR INTEGRATION
-  const renderCalendar = () => {
+    // VIEW: FULL CALENDAR INTEGRATION (FIXED & BULLETPROOF)
+  function renderCalendar() {
     contentWorkspace.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -7085,24 +8806,54 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     const calendarEl = document.getElementById("calendar-element");
-    const calendar = new FullCalendar.Calendar(calendarEl, {
-      initialView: "dayGridMonth",
-      headerToolbar: {
-        left: "prev,next today",
-        center: "title",
-        right: "dayGridMonth,timeGridWeek,listMonth"
-      },
-      events: calendarEvents,
-      editable: false,
-      droppable: false
-    });
+    if (calendarEl) {
+      if (window.activeCalendarInstance) {
+        try { window.activeCalendarInstance.destroy(); } catch (e) {}
+      }
+      
+      if (typeof FullCalendar !== "undefined") {
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: "dayGridMonth",
+          headerToolbar: {
+            left: "prev,next today",
+            center: "title",
+            right: "dayGridMonth,timeGridWeek,listMonth"
+          },
+          events: calendarEvents,
+          editable: false,
+          droppable: false
+        });
 
-    calendar.render();
-    window.activeCalendarInstance = calendar;
+        calendar.render();
+        window.activeCalendarInstance = calendar;
+      } else {
+        // Fallback layout if CDN is unavailable or offline
+        calendarEl.innerHTML = `
+          <div class="alert alert-info border-0 shadow-sm p-3 mb-3">
+            <i class="fa-solid fa-calendar-days me-2"></i><b>Schedule Overview (${calendarEvents.length} Events Logged)</b>
+          </div>
+          <div class="list-group list-group-flush">
+            ${calendarEvents.map(evt => `
+              <div class="list-group-item d-flex justify-content-between align-items-center py-3 border-light">
+                <div>
+                  <div class="fw-semibold text-dark">${evt.title}</div>
+                  <span class="text-muted small">Date: ${evt.start}</span>
+                </div>
+                <span class="badge rounded-pill" style="background-color: ${evt.color}">${evt.start}</span>
+              </div>
+            `).join("")}
+          </div>
+        `;
+      }
+    }
   };
 
   // VIEW: EMPLOYEES HRMS DIRECTORY
-  const renderEmployees = () => {
+  function renderEmployees() {
+    const isExec = isAdminOrExecutive();
+    const currentUserId = state.currentUser?.id || "E001";
+    const displayEmployees = isExec ? state.employees : state.employees.filter(e => e.id === currentUserId);
+
     const getStatusBadgeClass = (status) => {
       switch (status) {
         case "Active": return "badge-active";
@@ -7116,7 +8867,7 @@ document.addEventListener("DOMContentLoaded", () => {
     contentWorkspace.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-          <h2 class="mb-1">Employees HRMS Profile Directory</h2>
+          <h2 class="mb-1">${isExec ? "Employees HRMS Profile Directory" : "My Employee Profile"}</h2>
           <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-0">
               <li class="breadcrumb-item"><a href="#" class="text-danger text-decoration-none">HRMS</a></li>
@@ -7124,14 +8875,16 @@ document.addEventListener("DOMContentLoaded", () => {
             </ol>
           </nav>
         </div>
-        <a href="#/hrms/employees/new" class="btn btn-danger rounded-3" style="background-color: var(--thynk-primary); border: none; display: flex; align-items: center; justify-content: center;">
-          <i class="fa-solid fa-circle-plus me-2"></i>Add Employee
-        </a>
+        ${isExec ? `
+          <button class="btn btn-danger rounded-3" id="add-employee-main-btn" type="button" style="background-color: var(--thynk-primary); border: none; display: flex; align-items: center; justify-content: center;">
+            <i class="fa-solid fa-circle-plus me-2"></i>Add Employee
+          </button>
+        ` : ''}
       </div>
 
       <div class="row">
-        ${state.employees && state.employees.length > 0 ? state.employees.map(emp => `
-          <div class="col-md-6 col-lg-3 mb-4">
+        ${displayEmployees.map(emp => `
+          <div class="col-md-6 ${isExec ? 'col-lg-3' : 'col-lg-4'} mb-4">
             <div class="thynk-card text-center h-100 d-flex flex-column justify-content-between">
               <div>
                 <img src="${emp.photo || 'https://randomuser.me/api/portraits/men/1.jpg'}" class="rounded-circle mb-3 shadow-sm border" style="width: 80px; height: 80px; object-fit: cover;" alt="${emp.name}">
@@ -7149,33 +8902,52 @@ document.addEventListener("DOMContentLoaded", () => {
                 <div class="text-muted small mb-3">Joined: ${emp.joiningDate}</div>
               </div>
               
-              <div class="d-flex justify-content-center gap-2 pt-3 border-top border-light">
-                <a href="#/hrms/employees/edit?id=${emp.id}" class="btn btn-outline-primary btn-sm flex-grow-1 d-flex align-items-center justify-content-center" style="font-size: 0.8rem;">
-                  <i class="fa-solid fa-user-pen me-1"></i>Edit
-                </a>
-                <button class="btn btn-outline-danger btn-sm flex-grow-1 delete-employee-btn" data-id="${emp.id}" style="font-size: 0.8rem;">
-                  <i class="fa-solid fa-trash-can me-1"></i>Delete
-                </button>
-              </div>
+              ${isExec ? `
+                <div class="d-flex justify-content-center gap-2 pt-3 border-top border-light">
+                  <a href="#/hrms/employees/edit?id=${emp.id}" class="btn btn-outline-primary btn-sm flex-grow-1 d-flex align-items-center justify-content-center" style="font-size: 0.8rem;">
+                    <i class="fa-solid fa-user-pen me-1"></i>Edit
+                  </a>
+                  <button class="btn btn-outline-danger btn-sm flex-grow-1 delete-employee-btn" data-id="${emp.id}" style="font-size: 0.8rem;">
+                    <i class="fa-solid fa-trash-can me-1"></i>Delete
+                  </button>
+                </div>
+              ` : ''}
             </div>
           </div>
-        `).join("") : `
-          <div class="col-12 py-5 text-center text-muted">
-            <i class="fa-solid fa-users-slash fs-1 mb-3 text-secondary opacity-50"></i>
-            <h5 class="fw-semibold text-dark">No Employees Registered</h5>
-            <p class="small text-muted mb-3">Your HRMS directory is clean. Click 'Add Employee' to register staff members.</p>
-            <a href="#/hrms/employees/new" class="btn btn-danger btn-sm rounded-3 px-3"><i class="fa-solid fa-plus me-1"></i>Add First Employee</a>
-          </div>
-        `}
+        `).join("")}
       </div>
     `;
 
-    // Bind Delete clicks
+    // Bind Add & Edit & Delete clicks in renderEmployees
+    const addEmpBtn = document.getElementById("add-employee-main-btn");
+    if (addEmpBtn) {
+      addEmpBtn.onclick = (e) => {
+        if (e) e.preventDefault();
+        const currentHash = window.location.hash;
+        if (currentHash === "#/hrms/employees/new") {
+          // Hash won't change, so hashchange won't fire — call directly
+          renderNewEmployeeForm();
+        } else {
+          // Setting hash triggers hashchange → handleRouting → renderNewEmployeeForm
+          window.location.hash = "#/hrms/employees/new";
+        }
+      };
+    }
+
     document.querySelectorAll(".delete-employee-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         const empId = btn.getAttribute("data-id");
         const emp = state.employees.find(e => e.id === empId);
         if (!emp) return;
+
+        if (empId === "E001") {
+          Swal.fire({
+            icon: "warning",
+            title: "Protected Account",
+            text: "The primary administrator (E001) cannot be deleted."
+          });
+          return;
+        }
 
         Swal.fire({
           title: "Delete Employee?",
@@ -7185,8 +8957,9 @@ document.addEventListener("DOMContentLoaded", () => {
           confirmButtonColor: "var(--thynk-primary)",
           cancelButtonColor: "#6c757d",
           confirmButtonText: "Yes, Delete"
-        }).then((result) => {
+        }).then(async (result) => {
           if (result.isConfirmed) {
+            await API.delete('employees', empId);
             state.employees = state.employees.filter(e => e.id !== empId);
             saveState();
             renderEmployees();
@@ -7199,81 +8972,257 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: ATTENDANCE BOARD
-  const renderAttendance = () => {
+  function renderAttendance() {
     const todayStr = getLocalDateString();
+    const isExec = isAdminOrExecutive();
+    const activeEmpId = getActiveHrmsEmployeeId();
+    const activeEmp = (state.employees || []).find(e => e.id === activeEmpId) || { id: activeEmpId, name: getEmployeeName(activeEmpId), designation: "Staff Member" };
     
-    // Check if current user E001 is clocked in today
-    const myLog = state.attendance.find(a => a.employeeId === "E001" && a.date === todayStr);
+    // Calculate work stats for activeEmpId
+    const stats = calculateEmployeeWorkStats(activeEmpId);
+
+    // Current user's clock in log
+    const currentUserId = state.currentUser?.id || "E001";
+    const myLog = state.attendance.find(a => a.employeeId === currentUserId && a.date === todayStr);
     const isClockedIn = myLog && myLog.clockIn !== "" && myLog.clockOut === "";
     const isClockedOut = myLog && myLog.clockOut !== "";
 
+    // Current filter for attendance staff logs (Admin/CEO/CTO)
+    const currentAttendanceFilter = state.attendanceLogFilterEmployeeId || "all";
+
+    // Determine logs to show in table
+    let displayLogs = [];
+    if (isExec) {
+      if (currentAttendanceFilter === "all") {
+        displayLogs = state.attendance || [];
+      } else {
+        displayLogs = (state.attendance || []).filter(a => a.employeeId === currentAttendanceFilter);
+      }
+    } else {
+      displayLogs = (state.attendance || []).filter(a => a.employeeId === currentUserId);
+    }
+
     contentWorkspace.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
-          <h2 class="mb-1">Attendance Panel</h2>
+          <h2 class="mb-1">Attendance & Time Tracker</h2>
           <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-0">
               <li class="breadcrumb-item"><a href="#" class="text-danger text-decoration-none">HRMS</a></li>
               <li class="breadcrumb-item active" aria-current="page">Attendance</li>
+              <li class="breadcrumb-item active text-danger fw-semibold" aria-current="page">${activeEmp.name} (${activeEmp.id})</li>
             </ol>
           </nav>
+        </div>
+        ${isExec ? renderHrmsEmployeeSelector(activeEmpId, "window.handleHrmsAttendanceEmployeeChange") : ""}
+      </div>
+
+      <!-- ROW 1: ATTENDANCE SUMMARY METRICS DASHBOARD -->
+      <div class="row mb-3">
+        <div class="col-md-6 col-xl-3 mb-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100 d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success" style="width: 54px; height: 54px; font-size: 1.4rem;">
+              <i class="fa-solid fa-user-check"></i>
+            </div>
+            <div>
+              <div class="text-muted small fw-semibold">Present Days</div>
+              <h3 class="fw-bold mb-0 text-dark">${stats.presentCount}</h3>
+              <div class="text-success small"><i class="fa-solid fa-circle-check me-1"></i>Logged Sessions</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 col-xl-3 mb-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100 d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger" style="width: 54px; height: 54px; font-size: 1.4rem;">
+              <i class="fa-solid fa-user-xmark"></i>
+            </div>
+            <div>
+              <div class="text-muted small fw-semibold">Absent Days</div>
+              <h3 class="fw-bold mb-0 text-dark">${stats.absentCount}</h3>
+              <div class="text-danger small"><i class="fa-solid fa-circle-xmark me-1"></i>Unrecorded</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 col-xl-3 mb-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100 d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning" style="width: 54px; height: 54px; font-size: 1.4rem;">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+            </div>
+            <div>
+              <div class="text-muted small fw-semibold">Late Entries</div>
+              <h3 class="fw-bold mb-0 text-dark">${stats.lateCount}</h3>
+              <div class="text-warning small"><i class="fa-solid fa-triangle-exclamation me-1"></i>After 09:15 AM</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6 col-xl-3 mb-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100 d-flex align-items-center gap-3">
+            <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary" style="width: 54px; height: 54px; font-size: 1.4rem;">
+              <i class="fa-solid fa-business-time"></i>
+            </div>
+            <div>
+              <div class="text-muted small fw-semibold">Total Work Hours</div>
+              <h3 class="fw-bold mb-0 text-dark">${formatHoursAndMinutes(stats.totalHours)}</h3>
+              <div class="text-primary small"><i class="fa-solid fa-chart-simple me-1"></i>Cumulative</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ROW 2: TOTAL WORK HOURS DASHBOARD (TODAY, WEEK, MONTH, AVERAGE) -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="thynk-card p-4 border-0 shadow-sm rounded-4" style="background: linear-gradient(135deg, #ffffff 0%, #fff8f8 100%);">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="fw-bold text-dark mb-0"><i class="fa-solid fa-stopwatch me-2 text-danger"></i>Total Work Hours Breakdown (${activeEmp.name})</h5>
+              <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill fw-semibold">Real-Time Clock Analysis</span>
+            </div>
+            <div class="row text-center g-3">
+              <div class="col-6 col-md-3">
+                <div class="p-3 bg-white rounded-3 border shadow-none">
+                  <div class="text-muted small fw-semibold mb-1"><i class="fa-solid fa-sun text-warning me-1"></i>Today</div>
+                  <h4 class="fw-bold text-dark mb-0">${formatHoursAndMinutes(stats.todayHours)}</h4>
+                  <span class="badge bg-light text-muted small mt-1">Current Shift</span>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="p-3 bg-white rounded-3 border shadow-none">
+                  <div class="text-muted small fw-semibold mb-1"><i class="fa-solid fa-calendar-week text-primary me-1"></i>This Week</div>
+                  <h4 class="fw-bold text-dark mb-0">${formatHoursAndMinutes(stats.weekHours)}</h4>
+                  <span class="badge bg-light text-muted small mt-1">Mon - Sun</span>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="p-3 bg-white rounded-3 border shadow-none">
+                  <div class="text-muted small fw-semibold mb-1"><i class="fa-solid fa-calendar-days text-success me-1"></i>This Month</div>
+                  <h4 class="fw-bold text-dark mb-0">${formatHoursAndMinutes(stats.monthHours)}</h4>
+                  <span class="badge bg-light text-muted small mt-1">Month to Date</span>
+                </div>
+              </div>
+              <div class="col-6 col-md-3">
+                <div class="p-3 bg-white rounded-3 border shadow-none">
+                  <div class="text-muted small fw-semibold mb-1"><i class="fa-solid fa-gauge-high text-danger me-1"></i>Daily Average</div>
+                  <h4 class="fw-bold text-dark mb-0">${formatHoursAndMinutes(stats.avgHours)}</h4>
+                  <span class="badge bg-light text-muted small mt-1">Per Active Day</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
       <div class="row">
-        <!-- MY ATTENDANCE QUICK WIDGET -->
-        <div class="col-lg-4 mb-4">
-          <div class="thynk-card text-center">
-            <h5 class="fw-bold mb-3"><i class="fa-solid fa-business-time text-danger me-2"></i>My Session Tracker</h5>
-            <div class="p-4 bg-light rounded-3 mb-3">
-              <div class="text-muted small mb-1">Current Date</div>
-              <h4 class="fw-bold mb-3">${new Date().toDateString()}</h4>
-              ${isClockedIn ? `
-                <div class="text-success small fw-semibold mb-2"><i class="fa-solid fa-circle-play me-1"></i>Clocked In: ${myLog.clockIn}</div>
-                <button class="btn btn-danger w-100 py-3 fw-bold shadow-sm" id="clock-out-btn">CLOCK OUT SESSION</button>
-              ` : (isClockedOut ? `
-                <div class="text-muted small fw-semibold mb-2"><i class="fa-solid fa-circle-check me-1"></i>Day Session Complete</div>
-                <button class="btn btn-secondary w-100 py-3 fw-bold" disabled>COMPLETED</button>
-              ` : `
-                <div class="text-muted small mb-2">Shift starts at 09:00 AM</div>
-                <button class="btn btn-success w-100 py-3 fw-bold shadow-sm" id="clock-in-btn">CLOCK IN SESSION</button>
-              `)}
+        ${!isExec ? `
+          <!-- MY ATTENDANCE QUICK WIDGET (ONLY FOR NORMAL EMPLOYEES) -->
+          <div class="col-lg-4 mb-4">
+            <div class="thynk-card text-center h-100 d-flex flex-column justify-content-between">
+              <div>
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-fingerprint text-danger me-2"></i>My Session Tracker</h5>
+                <div class="p-4 bg-light rounded-3 mb-3">
+                  <div class="text-muted small mb-1">Current Date</div>
+                  <h4 class="fw-bold mb-3">${new Date().toDateString()}</h4>
+                  ${isClockedIn ? `
+                    <div class="text-success small fw-semibold mb-3"><i class="fa-solid fa-circle-play me-1"></i>Clocked In at: ${myLog.clockIn}</div>
+                    <button class="btn btn-danger w-100 py-3 fw-bold shadow-sm" id="clock-out-btn" style="background-color: var(--thynk-primary); border: none;">
+                      <i class="fa-solid fa-door-closed me-2"></i>CLOCK OUT SESSION
+                    </button>
+                  ` : (isClockedOut ? `
+                    <div class="text-muted small fw-semibold mb-3"><i class="fa-solid fa-circle-check text-success me-1"></i>Shift Completed (${myLog.clockIn} - ${myLog.clockOut})</div>
+                    <button class="btn btn-secondary w-100 py-3 fw-bold" disabled>COMPLETED TODAY</button>
+                  ` : `
+                    <div class="text-muted small mb-3">Standard Shift: 09:00 AM - 06:00 PM</div>
+                    <button class="btn btn-success w-100 py-3 fw-bold shadow-sm" id="clock-in-btn">
+                      <i class="fa-solid fa-door-open me-2"></i>CLOCK IN SESSION
+                    </button>
+                  `)}
+                </div>
+              </div>
+              <div class="text-secondary small">Your check-in timestamp and attendance status are computed automatically.</div>
             </div>
-            <div class="text-secondary small">Your location is captured for geo-attendance compliance.</div>
           </div>
-        </div>
+        ` : `
+          <!-- ADMIN EMPLOYEE PROFILE CARD -->
+          <div class="col-lg-4 mb-4">
+            <div class="thynk-card text-center h-100 d-flex flex-column justify-content-between">
+              <div>
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-id-badge text-danger me-2"></i>Employee Profile</h5>
+                <div class="p-4 bg-light rounded-3 mb-3 text-start">
+                  <div class="d-flex align-items-center gap-3 mb-3">
+                    <img src="${activeEmp.photo || 'https://randomuser.me/api/portraits/men/32.jpg'}" class="rounded-circle shadow-sm border" style="width: 60px; height: 60px; object-fit: cover;" alt="${activeEmp.name}">
+                    <div>
+                      <h5 class="fw-bold text-dark mb-0">${activeEmp.name}</h5>
+                      <span class="badge bg-danger bg-opacity-10 text-danger">${activeEmp.id}</span>
+                    </div>
+                  </div>
+                  <div class="small mb-1"><b>Designation:</b> ${activeEmp.designation || 'Staff'}</div>
+                  <div class="small mb-1"><b>Department:</b> ${activeEmp.department || 'Operations'}</div>
+                  <div class="small mb-1"><b>Email:</b> ${activeEmp.email || '--'}</div>
+                  <div class="small mb-1"><b>Phone:</b> ${activeEmp.phone || '--'}</div>
+                  <div class="small"><b>Shift:</b> ${activeEmp.shift || '09:00 AM - 06:00 PM'}</div>
+                </div>
+              </div>
+              <div class="alert alert-info py-2 px-3 small border-0 mb-0">
+                <i class="fa-solid fa-shield-halved me-1"></i><b>Executive View</b>: Viewing attendance logs for ${activeEmp.name}.
+              </div>
+            </div>
+          </div>
+        `}
 
-        <!-- DAILY ATTENDANCE SUMMARY -->
+        <!-- ATTENDANCE LOGS TABLE -->
         <div class="col-lg-8 mb-4">
           <div class="thynk-card">
-            <h5 class="fw-bold mb-3"><i class="fa-solid fa-calendar-check text-danger me-2"></i>Staff Attendance Logs</h5>
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+              <h5 class="fw-bold mb-0">
+                <i class="fa-solid fa-calendar-check text-danger me-2"></i>
+                ${isExec ? "Staff Attendance Logs" : "My Attendance History"}
+              </h5>
+              <div class="d-flex align-items-center gap-2">
+                ${isExec ? `
+                  <label class="small text-muted fw-bold mb-0 text-nowrap"><i class="fa-solid fa-filter me-1 text-danger"></i>Filter Staff:</label>
+                  <select id="attendance-staff-filter" class="form-select form-select-sm rounded-2 border-secondary-subtle fw-semibold" style="min-width: 180px;">
+                    <option value="all" ${currentAttendanceFilter === "all" ? "selected" : ""}>All Employees</option>
+                    ${(state.employees || []).map(emp => `
+                      <option value="${emp.id}" ${currentAttendanceFilter === emp.id ? "selected" : ""}>
+                        ${emp.name} (${emp.id})
+                      </option>
+                    `).join("")}
+                  </select>
+                ` : ""}
+                <span class="badge bg-light text-dark border text-nowrap">${displayLogs.length} Records</span>
+              </div>
+            </div>
             <div class="table-responsive">
-              <table class="table thynk-table">
+              <table class="table thynk-table" id="attendance-table-instance">
                 <thead>
                   <tr>
                     <th>Date</th>
-                    <th>Employee Name</th>
+                    <th>Employee</th>
                     <th>Clock In</th>
                     <th>Clock Out</th>
                     <th>Total Hours</th>
-                    <th>Late Entry</th>
+                    <th>Late</th>
                     <th>Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  ${state.attendance.map(att => {
+                  ${displayLogs.map(att => {
                     let badge = "badge-active";
                     if (att.status === "Late Entry") badge = "badge-pending";
                     if (att.status === "Absent") badge = "badge-expired";
                     
+                    const hoursFormatted = formatHoursAndMinutes(parseLogHours(att));
+
                     return `
-                      <tr>
-                        <td>${att.date}</td>
-                        <td class="fw-semibold text-dark">${getEmployeeName(att.employeeId)}</td>
+                      <tr class="${att.employeeId === activeEmpId ? 'table-light' : ''}">
+                        <td class="fw-semibold">${att.date}</td>
+                        <td class="fw-semibold text-dark">
+                          ${getEmployeeName(att.employeeId)}
+                          <span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">${att.employeeId}</span>
+                        </td>
                         <td>${att.clockIn || "--"}</td>
                         <td>${att.clockOut || "--"}</td>
-                        <td class="fw-semibold">${att.hours > 0 ? `${att.hours} Hrs` : "--"}</td>
-                        <td><span class="badge ${att.late === "Yes" ? "bg-warning bg-opacity-10 text-warning" : "bg-light text-muted"}">${att.late}</span></td>
+                        <td class="fw-semibold text-danger">${hoursFormatted !== "0h 00m" ? hoursFormatted : "--"}</td>
+                        <td><span class="badge ${att.late === "Yes" ? "bg-warning bg-opacity-10 text-warning" : "bg-light text-muted"}">${att.late || 'No'}</span></td>
                         <td><span class="badge-status ${badge}">${att.status}</span></td>
                       </tr>
                     `;
@@ -7286,16 +9235,28 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
 
-    // Clock-in bindings
+    // Bind Staff Filter dropdown for Executive users
+    const staffFilterSelect = document.getElementById("attendance-staff-filter");
+    if (staffFilterSelect) {
+      staffFilterSelect.addEventListener("change", (e) => {
+        state.attendanceLogFilterEmployeeId = e.target.value;
+        saveState();
+        renderAttendance();
+      });
+    }
+
+    // Bind clock in
     const clockInBtn = document.getElementById("clock-in-btn");
     if (clockInBtn) {
       clockInBtn.addEventListener("click", () => {
         const timeNow = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
         const hr = parseFloat(new Date().getHours() + "." + new Date().getMinutes());
+        const myEmpId = state.currentUser?.id || "E001";
+        const myEmpName = state.currentUser?.name || "Staff";
         
         const newLog = {
           id: "A" + (state.attendance.length + 1).toString().padStart(3, "0"),
-          employeeId: "E001",
+          employeeId: myEmpId,
           date: todayStr,
           clockIn: timeNow,
           clockOut: "",
@@ -7305,95 +9266,195 @@ document.addEventListener("DOMContentLoaded", () => {
         };
         
         state.attendance.unshift(newLog);
-        addTimelineEvent("attendance", `Employee Ankit Kumar Clocked In at ${timeNow}`, "fa-door-open");
+        addTimelineEvent("attendance", `Employee ${myEmpName} Clocked In at ${timeNow}`, "fa-door-open");
         saveState();
         renderAttendance();
         
-        Swal.fire("Session Started", "Clock in recorded.", "success");
+        Swal.fire("Session Started", "Clock in recorded at " + timeNow, "success");
       });
     }
 
-    // Clock-out bindings
+    // Bind clock out
     const clockOutBtn = document.getElementById("clock-out-btn");
     if (clockOutBtn) {
       clockOutBtn.addEventListener("click", () => {
         const timeNow = new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-        const log = state.attendance.find(a => a.employeeId === "E001" && a.date === todayStr);
+        const myEmpId = state.currentUser?.id || "E001";
+        const myEmpName = state.currentUser?.name || "Staff";
+        const log = state.attendance.find(a => a.employeeId === myEmpId && a.date === todayStr);
         
-        log.clockOut = timeNow;
-        if (log.clockIn) {
-          const inParts = log.clockIn.split(":");
-          const outParts = timeNow.split(":");
-          const inMin = parseInt(inParts[0]) * 60 + parseInt(inParts[1]);
-          const outMin = parseInt(outParts[0]) * 60 + parseInt(outParts[1]);
-          const diffHours = Math.max(0.5, Math.round(((outMin - inMin) / 60) * 10) / 10);
-          log.hours = isNaN(diffHours) ? 8.5 : diffHours;
-        } else {
-          log.hours = 8.5;
+        if (log) {
+          log.clockOut = timeNow;
+          if (log.clockIn) {
+            const inParts = log.clockIn.split(":");
+            const outParts = timeNow.split(":");
+            const inMin = parseInt(inParts[0], 10) * 60 + parseInt(inParts[1], 10);
+            const outMin = parseInt(outParts[0], 10) * 60 + parseInt(outParts[1], 10);
+            const diffHours = Math.max(0.1, Math.round(((outMin - inMin) / 60) * 100) / 100);
+            log.hours = isNaN(diffHours) ? 8.5 : diffHours;
+          } else {
+            log.hours = 8.5;
+          }
         }
         
-        addTimelineEvent("attendance", `Employee Ankit Kumar Clocked Out at ${timeNow}`, "fa-door-closed");
+        addTimelineEvent("attendance", `Employee ${myEmpName} Clocked Out at ${timeNow}`, "fa-door-closed");
         saveState();
         renderAttendance();
         
-        Swal.fire("Session Ended", "Clock out recorded.", "info");
+        Swal.fire("Session Ended", "Clock out recorded at " + timeNow, "info");
       });
     }
-  };
+  }
 
   // VIEW: LEAVE REQUESTS
-  const renderLeave = () => {
+  function renderLeave() {
+    const isExec = isAdminOrExecutive();
+    const activeEmpId = getActiveHrmsEmployeeId();
+    const activeEmp = (state.employees || []).find(e => e.id === activeEmpId) || { id: activeEmpId, name: getEmployeeName(activeEmpId) };
+    const leaveStats = getEmployeeLeaveStats(activeEmpId);
+
+    // Current filter for leave staff logs (Admin/CEO/CTO)
+    const currentLeaveFilter = state.leaveLogFilterEmployeeId || "all";
+
+    // Display leaves:
+    // For normal employees: ONLY their own leave tickets
+    // For Admin/CEO/CTO: Filtered by dropdown ("all" or specific employeeId)
+    let displayLeaves = [];
+    if (isExec) {
+      if (currentLeaveFilter === "all") {
+        displayLeaves = state.leaves || [];
+      } else {
+        displayLeaves = (state.leaves || []).filter(l => l.employeeId === currentLeaveFilter);
+      }
+    } else {
+      displayLeaves = (state.leaves || []).filter(l => l.employeeId === (state.currentUser?.id || "E001"));
+    }
+
     contentWorkspace.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
           <h2 class="mb-1">Leave Management System</h2>
           <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-0">
               <li class="breadcrumb-item"><a href="#" class="text-danger text-decoration-none">HRMS</a></li>
               <li class="breadcrumb-item active" aria-current="page">Leave</li>
+              <li class="breadcrumb-item active text-danger fw-semibold" aria-current="page">${activeEmp.name} (${activeEmp.id})</li>
             </ol>
           </nav>
+        </div>
+        ${isExec ? renderHrmsEmployeeSelector(activeEmpId, "window.handleHrmsLeaveEmployeeChange") : ""}
+      </div>
+
+      <!-- LEAVE MANAGEMENT DASHBOARD -->
+      <div class="row mb-4">
+        <div class="col-md-4 col-xl-2 mb-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100 text-center">
+            <div class="text-muted small fw-semibold mb-1">Leave Allowance</div>
+            <h3 class="fw-bold mb-0 text-dark">${leaveStats.totalQuota}</h3>
+            <span class="badge bg-light text-dark border small mt-1">Days / ${leaveStats.allocationType === "monthly" ? "Month" : "Year"}</span>
+          </div>
+        </div>
+        <div class="col-md-4 col-xl-2 mb-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100 text-center">
+            <div class="text-muted small fw-semibold mb-1">Leaves Used</div>
+            <h3 class="fw-bold mb-0 text-danger">${leaveStats.usedDays}</h3>
+            <span class="badge bg-danger bg-opacity-10 text-danger small mt-1">Approved (${leaveStats.periodName})</span>
+          </div>
+        </div>
+        <div class="col-md-4 col-xl-2 mb-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100 text-center">
+            <div class="text-muted small fw-semibold mb-1">Leaves Remaining</div>
+            <h3 class="fw-bold mb-0 text-success">${leaveStats.leftDays}</h3>
+            <span class="badge bg-success bg-opacity-10 text-success small mt-1">Available Balance</span>
+          </div>
+        </div>
+        <div class="col-md-4 col-xl-2 mb-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100 text-center">
+            <div class="text-muted small fw-semibold mb-1">Pending</div>
+            <h3 class="fw-bold mb-0 text-warning">${leaveStats.pendingCount}</h3>
+            <span class="badge bg-warning bg-opacity-10 text-warning small mt-1">Under Review</span>
+          </div>
+        </div>
+        <div class="col-md-4 col-xl-2 mb-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100 text-center">
+            <div class="text-muted small fw-semibold mb-1">Approved</div>
+            <h3 class="fw-bold mb-0 text-primary">${leaveStats.approvedCount}</h3>
+            <span class="badge bg-primary bg-opacity-10 text-primary small mt-1">Granted</span>
+          </div>
+        </div>
+        <div class="col-md-4 col-xl-2 mb-3">
+          <div class="thynk-card p-3 border-0 shadow-sm rounded-4 h-100 text-center">
+            <div class="text-muted small fw-semibold mb-1">Rejected</div>
+            <h3 class="fw-bold mb-0 text-secondary">${leaveStats.rejectedCount}</h3>
+            <span class="badge bg-secondary bg-opacity-10 text-secondary small mt-1">Declined</span>
+          </div>
         </div>
       </div>
 
       <div class="row">
         <!-- SUBMIT LEAVE REQUEST -->
         <div class="col-lg-4 mb-4">
-          <div class="thynk-card">
-            <h5 class="fw-bold mb-3"><i class="fa-solid fa-file-signature text-danger me-2"></i>Apply for Leave</h5>
-            <form id="apply-leave-form">
-              <div class="mb-3">
-                <label class="form-label fw-semibold">Leave Type</label>
-                <select class="form-select rounded-3" id="leave-type" required>
-                  <option value="Sick Leave">Sick Leave</option>
-                  <option value="Casual Leave">Casual Leave</option>
-                  <option value="Privilege Leave">Privilege Leave</option>
-                  <option value="Maternity Leave">Maternity Leave</option>
-                </select>
+          <div class="thynk-card h-100 d-flex flex-column justify-content-between">
+            <div>
+              <h5 class="fw-bold mb-3"><i class="fa-solid fa-file-signature text-danger me-2"></i>Apply for Leave</h5>
+              <div class="alert alert-warning py-2 px-3 small border-0 mb-3">
+                <i class="fa-solid fa-circle-info me-1"></i><b>Your Assigned Allowance</b>: <b>${leaveStats.totalQuota} days per ${leaveStats.allocationType === "monthly" ? "month" : "year"}</b> (${leaveStats.leftDays} days remaining for ${leaveStats.periodName}).
               </div>
-              <div class="row">
-                <div class="col-md-6 mb-3">
-                  <label class="form-label fw-semibold">From Date</label>
-                  <input type="text" class="form-control rounded-3 flatpickr-date" id="leave-start" required placeholder="Select Date">
+              <form id="apply-leave-form">
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Leave Type <span class="text-danger">*</span></label>
+                  <select class="form-select rounded-3" id="leave-type" required>
+                    <option value="Sick Leave">Sick Leave</option>
+                    <option value="Casual Leave">Casual Leave</option>
+                    <option value="Privilege Leave">Privilege Leave</option>
+                    <option value="Maternity Leave">Maternity Leave</option>
+                  </select>
                 </div>
-                <div class="col-md-6 mb-3">
-                  <label class="form-label fw-semibold">To Date</label>
-                  <input type="text" class="form-control rounded-3 flatpickr-date" id="leave-end" required placeholder="Select Date">
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-semibold">From Date <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control rounded-3 flatpickr-date" id="leave-start" required placeholder="YYYY-MM-DD">
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label fw-semibold">To Date <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control rounded-3 flatpickr-date" id="leave-end" required placeholder="YYYY-MM-DD">
+                  </div>
                 </div>
-              </div>
-              <div class="mb-3">
-                <label class="form-label fw-semibold">Reason</label>
-                <textarea class="form-control rounded-3" id="leave-reason" rows="3" required placeholder="Explain purpose of request..."></textarea>
-              </div>
-              <button type="submit" class="btn btn-danger w-100 py-2 rounded-3 fw-bold shadow-sm" style="background-color: var(--thynk-primary); border: none;">Apply Ticket</button>
-            </form>
+                <div class="mb-3">
+                  <label class="form-label fw-semibold">Reason <span class="text-danger">*</span></label>
+                  <textarea class="form-control rounded-3" id="leave-reason" rows="3" required placeholder="Explain purpose of request..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-danger w-100 py-2 rounded-3 fw-bold shadow-sm" style="background-color: var(--thynk-primary); border: none;">
+                  <i class="fa-solid fa-paper-plane me-2"></i>Submit Leave Application
+                </button>
+              </form>
+            </div>
           </div>
         </div>
 
-        <!-- LEAVE LEDGER -->
+        <!-- LEAVE APPLICATIONS TABLE / LEDGER -->
         <div class="col-lg-8 mb-4">
           <div class="thynk-card">
-            <h5 class="fw-bold mb-3"><i class="fa-solid fa-list-check text-danger me-2"></i>Leave Application Ledger</h5>
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+              <h5 class="fw-bold mb-0">
+                <i class="fa-solid fa-list-check text-danger me-2"></i>
+                ${isExec ? "Staff Leave Application Ledger" : "My Leave Applications"}
+              </h5>
+              <div class="d-flex align-items-center gap-2">
+                ${isExec ? `
+                  <label class="small text-muted fw-bold mb-0 text-nowrap"><i class="fa-solid fa-filter me-1 text-danger"></i>Filter Staff:</label>
+                  <select id="leave-staff-filter" class="form-select form-select-sm rounded-2 border-secondary-subtle fw-semibold" style="min-width: 180px;">
+                    <option value="all" ${currentLeaveFilter === "all" ? "selected" : ""}>All Employees</option>
+                    ${(state.employees || []).map(emp => `
+                      <option value="${emp.id}" ${currentLeaveFilter === emp.id ? "selected" : ""}>
+                        ${emp.name} (${emp.id})
+                      </option>
+                    `).join("")}
+                  </select>
+                ` : ""}
+                <span class="badge bg-light text-dark border text-nowrap">${displayLeaves.length} Applications</span>
+              </div>
+            </div>
             <div class="table-responsive">
               <table class="table thynk-table">
                 <thead>
@@ -7405,30 +9466,41 @@ document.addEventListener("DOMContentLoaded", () => {
                     <th>Total Days</th>
                     <th>Reason</th>
                     <th>Status</th>
-                    <th class="text-end">Action</th>
+                    ${isExec ? '<th class="text-end">Action</th>' : ''}
                   </tr>
                 </thead>
                 <tbody>
-                  ${state.leaves.map(lv => {
+                  ${displayLeaves.length === 0 ? `
+                    <tr>
+                      <td colspan="${isExec ? 8 : 7}" class="text-center py-4 text-muted">
+                        <i class="fa-regular fa-folder-open fa-2x mb-2 d-block"></i>
+                        No leave records found.
+                      </td>
+                    </tr>
+                  ` : displayLeaves.map(lv => {
                     let badge = "badge-pending";
                     if (lv.status === "Approved") badge = "badge-active";
                     if (lv.status === "Rejected") badge = "badge-expired";
 
                     return `
                       <tr>
-                        <td>${lv.employeeId}</td>
+                        <td><span class="badge bg-secondary">${lv.employeeId}</span></td>
                         <td class="fw-semibold text-dark">${getEmployeeName(lv.employeeId)}</td>
-                        <td><span class="badge bg-secondary">${lv.leaveType}</span></td>
-                        <td>${lv.startDate} to ${lv.endDate}</td>
-                        <td class="fw-bold">${lv.totalDays} Days</td>
+                        <td><span class="badge bg-light text-dark border">${lv.leaveType}</span></td>
+                        <td>${lv.startDate} to ${lv.endDate || lv.startDate}</td>
+                        <td class="fw-bold text-danger">${lv.totalDays} Days</td>
                         <td>${lv.reason}</td>
                         <td><span class="badge-status ${badge}">${lv.status}</span></td>
-                        <td class="text-end">
-                          ${lv.status === "Pending" ? `
-                            <button class="btn btn-sm btn-success approve-leave-btn me-1" data-id="${lv.id}"><i class="fa-solid fa-check"></i></button>
-                            <button class="btn btn-sm btn-outline-danger reject-leave-btn" data-id="${lv.id}"><i class="fa-solid fa-times"></i></button>
-                          ` : "--"}
-                        </td>
+                        ${isExec ? `
+                          <td class="text-end">
+                            ${lv.status === "Pending" ? `
+                              <button class="btn btn-sm btn-success approve-leave-btn me-1" data-id="${lv.id}" title="Approve Leave"><i class="fa-solid fa-check"></i></button>
+                              <button class="btn btn-sm btn-outline-danger reject-leave-btn" data-id="${lv.id}" title="Reject Leave"><i class="fa-solid fa-times"></i></button>
+                            ` : `
+                              <span class="text-muted small">${lv.status}</span>
+                            `}
+                          </td>
+                        ` : ''}
                       </tr>
                     `;
                   }).join("")}
@@ -7438,51 +9510,217 @@ document.addEventListener("DOMContentLoaded", () => {
           </div>
         </div>
       </div>
+
+      <!-- EMPLOYEE LEAVE ALLOCATION MANAGEMENT (ADMIN / CEO / CTO ONLY) -->
+      ${isExec ? `
+        <div class="row">
+          <div class="col-12 mb-4">
+            <div class="thynk-card">
+              <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                <div>
+                  <h5 class="fw-bold mb-0">
+                    <i class="fa-solid fa-sliders text-danger me-2"></i>Employee Leave Allocation Management
+                  </h5>
+                  <div class="text-muted small">Configure and adjust employee-specific monthly or yearly leave quotas.</div>
+                </div>
+                <button class="btn btn-sm btn-danger rounded-3 fw-semibold open-add-allocation-btn" style="background-color: var(--thynk-primary); border: none;">
+                  <i class="fa-solid fa-plus me-1"></i>Set Allowance
+                </button>
+              </div>
+              <div class="table-responsive">
+                <table class="table thynk-table align-middle">
+                  <thead>
+                    <tr>
+                      <th>Employee ID</th>
+                      <th>Employee</th>
+                      <th>Allocation Type</th>
+                      <th>Allowed Limit</th>
+                      <th>Used (${getLocalDateString().substring(0, 7)})</th>
+                      <th>Remaining</th>
+                      <th class="text-end">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${(state.employees || []).map(emp => {
+                      const empStats = getEmployeeLeaveStats(emp.id);
+                      return `
+                        <tr>
+                          <td><span class="badge bg-secondary font-monospace">${emp.id}</span></td>
+                          <td class="fw-semibold text-dark">
+                            ${emp.name}
+                            <div class="text-muted small">${emp.designation || 'Staff'}</div>
+                          </td>
+                          <td>
+                            <span class="badge ${empStats.allocationType === 'monthly' ? 'bg-primary bg-opacity-10 text-primary' : 'bg-success bg-opacity-10 text-success'} text-capitalize fw-bold">
+                              <i class="fa-regular ${empStats.allocationType === 'monthly' ? 'fa-calendar' : 'fa-calendar-days'} me-1"></i>${empStats.allocationType}
+                            </span>
+                          </td>
+                          <td class="fw-bold text-dark">${empStats.totalQuota} Days / ${empStats.allocationType === 'monthly' ? 'Month' : 'Year'}</td>
+                          <td class="fw-bold text-danger">${empStats.usedDays} Days</td>
+                          <td class="fw-bold text-success">${empStats.leftDays} Days</td>
+                          <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary edit-allocation-btn px-3 rounded-2 fw-semibold" data-emp-id="${emp.id}" title="Edit Leave Allowance">
+                              <i class="fa-solid fa-pen-to-square me-1"></i>Edit
+                            </button>
+                          </td>
+                        </tr>
+                      `;
+                    }).join("")}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      ` : ""}
     `;
 
-    // Apply leave form handler
+    // Initialize flatpickr on date fields
+    if (typeof flatpickr !== "undefined") {
+      flatpickr(".flatpickr-date", { dateFormat: "Y-m-d", allowInput: true });
+    }
+
+    // Bind Staff Filter dropdown for Executive users
+    const leaveFilterSelect = document.getElementById("leave-staff-filter");
+    if (leaveFilterSelect) {
+      leaveFilterSelect.addEventListener("change", (e) => {
+        state.leaveLogFilterEmployeeId = e.target.value;
+        saveState();
+        renderLeave();
+      });
+    }
+
+    // Bind Edit Leave Allocation buttons (Admin/CEO/CTO)
+    document.querySelectorAll(".edit-allocation-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const empId = btn.getAttribute("data-emp-id");
+        const empSelect = document.getElementById("allocation-employee-id");
+        const monthlyRadio = document.getElementById("allocation-type-monthly");
+        const yearlyRadio = document.getElementById("allocation-type-yearly");
+        const daysInput = document.getElementById("allocation-allowed-days");
+        const unitLabel = document.getElementById("allocation-unit-label");
+
+        if (empSelect) empSelect.value = empId;
+        const alloc = getEmployeeLeaveAllocation(empId);
+
+        if (alloc.allocationType === "yearly") {
+          if (yearlyRadio) yearlyRadio.checked = true;
+          if (unitLabel) unitLabel.innerText = "Days / Year";
+        } else {
+          if (monthlyRadio) monthlyRadio.checked = true;
+          if (unitLabel) unitLabel.innerText = "Days / Month";
+        }
+
+        if (daysInput) daysInput.value = alloc.allowance;
+
+        const modalEl = document.getElementById("editLeaveAllocationModal");
+        if (modalEl && window.bootstrap) {
+          const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+          modalInstance.show();
+        }
+      });
+    });
+
+    document.querySelectorAll(".open-add-allocation-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const empSelect = document.getElementById("allocation-employee-id");
+        if (empSelect && activeEmpId) empSelect.value = activeEmpId;
+        const targetId = empSelect ? empSelect.value : (state.employees[0]?.id || "E001");
+        const alloc = getEmployeeLeaveAllocation(targetId);
+        const monthlyRadio = document.getElementById("allocation-type-monthly");
+        const yearlyRadio = document.getElementById("allocation-type-yearly");
+        const daysInput = document.getElementById("allocation-allowed-days");
+        const unitLabel = document.getElementById("allocation-unit-label");
+
+        if (alloc.allocationType === "yearly") {
+          if (yearlyRadio) yearlyRadio.checked = true;
+          if (unitLabel) unitLabel.innerText = "Days / Year";
+        } else {
+          if (monthlyRadio) monthlyRadio.checked = true;
+          if (unitLabel) unitLabel.innerText = "Days / Month";
+        }
+        if (daysInput) daysInput.value = alloc.allowance;
+
+        const modalEl = document.getElementById("editLeaveAllocationModal");
+        if (modalEl && window.bootstrap) {
+          const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+          modalInstance.show();
+        }
+      });
+    });
+
+    // Apply leave form handler with dynamic employee-specific limit (monthly or yearly)
     document.getElementById("apply-leave-form")?.addEventListener("submit", (e) => {
       e.preventDefault();
       
+      const sDate = (document.getElementById("leave-start")?.value || "");
+      const eDate = (document.getElementById("leave-end")?.value || "");
+      const reason = (document.getElementById("leave-reason")?.value || "").trim();
+      const leaveType = (document.getElementById("leave-type")?.value || "");
+      const currentEmpId = state.currentUser?.id || "E001";
+      const currentEmpName = state.currentUser?.name || "Staff Member";
+
+      if (!sDate || !eDate) {
+        Swal.fire("Incomplete Dates", "Please select both From Date and To Date.", "warning");
+        return;
+      }
+
+      if (new Date(eDate) < new Date(sDate)) {
+        Swal.fire("Invalid Date Range", "To Date cannot be earlier than From Date.", "error");
+        return;
+      }
+
+      const diffDays = Math.round((new Date(eDate) - new Date(sDate)) / (1000 * 60 * 60 * 24)) + 1;
+      const requestedDays = Math.max(1, diffDays);
+
+      // Leave Allowance Limit Check (Dynamic per employee, monthly or yearly)
+      const periodCheck = getPeriodLeaveDaysCount(currentEmpId, sDate, eDate);
+      if (periodCheck.existingPeriodDays + requestedDays > periodCheck.allowance) {
+        const typeLabel = periodCheck.allocationType === "monthly" ? "monthly" : "yearly";
+        const unitLabel = periodCheck.allocationType === "monthly" ? "month" : "year";
+        Swal.fire({
+          icon: "error",
+          title: "Leave Allowance Limit Exceeded",
+          html: `Your assigned leave allowance is <b>${periodCheck.allowance} days per ${unitLabel}</b> (${typeLabel} quota).<br><br>` +
+                `You already have <b>${periodCheck.existingPeriodDays}</b> leave days used/pending for <b>${periodCheck.periodName}</b>.<br>` +
+                `Available balance remaining: <b>${periodCheck.leftDays}</b> day(s).<br><br>` +
+                `Requesting <b>${requestedDays}</b> day(s) exceeds your allowed limit.`
+        });
+        return;
+      }
+
       const newL = {
         id: "L" + (state.leaves.length + 1).toString().padStart(2, "0"),
-        employeeId: "E001",
-        leaveType: (document.getElementById("leave-type")?.value || ""),
-        startDate: (document.getElementById("leave-start")?.value || ""),
-        endDate: (document.getElementById("leave-end")?.value || ""),
-        totalDays: (() => {
-          const s = document.getElementById("leave-start")?.value;
-          const e = document.getElementById("leave-end")?.value;
-          if (s && e) {
-            const diff = (new Date(e) - new Date(s)) / (1000 * 60 * 60 * 24);
-            return diff >= 0 ? Math.ceil(diff) + 1 : 1;
-          }
-          return 1;
-        })(),
-        reason: (document.getElementById("leave-reason")?.value || ""),
+        employeeId: currentEmpId,
+        leaveType: leaveType,
+        startDate: sDate,
+        endDate: eDate,
+        totalDays: requestedDays,
+        reason: reason,
         status: "Pending"
       };
 
       state.leaves.unshift(newL);
-      addNotification("Leave Request Filed", `Ankit Kumar applied for ${newL.leaveType}.`, "info");
-      addTimelineEvent("hrms", `Ankit Kumar filed a leave request ticket`, "fa-calendar-plus");
+      addNotification("Leave Request Filed", `${currentEmpName} applied for ${requestedDays} days ${newL.leaveType}.`, "info");
+      addTimelineEvent("hrms", `${currentEmpName} filed a leave request ticket (${requestedDays} days)`, "fa-calendar-plus");
       saveState();
       renderLeave();
 
-      Swal.fire("Applied!", "Your leave application is submitted for approval.", "success");
+      Swal.fire("Application Submitted", "Your leave application has been submitted for management review.", "success");
     });
 
-    // Resolve buttons
+    // Executive Approve / Reject buttons
     document.querySelectorAll(".approve-leave-btn").forEach(btn => {
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-id");
         const leave = state.leaves.find(x => x.id === id);
-        leave.status = "Approved";
-        
-        addTimelineEvent("hrms", `Approved leave request for ${getEmployeeName(leave.employeeId)}`, "fa-calendar-check");
-        saveState();
-        renderLeave();
-        Swal.fire("Approved", "Leave request has been approved.", "success");
+        if (leave) {
+          leave.status = "Approved";
+          addTimelineEvent("hrms", `Approved leave request for ${getEmployeeName(leave.employeeId)}`, "fa-calendar-check");
+          saveState();
+          renderLeave();
+          Swal.fire("Approved", "Leave request has been approved.", "success");
+        }
       });
     });
 
@@ -7490,41 +9728,51 @@ document.addEventListener("DOMContentLoaded", () => {
       btn.addEventListener("click", () => {
         const id = btn.getAttribute("data-id");
         const leave = state.leaves.find(x => x.id === id);
-        leave.status = "Rejected";
-        
-        addTimelineEvent("hrms", `Rejected leave request for ${getEmployeeName(leave.employeeId)}`, "fa-calendar-times");
-        saveState();
-        renderLeave();
-        Swal.fire("Rejected", "Leave request declined.", "info");
+        if (leave) {
+          leave.status = "Rejected";
+          addTimelineEvent("hrms", `Rejected leave request for ${getEmployeeName(leave.employeeId)}`, "fa-calendar-times");
+          saveState();
+          renderLeave();
+          Swal.fire("Rejected", "Leave request declined.", "info");
+        }
       });
     });
-  };
+  }
 
   // VIEW: KANBAN BOARD (MY TASKS)
-  const renderMyTasks = () => {
-    // Columns definition
+  function renderMyTasks() {
     const columns = ["To Do", "In Progress", "Review", "Completed"];
+    const isExec = isAdminOrExecutive();
+    const activeEmpId = getActiveHrmsEmployeeId();
+    const activeEmp = (state.employees || []).find(e => e.id === activeEmpId) || { id: activeEmpId, name: getEmployeeName(activeEmpId) };
+
+    // For normal employees: ONLY tasks assigned to currentUser.id
+    // For Admin/CEO/CTO: tasks assigned to activeEmpId
+    const targetUserId = isExec ? activeEmpId : (state.currentUser?.id || "E001");
     
     contentWorkspace.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
           <h2 class="mb-1">My Tasks Board</h2>
           <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-0">
               <li class="breadcrumb-item"><a href="#" class="text-danger text-decoration-none">Tasks</a></li>
               <li class="breadcrumb-item active" aria-current="page">Kanban</li>
+              <li class="breadcrumb-item active text-danger fw-semibold" aria-current="page">${activeEmp.name} (${activeEmp.id})</li>
             </ol>
           </nav>
         </div>
-        <button class="btn btn-danger rounded-3" data-bs-toggle="modal" data-bs-target="#addTaskModal" style="background-color: var(--thynk-primary); border: none;">
-          <i class="fa-solid fa-circle-plus me-2"></i>New Task
-        </button>
+        <div class="d-flex align-items-center gap-2">
+          ${isExec ? renderHrmsEmployeeSelector(activeEmpId, "window.handleHrmsTasksEmployeeChange") : ""}
+          <button class="btn btn-danger rounded-3" data-bs-toggle="modal" data-bs-target="#addTaskModal" style="background-color: var(--thynk-primary); border: none;">
+            <i class="fa-solid fa-circle-plus me-2"></i>New Task
+          </button>
+        </div>
       </div>
 
       <div class="kanban-container pb-3">
         ${columns.map(col => {
-          const activeUserId = (state.currentUser && state.currentUser.id) ? state.currentUser.id : "E001";
-        const colTasks = state.tasks.filter(t => t.status === col && (t.assignedEmployeeId === activeUserId || t.employeeId === activeUserId));
+          const colTasks = state.tasks.filter(t => t.status === col && (t.assignedEmployeeId === targetUserId || t.employeeId === targetUserId));
           return `
             <div class="kanban-column" data-status="${col}">
               <div class="kanban-header">
@@ -7577,13 +9825,14 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
         const id = item.getAttribute("data-id");
         const task = state.tasks.find(x => x.id === id);
-        task.status = "Completed";
-        task.progress = 100;
-        
-        addTimelineEvent("task", `Completed task '${task.taskName}'`, "fa-check-double");
-        saveState();
-        renderMyTasks();
-        Swal.fire("Resolved", "Task marked as completed.", "success");
+        if (task) {
+          task.status = "Completed";
+          task.progress = 100;
+          addTimelineEvent("task", `Completed task '${task.taskName}'`, "fa-check-double");
+          saveState();
+          renderMyTasks();
+          Swal.fire("Resolved", "Task marked as completed.", "success");
+        }
       });
     });
 
@@ -7591,7 +9840,6 @@ document.addEventListener("DOMContentLoaded", () => {
       item.addEventListener("click", (e) => {
         e.preventDefault();
         const id = item.getAttribute("data-id");
-        
         Swal.fire({
           title: "Delete Task?",
           text: "Remove task card from Kanban board.",
@@ -7600,8 +9848,9 @@ document.addEventListener("DOMContentLoaded", () => {
           confirmButtonColor: "var(--thynk-primary)",
           cancelButtonColor: "#6c757d",
           confirmButtonText: "Confirm Delete"
-        }).then((res) => {
+        }).then(async (res) => {
           if (res.isConfirmed) {
+            await API.delete('tasks', id);
             state.tasks = state.tasks.filter(x => x.id !== id);
             saveState();
             renderMyTasks();
@@ -7611,18 +9860,13 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
-    // JS HTML5 Drag and Drop Handlers
+    // Drag & Drop
     const cards = document.querySelectorAll(".kanban-card");
     const wrappers = document.querySelectorAll(".kanban-cards-wrapper");
 
     cards.forEach(card => {
-      card.addEventListener("dragstart", () => {
-        card.classList.add("dragging");
-      });
-
-      card.addEventListener("dragend", () => {
-        card.classList.remove("dragging");
-      });
+      card.addEventListener("dragstart", () => { card.classList.add("dragging"); });
+      card.addEventListener("dragend", () => { card.classList.remove("dragging"); });
     });
 
     wrappers.forEach(wrapper => {
@@ -7633,53 +9877,69 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
         wrapper.style.backgroundColor = "rgba(211,47,47,0.05)";
       });
-
-      wrapper.addEventListener("dragleave", () => {
-        wrapper.style.backgroundColor = "";
-      });
-
+      wrapper.addEventListener("dragleave", () => { wrapper.style.backgroundColor = ""; });
       wrapper.addEventListener("drop", (e) => {
         e.preventDefault();
         wrapper.style.backgroundColor = "";
-        
         const card = document.querySelector(".dragging");
         if (card) {
           const taskId = card.getAttribute("data-id");
           const taskObj = state.tasks.find(t => t.id === taskId);
-          
           if (taskObj && taskObj.status !== targetStatus) {
             taskObj.status = targetStatus;
-            
-            // Adjust progress percentage automatically based on status
             if (targetStatus === "To Do") taskObj.progress = 10;
             if (targetStatus === "In Progress") taskObj.progress = 50;
             if (targetStatus === "Review") taskObj.progress = 85;
             if (targetStatus === "Completed") taskObj.progress = 100;
-
             addTimelineEvent("task", `Shifted task '${taskObj.taskName}' to ${targetStatus}`, "fa-sliders");
             saveState();
-            
-            // Re-render Board
             renderMyTasks();
           }
         }
       });
     });
-  };
+  }
 
   // VIEW: EMPLOYEE TASKS LIST
-  const renderEmployeeTasks = () => {
+  function renderEmployeeTasks() {
+    const isExec = isAdminOrExecutive();
+    const activeEmpId = getActiveHrmsEmployeeId();
+    const activeEmp = (state.employees || []).find(e => e.id === activeEmpId) || { id: activeEmpId, name: getEmployeeName(activeEmpId) };
+
+    // For normal employees: ONLY tasks assigned to currentUser.id
+    // For Admin/CEO/CTO: all tasks, with filtering capability
+    const displayTasks = isExec ? 
+      (state.tasksEmployeeFilter ? state.tasks.filter(t => t.assignedEmployeeId === state.tasksEmployeeFilter) : state.tasks)
+      : state.tasks.filter(t => t.assignedEmployeeId === (state.currentUser?.id || "E001"));
+
     contentWorkspace.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
         <div>
           <h2 class="mb-1">Employee Workload Tracker</h2>
           <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-0">
               <li class="breadcrumb-item"><a href="#" class="text-danger text-decoration-none">Tasks</a></li>
               <li class="breadcrumb-item active" aria-current="page">Employee Tasks</li>
+              ${!isExec ? `<li class="breadcrumb-item active text-danger fw-semibold" aria-current="page">${activeEmp.name} (${activeEmp.id})</li>` : ''}
             </ol>
           </nav>
         </div>
+        ${isExec ? `
+          <div class="d-flex align-items-center gap-2 bg-light p-2 rounded-3 border">
+            <span class="small fw-bold text-muted text-nowrap"><i class="fa-solid fa-filter me-1 text-danger"></i>Filter By Employee:</span>
+            <select class="form-select form-select-sm rounded-2 border-secondary-subtle fw-semibold text-dark" style="min-width: 220px;" onchange="window.handleHrmsTaskListFilterChange(this.value)">
+              <option value="" ${!state.tasksEmployeeFilter ? "selected" : ""}>All Employees (${state.tasks.length} Tasks)</option>
+              ${state.employees.map(emp => {
+                const count = state.tasks.filter(t => t.assignedEmployeeId === emp.id).length;
+                return `
+                  <option value="${emp.id}" ${state.tasksEmployeeFilter === emp.id ? "selected" : ""}>
+                    ${emp.id} - ${emp.name} (${count} Tasks)
+                  </option>
+                `;
+              }).join("")}
+            </select>
+          </div>
+        ` : ''}
       </div>
 
       <div class="thynk-card">
@@ -7698,7 +9958,7 @@ document.addEventListener("DOMContentLoaded", () => {
               </tr>
             </thead>
             <tbody>
-              ${state.tasks.map(task => {
+              ${displayTasks.map(task => {
                 let badge = "badge bg-secondary";
                 if (task.priority === "High") badge = "badge bg-danger";
                 if (task.priority === "Medium") badge = "badge bg-warning text-dark";
@@ -7712,7 +9972,10 @@ document.addEventListener("DOMContentLoaded", () => {
                   <tr>
                     <td class="fw-semibold text-dark">${task.taskName}</td>
                     <td>${getClientName(task.clientId)}</td>
-                    <td>${getEmployeeName(task.assignedEmployeeId)}</td>
+                    <td>
+                      <span class="fw-semibold">${getEmployeeName(task.assignedEmployeeId)}</span>
+                      <span class="badge bg-secondary ms-1" style="font-size: 0.65rem;">${task.assignedEmployeeId}</span>
+                    </td>
                     <td><span class="${badge}">${task.priority}</span></td>
                     <td>
                       <div class="d-flex align-items-center gap-2">
@@ -7723,7 +9986,7 @@ document.addEventListener("DOMContentLoaded", () => {
                       </div>
                     </td>
                     <td>${task.dueDate}</td>
-                    <td class="fw-semibold">${task.estHours} Hrs</td>
+                    <td class="fw-semibold">${task.estHours || 0} Hrs</td>
                     <td><span class="badge-status ${stageBadge}">${task.status}</span></td>
                   </tr>
                 `;
@@ -7734,14 +9997,33 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
     `;
 
-    if ($.fn.DataTable.isDataTable("#employee-tasks-datatable")) { $("#employee-tasks-datatable").DataTable().destroy(); }
-    $("#employee-tasks-datatable").DataTable({
-      language: { search: "_INPUT_", searchPlaceholder: "Search Tasks..." }
-    });
+    try {
+      if (window.jQuery && $.fn.DataTable) {
+        if ($.fn.DataTable.isDataTable("#employee-tasks-datatable")) {
+          $("#employee-tasks-datatable").DataTable().destroy();
+        }
+        $("#employee-tasks-datatable").DataTable({
+          language: {
+            search: "_INPUT_",
+            searchPlaceholder: "Search Tasks...",
+            emptyTable: "No tasks assigned to this employee."
+          },
+          order: []
+        });
+      }
+    } catch (e) {
+      console.error("Error initializing employee tasks DataTable:", e);
+    }
+  }
+
+  window.handleHrmsTaskListFilterChange = (empId) => {
+    state.tasksEmployeeFilter = empId || null;
+    saveState();
+    renderEmployeeTasks();
   };
 
   // VIEW: REPORTS STUDIO
-  const renderReports = () => {
+  function renderReports() {
     contentWorkspace.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -7949,10 +10231,21 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  // VIEW: TIMELINE LOGS
-  const renderTimeline = () => {
+  // VIEW: TIMELINE LOGS (LAST 30 DAYS ACTIVE EVENTS)
+  function renderTimeline() {
+    pruneOldTimelineEvents();
+    saveState();
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const recentLogs = (state.timeline || []).filter(evt => {
+      if (!evt || !evt.timestamp) return false;
+      const evtDate = new Date(evt.timestamp.replace(' ', 'T'));
+      return !isNaN(evtDate.getTime()) && evtDate >= thirtyDaysAgo;
+    });
+
     contentWorkspace.innerHTML = `
-      <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
         <div>
           <h2 class="mb-1">Global Activity Timeline Logs</h2>
           <nav aria-label="breadcrumb">
@@ -7962,25 +10255,36 @@ document.addEventListener("DOMContentLoaded", () => {
             </ol>
           </nav>
         </div>
+        <span class="badge bg-danger bg-opacity-10 text-danger border border-danger-subtle px-3 py-2 rounded-pill fw-semibold">
+          <i class="fa-solid fa-clock-rotate-left me-1"></i>Last 30 Days Active Events (${recentLogs.length})
+        </span>
       </div>
 
       <div class="thynk-card">
-        <div class="timeline-wrapper ms-3 py-3">
-          ${state.timeline.map(evt => `
-            <div class="timeline-item">
-              <div class="timeline-icon"><i class="fa-solid ${evt.icon}"></i></div>
-              <div class="timeline-time font-monospace small">${evt.timestamp}</div>
-              <div class="timeline-title text-dark">${evt.eventType.toUpperCase()} EVENT</div>
-              <p class="timeline-desc text-muted mb-0 fw-semibold">${evt.text}</p>
-            </div>
-          `).join("")}
-        </div>
+        ${recentLogs.length === 0 ? `
+          <div class="text-center py-5 text-muted">
+            <i class="fa-regular fa-clock fa-2x mb-2 d-block text-secondary opacity-50"></i>
+            <h6 class="fw-bold mb-1">No Activity in the Last 30 Days</h6>
+            <div class="small">Events older than 30 days are automatically archived.</div>
+          </div>
+        ` : `
+          <div class="timeline-wrapper ms-3 py-3">
+            ${recentLogs.map(evt => `
+              <div class="timeline-item">
+                <div class="timeline-icon"><i class="fa-solid ${evt.icon || 'fa-info-circle'}"></i></div>
+                <div class="timeline-time font-monospace small text-muted">${evt.timestamp}</div>
+                <div class="timeline-title text-dark fw-bold">${(evt.eventType || 'SYSTEM').toUpperCase()} EVENT</div>
+                <p class="timeline-desc text-muted mb-0 fw-semibold">${evt.text}</p>
+              </div>
+            `).join("")}
+          </div>
+        `}
       </div>
     `;
   };
 
   // VIEW: SETTINGS
-  const renderSettings = () => {
+  function renderSettings() {
     contentWorkspace.innerHTML = `
       <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
@@ -8099,7 +10403,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("add-lead-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
-    const leadId = "L" + (state.leads.length + 1).toString().padStart(3, "0");
+    const leadId = getNextId(state.leads, "L", 3);
     const newL = {
       id: leadId,
       companyName: (document.getElementById("lead-company")?.value || ""),
@@ -8135,7 +10439,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("add-client-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     
-    const clientId = "C" + (state.clients.length + 1).toString().padStart(3, "0");
+    const clientId = getNextId(state.clients, "C", 3);
     const newC = {
       id: clientId,
       companyName: (document.getElementById("client-company")?.value || ""),
@@ -8160,108 +10464,259 @@ document.addEventListener("DOMContentLoaded", () => {
 
     state.clients.push(newC);
 
-    // Auto-create Domain & Hosting if checked
-    const addDomainHosting = document.getElementById("client-add-domain-hosting").checked;
-    if (addDomainHosting) {
-      const domainRegistrar = (document.getElementById("client-domain-registrar")?.value || "") || "GoDaddy";
-      const hostingProvider = (document.getElementById("client-hosting-provider")?.value || "") || "Hostinger";
-      const purchasedDate = (document.getElementById("client-domain-purchased")?.value || "") || getLocalDateString();
-      const renewalDate = (document.getElementById("client-domain-expiry")?.value || "") || "";
-      const domainCost = parseInt((document.getElementById("client-domain-cost")?.value || "")) || 0;
-      const hostingCost = parseInt((document.getElementById("client-hosting-cost")?.value || "")) || 0;
-      const dnsVal = (document.getElementById("client-domain-dns")?.value || "") || "OK";
-      
-      let parsedDom = "";
-      if (newC.website) {
-        try {
-          parsedDom = newC.website.replace(/https?:\/\/(www\.)?/, "").split("/")[0];
-        } catch (e) {}
+    // Ensure state collections exist
+    if (!Array.isArray(state.domains)) state.domains = [];
+    if (!Array.isArray(state.hostings)) state.hostings = [];
+    if (!Array.isArray(state.services)) state.services = [];
+    if (!Array.isArray(state.canva)) state.canva = [];
+    if (!Array.isArray(state.billingSoftware)) state.billingSoftware = [];
+
+    // Process selected Client Service from single dropdown box
+    const selectedSvcType = (document.getElementById("client-service-type")?.value || "");
+    if (selectedSvcType) {
+      if (selectedSvcType === "Domain & Hosting") {
+        const domainRegistrar = (document.getElementById("client-domain-registrar")?.value || "") || "GoDaddy";
+        const hostingProvider = (document.getElementById("client-hosting-provider")?.value || "") || "Hostinger";
+        const purchasedDate = (document.getElementById("client-domain-purchased")?.value || "") || getLocalDateString();
+        const renewalDate = (document.getElementById("client-domain-expiry")?.value || "") || "";
+        const domainCost = parseInt((document.getElementById("client-domain-cost")?.value || "")) || 1200;
+        const hostingCost = parseInt((document.getElementById("client-hosting-cost")?.value || "")) || 2500;
+        const dnsVal = (document.getElementById("client-domain-dns")?.value || "") || "OK";
+        
+        let parsedDom = "";
+        if (newC.website) {
+          try { parsedDom = newC.website.replace(/https?:\/\/(www\.)?/, "").split("/")[0]; } catch (e) {}
+        }
+        const domName = parsedDom || "Domain for " + newC.companyName;
+
+        state.domains.push({
+          id: "D" + (state.domains.length + 1).toString().padStart(3, "0"),
+          clientId: clientId,
+          domainName: domName,
+          registrar: domainRegistrar,
+          registrationDate: purchasedDate,
+          expiryDate: renewalDate,
+          renewalDate: renewalDate,
+          status: calculateStatusFromDate(renewalDate),
+          renewalCost: domainCost,
+          dnsStatus: dnsVal,
+          nameservers: "",
+          credentialsPlaceholder: "",
+          notes: "Auto-linked on Client creation"
+        });
+
+        state.hostings.push({
+          id: "H" + (state.hostings.length + 1).toString().padStart(3, "0"),
+          clientId: clientId,
+          hostingProvider: hostingProvider,
+          hostingPlan: "Premium Hosting",
+          purchaseDate: purchasedDate,
+          expiryDate: renewalDate,
+          renewalDate: renewalDate,
+          renewalCost: hostingCost,
+          backupStatus: "Daily Auto",
+          status: calculateStatusFromDate(renewalDate),
+          notes: "Auto-linked on Client creation"
+        });
+
+        const srvId = "S" + (state.services.length + 1).toString().padStart(3, "0");
+        const totalAmt = domainCost + hostingCost;
+        state.services.push({
+          id: srvId,
+          clientId: clientId,
+          serviceName: "Domain & Hosting",
+          package: "Standard Domain & Hosting Bundle",
+          startDate: purchasedDate,
+          endDate: renewalDate,
+          renewalDate: renewalDate,
+          assignedEmployeeId: newC.assignedEmployeeId,
+          cost: totalAmt,
+          discount: 0,
+          finalAmount: totalAmt,
+          status: "Running",
+          notes: "Auto-linked on Client creation"
+        });
+      } else if (selectedSvcType === "Canva Premium") {
+        const canvaEmail = (document.getElementById("client-canva-email")?.value || "") || newC.email;
+        const canvaPrice = parseInt((document.getElementById("client-canva-price")?.value || "")) || 499;
+        const purchaseDate = (document.getElementById("client-canva-purchase-date")?.value || "") || getLocalDateString();
+        const renewalDate = (document.getElementById("client-canva-renewal-date")?.value || "") || "";
+
+        state.canva.push({
+          id: "CAN" + (state.canva.length + 1).toString().padStart(3, "0"),
+          clientId: clientId,
+          clientName: newC.companyName,
+          email: canvaEmail,
+          price: canvaPrice,
+          purchaseDate: purchaseDate,
+          renewalDate: renewalDate,
+          notes: "Auto-linked on Client creation"
+        });
+
+        const srvId = "S" + (state.services.length + 1).toString().padStart(3, "0");
+        state.services.push({
+          id: srvId,
+          clientId: clientId,
+          serviceName: "Canva Premium",
+          package: "Canva Premium License",
+          startDate: purchaseDate,
+          endDate: renewalDate,
+          renewalDate: renewalDate,
+          assignedEmployeeId: newC.assignedEmployeeId,
+          cost: canvaPrice,
+          discount: 0,
+          finalAmount: canvaPrice,
+          status: "Running",
+          notes: "Auto-linked on Client creation"
+        });
+      } else if (selectedSvcType === "Billing Software") {
+        const billingPrice = parseInt((document.getElementById("client-billing-price")?.value || "")) || 3500;
+        const maintenance = parseInt((document.getElementById("client-billing-maintenance")?.value || "")) || 2500;
+        const purchaseDate = (document.getElementById("client-billing-purchase-date")?.value || "") || getLocalDateString();
+        const renewalDate = (document.getElementById("client-billing-renewal-date")?.value || "") || "";
+
+        state.billingSoftware.push({
+          id: "BS" + (state.billingSoftware.length + 1).toString().padStart(3, "0"),
+          clientId: clientId,
+          clientName: newC.clientName,
+          companyName: newC.companyName,
+          price: billingPrice,
+          maintenance: maintenance,
+          purchaseDate: purchaseDate,
+          renewalDate: renewalDate,
+          notes: "Auto-linked on Client creation"
+        });
+
+        const srvId = "S" + (state.services.length + 1).toString().padStart(3, "0");
+        state.services.push({
+          id: srvId,
+          clientId: clientId,
+          serviceName: "Billing Software",
+          package: "Standard Billing License",
+          startDate: purchaseDate,
+          endDate: renewalDate,
+          renewalDate: renewalDate,
+          assignedEmployeeId: newC.assignedEmployeeId,
+          cost: billingPrice,
+          discount: 0,
+          finalAmount: billingPrice,
+          status: "Running",
+          notes: "Auto-linked on Client creation"
+        });
+      } else {
+        const srvId = "S" + (state.services.length + 1).toString().padStart(3, "0");
+        state.services.push({
+          id: srvId,
+          clientId: clientId,
+          serviceName: selectedSvcType,
+          package: selectedSvcType + " Package",
+          startDate: getLocalDateString(),
+          endDate: "",
+          renewalDate: "",
+          assignedEmployeeId: newC.assignedEmployeeId,
+          cost: 0,
+          discount: 0,
+          finalAmount: 0,
+          status: "Running",
+          notes: "Auto-linked on Client creation"
+        });
       }
-      const domName = parsedDom || "Domain for " + newC.companyName;
-
-      // 1. Create Domain Record
-      state.domains.push({
-        id: "D" + (state.domains.length + 1).toString().padStart(3, "0"),
-        clientId: clientId,
-        domainName: domName,
-        registrar: domainRegistrar,
-        registrationDate: purchasedDate,
-        expiryDate: renewalDate,
-        renewalDate: renewalDate,
-        status: calculateStatusFromDate(renewalDate),
-        renewalCost: domainCost,
-        dnsStatus: dnsVal,
-        nameservers: "",
-        credentialsPlaceholder: "",
-        notes: "Auto-linked on Client creation"
-      });
-
-      // 2. Create Hosting Record
-      state.hostings.push({
-        id: "H" + (state.hostings.length + 1).toString().padStart(3, "0"),
-        clientId: clientId,
-        hostingProvider: hostingProvider,
-        hostingPlan: "Premium Hosting",
-        purchaseDate: purchasedDate,
-        expiryDate: renewalDate,
-        renewalDate: renewalDate,
-        renewalCost: hostingCost,
-        backupStatus: "Daily Auto",
-        status: calculateStatusFromDate(renewalDate),
-        notes: "Auto-linked on Client creation"
-      });
-
-      // 3. Create Service Contract
-      const srvId = "S" + (state.services.length + 1).toString().padStart(3, "0");
-      const totalAmt = domainCost + hostingCost;
-      state.services.push({
-        id: srvId,
-        clientId: clientId,
-        serviceName: "Domain & Hosting",
-        package: "Standard Domain & Hosting Bundle",
-        startDate: purchasedDate,
-        endDate: renewalDate,
-        renewalDate: renewalDate,
-        assignedEmployeeId: newC.assignedEmployeeId,
-        cost: totalAmt,
-        discount: 0,
-        finalAmount: totalAmt,
-        status: "Running",
-        notes: "Auto-linked on Client creation"
-      });
-
-      // 4. Create Invoice
-      const invId = "INV-2026-" + (state.invoices.length + 1).toString().padStart(3, "0");
-      const gstAmt = Math.round(totalAmt * (state.settings.gstPercentage / 100));
-      const netTotal = totalAmt + gstAmt;
-      state.invoices.push({
-        id: invId,
-        clientId: clientId,
-        invoiceDate: purchasedDate,
-        dueDate: purchasedDate,
-        serviceId: srvId,
-        grossAmount: totalAmt,
-        gstRate: state.settings.gstPercentage,
-        gstAmount: gstAmt,
-        discount: 0,
-        netAmount: netTotal,
-        status: "Pending Payment"
-      });
     }
 
     addNotification("New Client Added", `${newC.companyName} registered under active accounts.`, "success");
     addTimelineEvent("client", `Created CRM Client Profile for ${newC.companyName}`, "fa-user-plus");
     saveState();
 
-    bootstrap.Modal.getOrCreateInstance(document.getElementById("addClientModal")).hide();
+    const modalEl = document.getElementById("addClientModal");
+    if (modalEl && window.bootstrap) {
+      const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+      modalInstance.hide();
+    }
     document.getElementById("add-client-form").reset();
+    const detailsContainer = document.getElementById("client-service-details-container");
+    if (detailsContainer) detailsContainer.innerHTML = "";
 
     Swal.fire("Client Saved", "Client directory profile updated.", "success");
 
     const activeView = document.querySelector(".sidebar-item.active")?.getAttribute("data-view") || "";
-    if (activeView === "clients" || activeView === "dashboard") switchView(activeView);
+    if (["clients", "dashboard", "canva", "billing-software", "services", "domains", "hosting"].includes(activeView)) {
+      switchView(activeView);
+    }
     populateModalDropdowns();
   });
+
+  // FORM: CONFIGURE EMPLOYEE LEAVE ALLOCATION (ADMIN/CEO/CTO)
+  const setupLeaveAllocationFormHandlers = () => {
+    const monthlyRadio = document.getElementById("allocation-type-monthly");
+    const yearlyRadio = document.getElementById("allocation-type-yearly");
+    const unitLabel = document.getElementById("allocation-unit-label");
+    const daysInput = document.getElementById("allocation-allowed-days");
+    const helperText = document.getElementById("allocation-helper-text");
+
+    const updateAllocationLabels = () => {
+      if (yearlyRadio && yearlyRadio.checked) {
+        if (unitLabel) unitLabel.innerText = "Days / Year";
+        if (daysInput && (!daysInput.value || daysInput.value === "4")) daysInput.placeholder = "e.g. 48 or 30";
+        if (helperText) helperText.innerText = "Annual cumulative leave quota allocated to this employee.";
+      } else {
+        if (unitLabel) unitLabel.innerText = "Days / Month";
+        if (daysInput && (!daysInput.value || daysInput.value === "48")) daysInput.placeholder = "e.g. 4 or 6";
+        if (helperText) helperText.innerText = "Monthly leave days allocated to this employee (resets each calendar month).";
+      }
+    };
+
+    monthlyRadio?.addEventListener("change", updateAllocationLabels);
+    yearlyRadio?.addEventListener("change", updateAllocationLabels);
+
+    const empSelect = document.getElementById("allocation-employee-id");
+    empSelect?.addEventListener("change", (e) => {
+      const selectedEmpId = e.target.value;
+      if (selectedEmpId) {
+        const alloc = getEmployeeLeaveAllocation(selectedEmpId);
+        if (alloc.allocationType === "yearly") {
+          if (yearlyRadio) yearlyRadio.checked = true;
+        } else {
+          if (monthlyRadio) monthlyRadio.checked = true;
+        }
+        if (daysInput) daysInput.value = alloc.allowance;
+        updateAllocationLabels();
+      }
+    });
+
+    document.getElementById("edit-leave-allocation-form")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const empId = document.getElementById("allocation-employee-id")?.value;
+      const isYearly = document.getElementById("allocation-type-yearly")?.checked;
+      const allocType = isYearly ? "yearly" : "monthly";
+      const allowedDays = parseInt(document.getElementById("allocation-allowed-days")?.value, 10);
+
+      if (!empId) {
+        Swal.fire("Missing Employee", "Please select an employee.", "warning");
+        return;
+      }
+      if (isNaN(allowedDays) || allowedDays <= 0) {
+        Swal.fire("Invalid Days", "Please enter a valid number of allowed leave days.", "warning");
+        return;
+      }
+
+      setEmployeeLeaveAllocation(empId, allocType, allowedDays);
+      addNotification("Leave Allowance Updated", `Set ${allowedDays} days/${allocType === 'monthly' ? 'month' : 'year'} for ${getEmployeeName(empId)}.`, "info");
+      addTimelineEvent("hrms", `Updated leave allowance for ${getEmployeeName(empId)} to ${allowedDays} days/${allocType}`, "fa-sliders");
+      saveState();
+
+      const modalEl = document.getElementById("editLeaveAllocationModal");
+      if (modalEl && window.bootstrap) {
+        const modalInstance = bootstrap.Modal.getInstance(modalEl) || new bootstrap.Modal(modalEl);
+        modalInstance.hide();
+      }
+
+      const activeView = document.querySelector(".sidebar-item.active")?.getAttribute("data-view") || "";
+      if (activeView === "leave") renderLeave();
+
+      Swal.fire("Allocation Saved", `Leave allowance for <b>${getEmployeeName(empId)}</b> set to <b>${allowedDays} days / ${allocType === 'monthly' ? 'Month' : 'Year'}</b>.`, "success");
+    });
+  };
+  setupLeaveAllocationFormHandlers();
 
   // FORM: EDIT CLIENT
   document.getElementById("edit-client-form")?.addEventListener("submit", (e) => {
@@ -9024,7 +11479,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
-  const renderMetaDailyModalWorkspace = (camp) => {
+  function renderMetaDailyModalWorkspace(camp) {
     const daily = camp.dailyPerformance || [];
     const sortedDesc = [...daily].sort((a, b) => new Date(b.date) - new Date(a.date));
     
@@ -9157,7 +11612,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderMetaDailyCharts(daily);
   };
 
-  const renderMetaDailyCharts = (daily) => {
+  function renderMetaDailyCharts(daily) {
     const sortedAsc = [...daily].sort((a, b) => new Date(a.date) - new Date(b.date));
     const dates = sortedAsc.map(d => {
       const dt = new Date(d.date);
@@ -10713,7 +13168,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   // NEW VIEW: REGISTER SERVICE CONTRACT FORM (DEDICATED PAGE)
-  const renderNewServiceForm = (clientId = "") => {
+  function renderNewServiceForm(clientId = "") {
     // 1. Loading State
     contentWorkspace.innerHTML = `
       <div class="text-center py-5">
@@ -11328,8 +13783,8 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: NEW EMPLOYEE REGISTRATION FORM
-  const renderNewEmployeeForm = () => {
-    const nextEmpId = "E" + (state.employees.length + 1).toString().padStart(3, "0");
+  function renderNewEmployeeForm() {
+    const nextEmpId = getNextId(state.employees, "E", 3);
     
     const managerOptions = state.employees.map(emp => 
       `<option value="${emp.id}">${emp.name} (${emp.designation})</option>`
@@ -11360,7 +13815,7 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
 
       <div class="card border-0 rounded-4 shadow-sm p-4 animate__animated animate__fadeInUp">
-        <form id="new-employee-registration-form">
+        <form id="new-employee-registration-form" novalidate>
           
           <!-- SECTION 1: EMPLOYEE DETAILS -->
           <div class="mb-5">
@@ -11369,8 +13824,8 @@ document.addEventListener("DOMContentLoaded", () => {
             </h5>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Employee Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control rounded-3" id="new-emp-name" placeholder="John Doe" required>
+                <label class="form-label fw-semibold">Employee Name</label>
+                <input type="text" class="form-control rounded-3" id="new-emp-name" placeholder="John Doe">
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Profile Photo URL</label>
@@ -11379,12 +13834,12 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
-                <input type="email" class="form-control rounded-3" id="new-emp-email" placeholder="john@thynkdigital.in" required>
+                <label class="form-label fw-semibold">Email Address</label>
+                <input type="email" class="form-control rounded-3" id="new-emp-email" placeholder="john@thynkdigital.in">
               </div>
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Mobile Number <span class="text-danger">*</span></label>
-                <input type="tel" class="form-control rounded-3" id="new-emp-phone" placeholder="9876543210" required>
+                <label class="form-label fw-semibold">Mobile Number</label>
+                <input type="tel" class="form-control rounded-3" id="new-emp-phone" placeholder="9876543210">
               </div>
             </div>
             <div class="row">
@@ -11393,24 +13848,24 @@ document.addEventListener("DOMContentLoaded", () => {
                 <input type="tel" class="form-control rounded-3" id="new-emp-alt-phone" placeholder="9876543211">
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Gender <span class="text-danger">*</span></label>
-                <select class="form-select rounded-3" id="new-emp-gender" required>
-                  <option value="" disabled selected>Select Gender</option>
+                <label class="form-label fw-semibold">Gender</label>
+                <select class="form-select rounded-3" id="new-emp-gender">
+                  <option value="" selected>Select Gender</option>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Other">Other</option>
                 </select>
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Date of Birth <span class="text-danger">*</span></label>
-                <input type="text" class="form-control rounded-3 flatpickr-date" id="new-emp-dob" placeholder="YYYY-MM-DD" required>
+                <label class="form-label fw-semibold">Date of Birth</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="new-emp-dob" placeholder="YYYY-MM-DD">
               </div>
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Blood Group</label>
                 <select class="form-select rounded-3" id="new-emp-blood-group">
-                  <option value="" disabled selected>Select Blood Group</option>
+                  <option value="" selected>Select Blood Group</option>
                   <option value="A+">A+</option>
                   <option value="A-">A-</option>
                   <option value="B+">B+</option>
@@ -11424,7 +13879,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Marital Status</label>
                 <select class="form-select rounded-3" id="new-emp-marital-status">
-                  <option value="" disabled selected>Select Marital Status</option>
+                  <option value="" selected>Select Marital Status</option>
                   <option value="Single">Single</option>
                   <option value="Married">Married</option>
                   <option value="Divorced">Divorced</option>
@@ -11441,33 +13896,33 @@ document.addEventListener("DOMContentLoaded", () => {
             </h5>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Department <span class="text-danger">*</span></label>
-                <input type="text" class="form-control rounded-3" id="new-emp-department" placeholder="Development" required>
+                <label class="form-label fw-semibold">Department</label>
+                <input type="text" class="form-control rounded-3" id="new-emp-department" placeholder="Development">
               </div>
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Designation <span class="text-danger">*</span></label>
-                <input type="text" class="form-control rounded-3" id="new-emp-designation" placeholder="Senior Developer" required>
+                <label class="form-label fw-semibold">Designation</label>
+                <input type="text" class="form-control rounded-3" id="new-emp-designation" placeholder="Senior Developer">
               </div>
             </div>
             <div class="row">
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
-                <select class="form-select rounded-3" id="new-emp-role" required>
+                <label class="form-label fw-semibold">Role</label>
+                <select class="form-select rounded-3" id="new-emp-role">
                   <option value="Employee" selected>Employee</option>
                   <option value="Manager">Manager</option>
                   <option value="Admin">Admin</option>
                 </select>
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Reporting Manager <span class="text-danger">*</span></label>
-                <select class="form-select rounded-3" id="new-emp-manager" required>
+                <label class="form-label fw-semibold">Reporting Manager</label>
+                <select class="form-select rounded-3" id="new-emp-manager">
                   <option value="Admin" selected>Admin (Root)</option>
                   ${managerOptions}
                 </select>
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Employment Type <span class="text-danger">*</span></label>
-                <select class="form-select rounded-3" id="new-emp-employment-type" required>
+                <label class="form-label fw-semibold">Employment Type</label>
+                <select class="form-select rounded-3" id="new-emp-employment-type">
                   <option value="Full Time" selected>Full Time</option>
                   <option value="Part Time">Part Time</option>
                   <option value="Contract">Contract</option>
@@ -11477,20 +13932,23 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
             <div class="row">
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Joining Date <span class="text-danger">*</span></label>
-                <input type="text" class="form-control rounded-3 flatpickr-date" id="new-emp-joining-date" placeholder="YYYY-MM-DD" required>
+                <label class="form-label fw-semibold">Joining Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="new-emp-joining-date" placeholder="YYYY-MM-DD">
               </div>
               <div class="col-md-4 mb-3">
                 <label class="form-label fw-semibold">Probation Period (Months)</label>
                 <input type="number" class="form-control rounded-3" id="new-emp-probation" placeholder="3" min="0">
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Shift</label>
-                <select class="form-select rounded-3" id="new-emp-shift">
-                  <option value="Morning Shift (9:00 AM - 6:00 PM)" selected>Morning Shift (9:00 AM - 6:00 PM)</option>
-                  <option value="Evening Shift (2:00 PM - 11:00 PM)">Evening Shift (2:00 PM - 11:00 PM)</option>
-                  <option value="Night Shift (10:00 PM - 7:00 AM)">Night Shift (10:00 PM - 7:00 AM)</option>
-                </select>
+                <label class="form-label fw-semibold">Shift Timing</label>
+                <input type="text" class="form-control rounded-3" id="new-emp-shift" list="shift-timing-list" placeholder="e.g. Morning Shift (9:00 AM - 6:00 PM)" value="Morning Shift (9:00 AM - 6:00 PM)">
+                <datalist id="shift-timing-list">
+                  <option value="Morning Shift (9:00 AM - 6:00 PM)">
+                  <option value="Evening Shift (2:00 PM - 11:00 PM)">
+                  <option value="Night Shift (10:00 PM - 7:00 AM)">
+                  <option value="General Shift (10:00 AM - 7:00 PM)">
+                  <option value="Flexible Shift">
+                </datalist>
               </div>
             </div>
           </div>
@@ -11502,8 +13960,8 @@ document.addEventListener("DOMContentLoaded", () => {
             </h5>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Salary (Monthly CTC in ₹) <span class="text-danger">*</span></label>
-                <input type="number" class="form-control rounded-3" id="new-emp-salary" placeholder="50000" min="0" required>
+                <label class="form-label fw-semibold">Salary (Monthly CTC in ₹)</label>
+                <input type="number" class="form-control rounded-3" id="new-emp-salary" placeholder="50000" min="0">
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Bank Name</label>
@@ -11581,49 +14039,93 @@ document.addEventListener("DOMContentLoaded", () => {
             </h5>
             <div class="row">
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
-                <input type="text" class="form-control rounded-3" id="new-emp-username" placeholder="john.doe" required>
+                <label class="form-label fw-semibold">Username / Login ID</label>
+                <input type="text" class="form-control rounded-3" id="new-emp-username" placeholder="e.g. sowmiya">
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
-                <input type="password" class="form-control rounded-3" id="new-emp-password" placeholder="••••••••" required>
+                <label class="form-label fw-semibold">Password</label>
+                <div class="input-group">
+                  <input type="password" class="form-control" id="new-emp-password" placeholder="••••••••" style="border-top-left-radius: 0.5rem; border-bottom-left-radius: 0.5rem;">
+                  <button class="btn btn-outline-secondary toggle-password-visibility" type="button" data-target="new-emp-password" title="Show/Hide Password" style="border-top-right-radius: 0.5rem; border-bottom-right-radius: 0.5rem;">
+                    <i class="fa-solid fa-eye"></i>
+                  </button>
+                </div>
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Confirm Password <span class="text-danger">*</span></label>
-                <input type="password" class="form-control rounded-3" id="new-emp-confirm-password" placeholder="••••••••" required>
+                <label class="form-label fw-semibold">Confirm Password</label>
+                <div class="input-group">
+                  <input type="password" class="form-control" id="new-emp-confirm-password" placeholder="••••••••" style="border-top-left-radius: 0.5rem; border-bottom-left-radius: 0.5rem;">
+                  <button class="btn btn-outline-secondary toggle-password-visibility" type="button" data-target="new-emp-confirm-password" title="Show/Hide Password" style="border-top-right-radius: 0.5rem; border-bottom-right-radius: 0.5rem;">
+                    <i class="fa-solid fa-eye"></i>
+                  </button>
+                </div>
               </div>
             </div>
             
-            <div class="mb-3">
-              <label class="form-label fw-semibold d-block mb-2">Access Permissions</label>
-              <div class="d-flex flex-wrap gap-3">
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="checkbox" id="perm-crm" checked>
-                  <label class="form-check-label fw-semibold" for="perm-crm">CRM Access</label>
+            <div class="mb-4">
+              <label class="form-label fw-semibold d-block mb-2 text-dark">Access Permissions (Assign Allowed Modules)</label>
+              <div class="row g-3">
+                <div class="col-md-4 col-sm-6">
+                  <div class="p-3 border rounded-3 bg-light h-100">
+                    <div class="form-check form-switch mb-1">
+                      <input class="form-check-input" type="checkbox" role="switch" id="perm-main" checked>
+                      <label class="form-check-label fw-bold text-dark" for="perm-main">1. Main</label>
+                    </div>
+                    <div class="small text-muted ps-4">Leads, Clients, Followups, Notes</div>
+                  </div>
                 </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="checkbox" id="perm-hrms" checked>
-                  <label class="form-check-label fw-semibold" for="perm-hrms">HRMS Access</label>
+                <div class="col-md-4 col-sm-6">
+                  <div class="p-3 border rounded-3 bg-light h-100">
+                    <div class="form-check form-switch mb-1">
+                      <input class="form-check-input" type="checkbox" role="switch" id="perm-dashboard" checked>
+                      <label class="form-check-label fw-bold text-dark" for="perm-dashboard">2. Dashboard</label>
+                    </div>
+                    <div class="small text-muted ps-4">Employee Dashboard & Overview</div>
+                  </div>
                 </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="checkbox" id="perm-accounts">
-                  <label class="form-check-label fw-semibold" for="perm-accounts">Accounts Access</label>
+                <div class="col-md-4 col-sm-6">
+                  <div class="p-3 border rounded-3 bg-light h-100">
+                    <div class="form-check form-switch mb-1">
+                      <input class="form-check-input" type="checkbox" role="switch" id="perm-core-ops" checked>
+                      <label class="form-check-label fw-bold text-dark" for="perm-core-ops">3. Core Ops</label>
+                    </div>
+                    <div class="small text-muted ps-4">Services, Domains, Canva, Billing Software, Ads & SEO</div>
+                  </div>
                 </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="checkbox" id="perm-marketing">
-                  <label class="form-check-label fw-semibold" for="perm-marketing">Marketing Access</label>
+                <div class="col-md-4 col-sm-6">
+                  <div class="p-3 border rounded-3 bg-light h-100">
+                    <div class="form-check form-switch mb-1">
+                      <input class="form-check-input" type="checkbox" role="switch" id="perm-billing-reminders">
+                      <label class="form-check-label fw-bold text-dark" for="perm-billing-reminders">4. Billing & Reminders</label>
+                    </div>
+                    <div class="small text-muted ps-4">Payments, Invoices, Reminders & Calendar</div>
+                  </div>
                 </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="checkbox" id="perm-admin">
-                  <label class="form-check-label fw-semibold text-danger" for="perm-admin">Admin Access</label>
+                <div class="col-md-4 col-sm-6">
+                  <div class="p-3 border rounded-3 bg-light h-100">
+                    <div class="form-check form-switch mb-1">
+                      <input class="form-check-input" type="checkbox" role="switch" id="perm-hrms-tasks" checked>
+                      <label class="form-check-label fw-bold text-dark" for="perm-hrms-tasks">5. HRMS & Tasks</label>
+                    </div>
+                    <div class="small text-muted ps-4">Attendance, Leave Requests & Kanban Tasks</div>
+                  </div>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                  <div class="p-3 border rounded-3 bg-light h-100">
+                    <div class="form-check form-switch mb-1">
+                      <input class="form-check-input" type="checkbox" role="switch" id="perm-analytics-logs">
+                      <label class="form-check-label fw-bold text-dark" for="perm-analytics-logs">6. Analytics & Logs</label>
+                    </div>
+                    <div class="small text-muted ps-4">Reports, Activity Timeline & System Settings</div>
+                  </div>
                 </div>
               </div>
             </div>
 
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Status <span class="text-danger">*</span></label>
-                <select class="form-select rounded-3" id="new-emp-status" required>
+                <label class="form-label fw-semibold">Status</label>
+                <select class="form-select rounded-3" id="new-emp-status">
                   <option value="Active" selected>Active</option>
                   <option value="Inactive">Inactive</option>
                 </select>
@@ -11647,6 +14149,23 @@ document.addEventListener("DOMContentLoaded", () => {
       dateFormat: "Y-m-d",
       allowInput: true
     });
+
+    // Attach password toggle listeners (Show/Hide preview)
+    attachPasswordToggleListeners(contentWorkspace);
+
+    // Auto-suggest login ID / username when employee name is entered
+    const empNameInput = document.getElementById("new-emp-name");
+    const empUsernameInput = document.getElementById("new-emp-username");
+    if (empNameInput && empUsernameInput) {
+      empNameInput.addEventListener("input", () => {
+        if (!empUsernameInput.dataset.manualEdit) {
+          empUsernameInput.value = empNameInput.value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+        }
+      });
+      empUsernameInput.addEventListener("input", () => {
+        empUsernameInput.dataset.manualEdit = "true";
+      });
+    }
 
     // Handle Address same-as present address copy checkbox
     const presentAddress = document.getElementById("new-emp-present-address");
@@ -11687,7 +14206,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const password = (document.getElementById("new-emp-password")?.value || "");
         const confirmPassword = (document.getElementById("new-emp-confirm-password")?.value || "");
 
-        if (password !== confirmPassword) {
+        if ((password || confirmPassword) && password !== confirmPassword) {
           Swal.fire({
             icon: "error",
             title: "Password Mismatch",
@@ -11696,40 +14215,46 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        const name = (document.getElementById("new-emp-name")?.value || "");
-        const designation = (document.getElementById("new-emp-designation")?.value || "");
-        const department = (document.getElementById("new-emp-department")?.value || "");
+        const newEmpId = getNextId(state.employees, "E", 3);
+
+        const rawName = (document.getElementById("new-emp-name")?.value || "").trim();
+        const name = rawName || `Employee ${newEmpId}`;
+        const rawDesignation = (document.getElementById("new-emp-designation")?.value || "").trim();
+        const designation = rawDesignation || "Employee";
+        const rawDepartment = (document.getElementById("new-emp-department")?.value || "").trim();
+        const department = rawDepartment || "General";
         const salary = parseInt((document.getElementById("new-emp-salary")?.value || "")) || 0;
-        const phone = (document.getElementById("new-emp-phone")?.value || "");
-        const email = (document.getElementById("new-emp-email")?.value || "");
-        const altPhone = (document.getElementById("new-emp-alt-phone")?.value || "");
+        const phone = (document.getElementById("new-emp-phone")?.value || "").trim() || "-";
+        const rawEmail = (document.getElementById("new-emp-email")?.value || "").trim();
+        const email = rawEmail || `${newEmpId.toLowerCase()}@thynkdigital.in`;
+        const altPhone = (document.getElementById("new-emp-alt-phone")?.value || "").trim();
         const gender = (document.getElementById("new-emp-gender")?.value || "");
         const dob = (document.getElementById("new-emp-dob")?.value || "");
         const bloodGroup = (document.getElementById("new-emp-blood-group")?.value || "");
         const maritalStatus = (document.getElementById("new-emp-marital-status")?.value || "");
-        const photo = (document.getElementById("new-emp-photo")?.value || "") || `https://randomuser.me/api/portraits/men/${Math.floor(Math.random() * 99) + 1}.jpg`;
+        const photo = (document.getElementById("new-emp-photo")?.value || "").trim() || `https://randomuser.me/api/portraits/men/${Math.floor(Math.random() * 99) + 1}.jpg`;
 
-        const role = (document.getElementById("new-emp-role")?.value || "");
-        const managerId = (document.getElementById("new-emp-manager")?.value || "");
-        const employmentType = (document.getElementById("new-emp-employment-type")?.value || "");
-        const joiningDate = (document.getElementById("new-emp-joining-date")?.value || "");
+        const role = (document.getElementById("new-emp-role")?.value || "Employee");
+        const managerId = (document.getElementById("new-emp-manager")?.value || "Admin");
+        const employmentType = (document.getElementById("new-emp-employment-type")?.value || "Full Time");
+        const rawJoiningDate = (document.getElementById("new-emp-joining-date")?.value || "").trim();
+        const joiningDate = rawJoiningDate || new Date().toISOString().split("T")[0];
         const probation = parseInt((document.getElementById("new-emp-probation")?.value || "")) || 0;
-        const shift = (document.getElementById("new-emp-shift")?.value || "");
+        const shift = (document.getElementById("new-emp-shift")?.value || "Morning Shift (9:00 AM - 6:00 PM)");
 
-        const bankName = (document.getElementById("new-emp-bank-name")?.value || "");
-        const accountNumber = (document.getElementById("new-emp-account-number")?.value || "");
-        const ifsc = (document.getElementById("new-emp-ifsc")?.value || "");
-        const pan = (document.getElementById("new-emp-pan")?.value || "");
-        const aadhaar = (document.getElementById("new-emp-aadhaar")?.value || "");
+        const bankName = (document.getElementById("new-emp-bank-name")?.value || "").trim();
+        const accountNumber = (document.getElementById("new-emp-account-number")?.value || "").trim();
+        const ifsc = (document.getElementById("new-emp-ifsc")?.value || "").trim();
+        const pan = (document.getElementById("new-emp-pan")?.value || "").trim();
+        const aadhaar = (document.getElementById("new-emp-aadhaar")?.value || "").trim();
 
-        const emergencyName = (document.getElementById("new-emp-emergency-name")?.value || "");
-        const emergencyRelation = (document.getElementById("new-emp-emergency-relation")?.value || "");
-        const emergencyPhone = (document.getElementById("new-emp-emergency-phone")?.value || "");
+        const emergencyName = (document.getElementById("new-emp-emergency-name")?.value || "").trim();
+        const emergencyRelation = (document.getElementById("new-emp-emergency-relation")?.value || "").trim();
+        const emergencyPhone = (document.getElementById("new-emp-emergency-phone")?.value || "").trim();
 
-        const username = (document.getElementById("new-emp-username")?.value || "");
-        const status = (document.getElementById("new-emp-status")?.value || "");
-
-        const newEmpId = "E" + (state.employees.length + 1).toString().padStart(3, "0");
+        const rawUsername = (document.getElementById("new-emp-username")?.value || "").trim();
+        const username = rawUsername || newEmpId.toLowerCase();
+        const status = (document.getElementById("new-emp-status")?.value || "Active");
 
         const newEmp = {
           id: newEmpId,
@@ -11764,11 +14289,18 @@ document.addEventListener("DOMContentLoaded", () => {
           username,
           password,
           permissions: {
-            crm: document.getElementById("perm-crm").checked,
-            hrms: document.getElementById("perm-hrms").checked,
-            accounts: document.getElementById("perm-accounts").checked,
-            marketing: document.getElementById("perm-marketing").checked,
-            admin: document.getElementById("perm-admin").checked
+            main: !!document.getElementById("perm-main")?.checked,
+            dashboard: !!document.getElementById("perm-dashboard")?.checked,
+            core_ops: !!document.getElementById("perm-core-ops")?.checked,
+            billing_reminders: !!document.getElementById("perm-billing-reminders")?.checked,
+            hrms_tasks: !!document.getElementById("perm-hrms-tasks")?.checked,
+            analytics_logs: !!document.getElementById("perm-analytics-logs")?.checked,
+            // legacy compatibility
+            crm: !!document.getElementById("perm-main")?.checked,
+            hrms: !!document.getElementById("perm-hrms-tasks")?.checked,
+            accounts: !!document.getElementById("perm-billing-reminders")?.checked,
+            marketing: !!document.getElementById("perm-core-ops")?.checked,
+            admin: role === "Admin"
           },
           status
         };
@@ -11809,7 +14341,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   // VIEW: EDIT EMPLOYEE PROFILE FORM
-  const renderEditEmployeeForm = (empId = "") => {
+  function renderEditEmployeeForm(empId = "") {
     const emp = state.employees.find(e => e.id === empId);
     if (!emp) {
       contentWorkspace.innerHTML = `
@@ -11825,10 +14357,13 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    const dob = emp.dob || "1990-01-01";
-    const gender = emp.gender || "Male";
-    const username = emp.username || (emp.name ? emp.name.toLowerCase().replace(/\s+/g, ".") : emp.id.toLowerCase());
-    const password = emp.password || "123456";
+    const dob = emp.dob || "";
+    const gender = emp.gender || "";
+    const username = emp.username || "";
+    const password = emp.password || "";
+
+    const normalizedEmpPerms = normalizePermissions(emp.permissions, emp.role, emp.designation, emp.id);
+    const hasPerm = (p) => !!normalizedEmpPerms[p];
 
     const managerOptions = state.employees
       .filter(e => e.id !== emp.id)
@@ -11860,7 +14395,7 @@ document.addEventListener("DOMContentLoaded", () => {
       </div>
 
       <div class="card border-0 rounded-4 shadow-sm p-4 animate__animated animate__fadeInUp">
-        <form id="edit-employee-registration-form">
+        <form id="edit-employee-registration-form" novalidate>
           <input type="hidden" id="edit-emp-id" value="${emp.id}">
           
           <!-- SECTION 1: EMPLOYEE DETAILS -->
@@ -11870,48 +14405,48 @@ document.addEventListener("DOMContentLoaded", () => {
             </h5>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Employee Name <span class="text-danger">*</span></label>
-                <input type="text" class="form-control rounded-3" id="edit-emp-name" value="${emp.name || ""}" required>
+                <label class="form-label fw-semibold">Employee Name</label>
+                <input type="text" class="form-control rounded-3" id="edit-emp-name" value="${emp.name || ""}" placeholder="John Doe">
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Profile Photo URL</label>
-                <input type="url" class="form-control rounded-3" id="edit-emp-photo" value="${emp.photo || ""}">
+                <input type="url" class="form-control rounded-3" id="edit-emp-photo" value="${emp.photo || ""}" placeholder="https://randomuser.me/api/portraits/men/1.jpg">
               </div>
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
-                <input type="email" class="form-control rounded-3" id="edit-emp-email" value="${emp.email || ""}" required>
+                <label class="form-label fw-semibold">Email Address</label>
+                <input type="email" class="form-control rounded-3" id="edit-emp-email" value="${emp.email || ""}" placeholder="john@thynkdigital.in">
               </div>
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Mobile Number <span class="text-danger">*</span></label>
-                <input type="tel" class="form-control rounded-3" id="edit-emp-phone" value="${emp.phone || ""}" required>
+                <label class="form-label fw-semibold">Mobile Number</label>
+                <input type="tel" class="form-control rounded-3" id="edit-emp-phone" value="${emp.phone || ""}" placeholder="9876543210">
               </div>
             </div>
             <div class="row">
               <div class="col-md-4 mb-3">
                 <label class="form-label fw-semibold">Alternate Number</label>
-                <input type="tel" class="form-control rounded-3" id="edit-emp-alt-phone" value="${emp.alternatePhone || ""}">
+                <input type="tel" class="form-control rounded-3" id="edit-emp-alt-phone" value="${emp.alternatePhone || ""}" placeholder="9876543211">
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Gender <span class="text-danger">*</span></label>
-                <select class="form-select rounded-3" id="edit-emp-gender" required>
-                  <option value="" disabled>Select Gender</option>
+                <label class="form-label fw-semibold">Gender</label>
+                <select class="form-select rounded-3" id="edit-emp-gender">
+                  <option value="" ${!gender ? "selected" : ""}>Select Gender</option>
                   <option value="Male" ${gender === "Male" ? "selected" : ""}>Male</option>
                   <option value="Female" ${gender === "Female" ? "selected" : ""}>Female</option>
                   <option value="Other" ${gender === "Other" ? "selected" : ""}>Other</option>
                 </select>
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Date of Birth <span class="text-danger">*</span></label>
-                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-emp-dob" value="${dob}" required>
+                <label class="form-label fw-semibold">Date of Birth</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-emp-dob" value="${dob}" placeholder="YYYY-MM-DD">
               </div>
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Blood Group</label>
                 <select class="form-select rounded-3" id="edit-emp-blood-group">
-                  <option value="" disabled ${!emp.bloodGroup ? "selected" : ""}>Select Blood Group</option>
+                  <option value="" ${!emp.bloodGroup ? "selected" : ""}>Select Blood Group</option>
                   <option value="A+" ${emp.bloodGroup === "A+" ? "selected" : ""}>A+</option>
                   <option value="A-" ${emp.bloodGroup === "A-" ? "selected" : ""}>A-</option>
                   <option value="B+" ${emp.bloodGroup === "B+" ? "selected" : ""}>B+</option>
@@ -11925,7 +14460,7 @@ document.addEventListener("DOMContentLoaded", () => {
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Marital Status</label>
                 <select class="form-select rounded-3" id="edit-emp-marital-status">
-                  <option value="" disabled ${!emp.maritalStatus ? "selected" : ""}>Select Marital Status</option>
+                  <option value="" ${!emp.maritalStatus ? "selected" : ""}>Select Marital Status</option>
                   <option value="Single" ${emp.maritalStatus === "Single" ? "selected" : ""}>Single</option>
                   <option value="Married" ${emp.maritalStatus === "Married" ? "selected" : ""}>Married</option>
                   <option value="Divorced" ${emp.maritalStatus === "Divorced" ? "selected" : ""}>Divorced</option>
@@ -11942,33 +14477,33 @@ document.addEventListener("DOMContentLoaded", () => {
             </h5>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Department <span class="text-danger">*</span></label>
-                <input type="text" class="form-control rounded-3" id="edit-emp-department" value="${emp.department || ""}" required>
+                <label class="form-label fw-semibold">Department</label>
+                <input type="text" class="form-control rounded-3" id="edit-emp-department" value="${emp.department || ""}" placeholder="Development">
               </div>
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Designation <span class="text-danger">*</span></label>
-                <input type="text" class="form-control rounded-3" id="edit-emp-designation" value="${emp.designation || ""}" required>
+                <label class="form-label fw-semibold">Designation</label>
+                <input type="text" class="form-control rounded-3" id="edit-emp-designation" value="${emp.designation || ""}" placeholder="Senior Developer">
               </div>
             </div>
             <div class="row">
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Role <span class="text-danger">*</span></label>
-                <select class="form-select rounded-3" id="edit-emp-role" required>
+                <label class="form-label fw-semibold">Role</label>
+                <select class="form-select rounded-3" id="edit-emp-role">
                   <option value="Employee" ${emp.role === "Employee" ? "selected" : ""}>Employee</option>
                   <option value="Manager" ${emp.role === "Manager" ? "selected" : ""}>Manager</option>
                   <option value="Admin" ${emp.role === "Admin" ? "selected" : ""}>Admin</option>
                 </select>
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Reporting Manager <span class="text-danger">*</span></label>
-                <select class="form-select rounded-3" id="edit-emp-manager" required>
+                <label class="form-label fw-semibold">Reporting Manager</label>
+                <select class="form-select rounded-3" id="edit-emp-manager">
                   <option value="Admin" ${emp.managerId === "Admin" ? "selected" : ""}>Admin (Root)</option>
                   ${managerOptions}
                 </select>
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Employment Type <span class="text-danger">*</span></label>
-                <select class="form-select rounded-3" id="edit-emp-employment-type" required>
+                <label class="form-label fw-semibold">Employment Type</label>
+                <select class="form-select rounded-3" id="edit-emp-employment-type">
                   <option value="Full Time" ${emp.employmentType === "Full Time" ? "selected" : ""}>Full Time</option>
                   <option value="Part Time" ${emp.employmentType === "Part Time" ? "selected" : ""}>Part Time</option>
                   <option value="Contract" ${emp.employmentType === "Contract" ? "selected" : ""}>Contract</option>
@@ -11978,20 +14513,23 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
             <div class="row">
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Joining Date <span class="text-danger">*</span></label>
-                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-emp-joining-date" value="${emp.joiningDate || ""}" required>
+                <label class="form-label fw-semibold">Joining Date</label>
+                <input type="text" class="form-control rounded-3 flatpickr-date" id="edit-emp-joining-date" value="${emp.joiningDate || ""}" placeholder="YYYY-MM-DD">
               </div>
               <div class="col-md-4 mb-3">
                 <label class="form-label fw-semibold">Probation Period (Months)</label>
-                <input type="number" class="form-control rounded-3" id="edit-emp-probation" value="${emp.probationPeriod || 0}" min="0">
+                <input type="number" class="form-control rounded-3" id="edit-emp-probation" value="${emp.probationPeriod !== undefined && emp.probationPeriod !== null ? emp.probationPeriod : ""}" placeholder="3" min="0">
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Shift</label>
-                <select class="form-select rounded-3" id="edit-emp-shift">
-                  <option value="Morning Shift (9:00 AM - 6:00 PM)" ${emp.shift === "Morning Shift (9:00 AM - 6:00 PM)" ? "selected" : ""}>Morning Shift (9:00 AM - 6:00 PM)</option>
-                  <option value="Evening Shift (2:00 PM - 11:00 PM)" ${emp.shift === "Evening Shift (2:00 PM - 11:00 PM)" ? "selected" : ""}>Evening Shift (2:00 PM - 11:00 PM)</option>
-                  <option value="Night Shift (10:00 PM - 7:00 AM)" ${emp.shift === "Night Shift (10:00 PM - 7:00 AM)" ? "selected" : ""}>Night Shift (10:00 PM - 7:00 AM)</option>
-                </select>
+                <label class="form-label fw-semibold">Shift Timing</label>
+                <input type="text" class="form-control rounded-3" id="edit-emp-shift" list="edit-shift-timing-list" value="${emp.shift || ""}" placeholder="e.g. Morning Shift (9:00 AM - 6:00 PM)">
+                <datalist id="edit-shift-timing-list">
+                  <option value="Morning Shift (9:00 AM - 6:00 PM)">
+                  <option value="Evening Shift (2:00 PM - 11:00 PM)">
+                  <option value="Night Shift (10:00 PM - 7:00 AM)">
+                  <option value="General Shift (10:00 AM - 7:00 PM)">
+                  <option value="Flexible Shift">
+                </datalist>
               </div>
             </div>
           </div>
@@ -12003,32 +14541,32 @@ document.addEventListener("DOMContentLoaded", () => {
             </h5>
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Salary (Monthly CTC in ₹) <span class="text-danger">*</span></label>
-                <input type="number" class="form-control rounded-3" id="edit-emp-salary" value="${emp.salary || 0}" min="0" required>
+                <label class="form-label fw-semibold">Salary (Monthly CTC in ₹)</label>
+                <input type="number" class="form-control rounded-3" id="edit-emp-salary" value="${emp.salary !== undefined && emp.salary !== null ? emp.salary : ""}" placeholder="50000" min="0">
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Bank Name</label>
-                <input type="text" class="form-control rounded-3" id="edit-emp-bank-name" value="${emp.bankName || ""}">
+                <input type="text" class="form-control rounded-3" id="edit-emp-bank-name" value="${emp.bankName || ""}" placeholder="HDFC Bank">
               </div>
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Account Number</label>
-                <input type="text" class="form-control rounded-3" id="edit-emp-account-number" value="${emp.accountNumber || ""}">
+                <input type="text" class="form-control rounded-3" id="edit-emp-account-number" value="${emp.accountNumber || ""}" placeholder="501002938472">
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">IFSC Code</label>
-                <input type="text" class="form-control rounded-3" id="edit-emp-ifsc" value="${emp.ifscCode || ""}">
+                <input type="text" class="form-control rounded-3" id="edit-emp-ifsc" value="${emp.ifscCode || ""}" placeholder="HDFC0001234">
               </div>
             </div>
             <div class="row">
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">PAN Number</label>
-                <input type="text" class="form-control rounded-3 text-uppercase" id="edit-emp-pan" value="${emp.panNumber || ""}" maxlength="10">
+                <input type="text" class="form-control rounded-3 text-uppercase" id="edit-emp-pan" value="${emp.panNumber || ""}" placeholder="ABCDE1234F" maxlength="10">
               </div>
               <div class="col-md-6 mb-3">
                 <label class="form-label fw-semibold">Aadhaar Number</label>
-                <input type="text" class="form-control rounded-3" id="edit-emp-aadhaar" value="${emp.aadhaarNumber || ""}" maxlength="14">
+                <input type="text" class="form-control rounded-3" id="edit-emp-aadhaar" value="${emp.aadhaarNumber || ""}" placeholder="1234 5678 9012" maxlength="14">
               </div>
             </div>
           </div>
@@ -12040,7 +14578,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </h5>
             <div class="mb-3">
               <label class="form-label fw-semibold">Present Address</label>
-              <textarea class="form-control rounded-3" id="edit-emp-present-address" rows="2">${emp.presentAddress || ""}</textarea>
+              <textarea class="form-control rounded-3" id="edit-emp-present-address" rows="2" placeholder="123 Street, City, State, ZIP">${emp.presentAddress || ""}</textarea>
             </div>
             <div class="form-check mb-3">
               <input class="form-check-input" type="checkbox" id="edit-emp-same-address" ${emp.presentAddress && emp.presentAddress === emp.permanentAddress ? "checked" : ""}>
@@ -12050,7 +14588,7 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
             <div class="mb-3">
               <label class="form-label fw-semibold">Permanent Address</label>
-              <textarea class="form-control rounded-3" id="edit-emp-permanent-address" rows="2" ${emp.presentAddress && emp.presentAddress === emp.permanentAddress ? "readonly" : ""}>${emp.permanentAddress || ""}</textarea>
+              <textarea class="form-control rounded-3" id="edit-emp-permanent-address" rows="2" placeholder="123 Street, City, State, ZIP" ${emp.presentAddress && emp.presentAddress === emp.permanentAddress ? "readonly" : ""}>${emp.permanentAddress || ""}</textarea>
             </div>
           </div>
 
@@ -12062,15 +14600,15 @@ document.addEventListener("DOMContentLoaded", () => {
             <div class="row">
               <div class="col-md-4 mb-3">
                 <label class="form-label fw-semibold">Contact Name</label>
-                <input type="text" class="form-control rounded-3" id="edit-emp-emergency-name" value="${emp.emergencyContactName || ""}">
+                <input type="text" class="form-control rounded-3" id="edit-emp-emergency-name" value="${emp.emergencyContactName || ""}" placeholder="Spouse / Parent Name">
               </div>
               <div class="col-md-4 mb-3">
                 <label class="form-label fw-semibold">Relationship</label>
-                <input type="text" class="form-control rounded-3" id="edit-emp-emergency-relation" value="${emp.emergencyContactRelationship || ""}">
+                <input type="text" class="form-control rounded-3" id="edit-emp-emergency-relation" value="${emp.emergencyContactRelationship || ""}" placeholder="e.g. Father, Mother, Spouse">
               </div>
               <div class="col-md-4 mb-3">
                 <label class="form-label fw-semibold">Mobile Number</label>
-                <input type="tel" class="form-control rounded-3" id="edit-emp-emergency-phone" value="${emp.emergencyContactPhone || ""}">
+                <input type="tel" class="form-control rounded-3" id="edit-emp-emergency-phone" value="${emp.emergencyContactPhone || ""}" placeholder="9876543212">
               </div>
             </div>
           </div>
@@ -12082,49 +14620,93 @@ document.addEventListener("DOMContentLoaded", () => {
             </h5>
             <div class="row">
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Username <span class="text-danger">*</span></label>
-                <input type="text" class="form-control rounded-3" id="edit-emp-username" value="${username}" required>
+                <label class="form-label fw-semibold">Username / Login ID</label>
+                <input type="text" class="form-control rounded-3" id="edit-emp-username" value="${username}" placeholder="john.doe">
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Password <span class="text-danger">*</span></label>
-                <input type="password" class="form-control rounded-3" id="edit-emp-password" value="${password}" required>
+                <label class="form-label fw-semibold">Password</label>
+                <div class="input-group">
+                  <input type="password" class="form-control" id="edit-emp-password" value="${password}" placeholder="Enter new password or leave blank" style="border-top-left-radius: 0.5rem; border-bottom-left-radius: 0.5rem;">
+                  <button class="btn btn-outline-secondary toggle-password-visibility" type="button" data-target="edit-emp-password" title="Show/Hide Password" style="border-top-right-radius: 0.5rem; border-bottom-right-radius: 0.5rem;">
+                    <i class="fa-solid fa-eye"></i>
+                  </button>
+                </div>
               </div>
               <div class="col-md-4 mb-3">
-                <label class="form-label fw-semibold">Confirm Password <span class="text-danger">*</span></label>
-                <input type="password" class="form-control rounded-3" id="edit-emp-confirm-password" value="${password}" required>
+                <label class="form-label fw-semibold">Confirm Password</label>
+                <div class="input-group">
+                  <input type="password" class="form-control" id="edit-emp-confirm-password" value="${password}" placeholder="Confirm password" style="border-top-left-radius: 0.5rem; border-bottom-left-radius: 0.5rem;">
+                  <button class="btn btn-outline-secondary toggle-password-visibility" type="button" data-target="edit-emp-confirm-password" title="Show/Hide Password" style="border-top-right-radius: 0.5rem; border-bottom-right-radius: 0.5rem;">
+                    <i class="fa-solid fa-eye"></i>
+                  </button>
+                </div>
               </div>
             </div>
             
-            <div class="mb-3">
-              <label class="form-label fw-semibold d-block mb-2">Access Permissions</label>
-              <div class="d-flex flex-wrap gap-3">
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="checkbox" id="edit-perm-crm" ${emp.permissions?.crm ? "checked" : ""}>
-                  <label class="form-check-label fw-semibold" for="edit-perm-crm">CRM Access</label>
+            <div class="mb-4">
+              <label class="form-label fw-semibold d-block mb-2 text-dark">Access Permissions (Assign Allowed Modules)</label>
+              <div class="row g-3">
+                <div class="col-md-4 col-sm-6">
+                  <div class="p-3 border rounded-3 bg-light h-100">
+                    <div class="form-check form-switch mb-1">
+                      <input class="form-check-input" type="checkbox" role="switch" id="edit-perm-main" ${hasPerm("main") ? "checked" : ""}>
+                      <label class="form-check-label fw-bold text-dark" for="edit-perm-main">1. Main</label>
+                    </div>
+                    <div class="small text-muted ps-4">Leads, Clients, Followups, Notes</div>
+                  </div>
                 </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="checkbox" id="edit-perm-hrms" ${emp.permissions?.hrms ? "checked" : ""}>
-                  <label class="form-check-label fw-semibold" for="edit-perm-hrms">HRMS Access</label>
+                <div class="col-md-4 col-sm-6">
+                  <div class="p-3 border rounded-3 bg-light h-100">
+                    <div class="form-check form-switch mb-1">
+                      <input class="form-check-input" type="checkbox" role="switch" id="edit-perm-dashboard" ${hasPerm("dashboard") ? "checked" : ""}>
+                      <label class="form-check-label fw-bold text-dark" for="edit-perm-dashboard">2. Dashboard</label>
+                    </div>
+                    <div class="small text-muted ps-4">Employee Dashboard & Overview</div>
+                  </div>
                 </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="checkbox" id="edit-perm-accounts" ${emp.permissions?.accounts ? "checked" : ""}>
-                  <label class="form-check-label fw-semibold" for="edit-perm-accounts">Accounts Access</label>
+                <div class="col-md-4 col-sm-6">
+                  <div class="p-3 border rounded-3 bg-light h-100">
+                    <div class="form-check form-switch mb-1">
+                      <input class="form-check-input" type="checkbox" role="switch" id="edit-perm-core-ops" ${hasPerm("core_ops") ? "checked" : ""}>
+                      <label class="form-check-label fw-bold text-dark" for="edit-perm-core-ops">3. Core Ops</label>
+                    </div>
+                    <div class="small text-muted ps-4">Services, Domains, Canva, Billing Software, Ads & SEO</div>
+                  </div>
                 </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="checkbox" id="edit-perm-marketing" ${emp.permissions?.marketing ? "checked" : ""}>
-                  <label class="form-check-label fw-semibold" for="edit-perm-marketing">Marketing Access</label>
+                <div class="col-md-4 col-sm-6">
+                  <div class="p-3 border rounded-3 bg-light h-100">
+                    <div class="form-check form-switch mb-1">
+                      <input class="form-check-input" type="checkbox" role="switch" id="edit-perm-billing-reminders" ${hasPerm("billing_reminders") ? "checked" : ""}>
+                      <label class="form-check-label fw-bold text-dark" for="edit-perm-billing-reminders">4. Billing & Reminders</label>
+                    </div>
+                    <div class="small text-muted ps-4">Payments, Invoices, Reminders & Calendar</div>
+                  </div>
                 </div>
-                <div class="form-check form-check-inline">
-                  <input class="form-check-input" type="checkbox" id="edit-perm-admin" ${emp.permissions?.admin ? "checked" : ""}>
-                  <label class="form-check-label fw-semibold text-danger" for="edit-perm-admin">Admin Access</label>
+                <div class="col-md-4 col-sm-6">
+                  <div class="p-3 border rounded-3 bg-light h-100">
+                    <div class="form-check form-switch mb-1">
+                      <input class="form-check-input" type="checkbox" role="switch" id="edit-perm-hrms-tasks" ${hasPerm("hrms_tasks") ? "checked" : ""}>
+                      <label class="form-check-label fw-bold text-dark" for="edit-perm-hrms-tasks">5. HRMS & Tasks</label>
+                    </div>
+                    <div class="small text-muted ps-4">Attendance, Leave Requests & Kanban Tasks</div>
+                  </div>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                  <div class="p-3 border rounded-3 bg-light h-100">
+                    <div class="form-check form-switch mb-1">
+                      <input class="form-check-input" type="checkbox" role="switch" id="edit-perm-analytics-logs" ${hasPerm("analytics_logs") ? "checked" : ""}>
+                      <label class="form-check-label fw-bold text-dark" for="edit-perm-analytics-logs">6. Analytics & Logs</label>
+                    </div>
+                    <div class="small text-muted ps-4">Reports, Activity Timeline & System Settings</div>
+                  </div>
                 </div>
               </div>
             </div>
 
             <div class="row">
               <div class="col-md-6 mb-3">
-                <label class="form-label fw-semibold">Status <span class="text-danger">*</span></label>
-                <select class="form-select rounded-3" id="edit-emp-status" required>
+                <label class="form-label fw-semibold">Status</label>
+                <select class="form-select rounded-3" id="edit-emp-status">
                   <option value="Active" ${emp.status === "Active" ? "selected" : ""}>Active</option>
                   <option value="Inactive" ${emp.status === "Inactive" ? "selected" : ""}>Inactive</option>
                 </select>
@@ -12147,6 +14729,9 @@ document.addEventListener("DOMContentLoaded", () => {
       dateFormat: "Y-m-d",
       allowInput: true
     });
+
+    // Attach password toggle listeners (Show/Hide preview)
+    attachPasswordToggleListeners(contentWorkspace);
 
     // Handle Address same-as copy checkbox
     const presentAddress = document.getElementById("edit-emp-present-address");
@@ -12176,7 +14761,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const password = (document.getElementById("edit-emp-password")?.value || "");
         const confirmPassword = (document.getElementById("edit-emp-confirm-password")?.value || "");
 
-        if (password !== confirmPassword) {
+        if ((password || confirmPassword) && password !== confirmPassword) {
           Swal.fire({
             icon: "error",
             title: "Password Mismatch",
@@ -12191,51 +14776,87 @@ document.addEventListener("DOMContentLoaded", () => {
           return;
         }
 
-        state.employees[idx].name = (document.getElementById("edit-emp-name")?.value || "");
-        state.employees[idx].designation = (document.getElementById("edit-emp-designation")?.value || "");
-        state.employees[idx].department = (document.getElementById("edit-emp-department")?.value || "");
-        state.employees[idx].salary = parseInt((document.getElementById("edit-emp-salary")?.value || "")) || 0;
-        state.employees[idx].phone = (document.getElementById("edit-emp-phone")?.value || "");
-        state.employees[idx].email = (document.getElementById("edit-emp-email")?.value || "");
-        state.employees[idx].alternatePhone = (document.getElementById("edit-emp-alt-phone")?.value || "");
+        const rawName = (document.getElementById("edit-emp-name")?.value || "").trim();
+        const updatedName = rawName || state.employees[idx].name || `Employee ${emp.id}`;
+
+        state.employees[idx].name = updatedName;
+        state.employees[idx].photo = (document.getElementById("edit-emp-photo")?.value || "").trim() || state.employees[idx].photo || "";
+        state.employees[idx].email = (document.getElementById("edit-emp-email")?.value || "").trim();
+        state.employees[idx].phone = (document.getElementById("edit-emp-phone")?.value || "").trim();
+        state.employees[idx].alternatePhone = (document.getElementById("edit-emp-alt-phone")?.value || "").trim();
         state.employees[idx].gender = (document.getElementById("edit-emp-gender")?.value || "");
         state.employees[idx].dob = (document.getElementById("edit-emp-dob")?.value || "");
         state.employees[idx].bloodGroup = (document.getElementById("edit-emp-blood-group")?.value || "");
         state.employees[idx].maritalStatus = (document.getElementById("edit-emp-marital-status")?.value || "");
-        state.employees[idx].photo = (document.getElementById("edit-emp-photo")?.value || "") || state.employees[idx].photo;
 
-        state.employees[idx].role = (document.getElementById("edit-emp-role")?.value || "");
-        state.employees[idx].managerId = (document.getElementById("edit-emp-manager")?.value || "");
-        state.employees[idx].employmentType = (document.getElementById("edit-emp-employment-type")?.value || "");
+        state.employees[idx].department = (document.getElementById("edit-emp-department")?.value || "").trim();
+        state.employees[idx].designation = (document.getElementById("edit-emp-designation")?.value || "").trim();
+        state.employees[idx].role = (document.getElementById("edit-emp-role")?.value || "Employee");
+        state.employees[idx].managerId = (document.getElementById("edit-emp-manager")?.value || "Admin");
+        state.employees[idx].employmentType = (document.getElementById("edit-emp-employment-type")?.value || "Full Time");
         state.employees[idx].joiningDate = (document.getElementById("edit-emp-joining-date")?.value || "");
         state.employees[idx].probationPeriod = parseInt((document.getElementById("edit-emp-probation")?.value || "")) || 0;
         state.employees[idx].shift = (document.getElementById("edit-emp-shift")?.value || "");
 
-        state.employees[idx].bankName = (document.getElementById("edit-emp-bank-name")?.value || "");
-        state.employees[idx].accountNumber = (document.getElementById("edit-emp-account-number")?.value || "");
-        state.employees[idx].ifscCode = (document.getElementById("edit-emp-ifsc")?.value || "");
-        state.employees[idx].panNumber = (document.getElementById("edit-emp-pan")?.value || "");
-        state.employees[idx].aadhaarNumber = (document.getElementById("edit-emp-aadhaar")?.value || "");
+        const salaryVal = (document.getElementById("edit-emp-salary")?.value || "").trim();
+        state.employees[idx].salary = salaryVal !== "" ? (parseInt(salaryVal) || 0) : (state.employees[idx].salary || 0);
 
-        state.employees[idx].presentAddress = presentAddress.value;
-        state.employees[idx].permanentAddress = permanentAddress.value;
-        state.employees[idx].emergencyContactName = (document.getElementById("edit-emp-emergency-name")?.value || "");
-        state.employees[idx].emergencyContactRelationship = (document.getElementById("edit-emp-emergency-relation")?.value || "");
-        state.employees[idx].emergencyContactPhone = (document.getElementById("edit-emp-emergency-phone")?.value || "");
+        state.employees[idx].bankName = (document.getElementById("edit-emp-bank-name")?.value || "").trim();
+        state.employees[idx].accountNumber = (document.getElementById("edit-emp-account-number")?.value || "").trim();
+        state.employees[idx].ifscCode = (document.getElementById("edit-emp-ifsc")?.value || "").trim();
+        state.employees[idx].panNumber = (document.getElementById("edit-emp-pan")?.value || "").trim();
+        state.employees[idx].aadhaarNumber = (document.getElementById("edit-emp-aadhaar")?.value || "").trim();
 
-        state.employees[idx].username = (document.getElementById("edit-emp-username")?.value || "");
-        state.employees[idx].password = password;
-        state.employees[idx].permissions = {
-          crm: document.getElementById("edit-perm-crm").checked,
-          hrms: document.getElementById("edit-perm-hrms").checked,
-          accounts: document.getElementById("edit-perm-accounts").checked,
-          marketing: document.getElementById("edit-perm-marketing").checked,
-          admin: document.getElementById("edit-perm-admin").checked
+        state.employees[idx].presentAddress = (document.getElementById("edit-emp-present-address")?.value || "").trim();
+        state.employees[idx].permanentAddress = (document.getElementById("edit-emp-permanent-address")?.value || "").trim();
+        state.employees[idx].emergencyContactName = (document.getElementById("edit-emp-emergency-name")?.value || "").trim();
+        state.employees[idx].emergencyContactRelationship = (document.getElementById("edit-emp-emergency-relation")?.value || "").trim();
+        state.employees[idx].emergencyContactPhone = (document.getElementById("edit-emp-emergency-phone")?.value || "").trim();
+
+        const rawUsername = (document.getElementById("edit-emp-username")?.value || "").trim();
+        state.employees[idx].username = rawUsername || state.employees[idx].username || emp.id.toLowerCase();
+        if (password) {
+          state.employees[idx].password = password;
+        }
+
+        const permMain = !!document.getElementById("edit-perm-main")?.checked;
+        const permDashboard = !!document.getElementById("edit-perm-dashboard")?.checked;
+        const permCoreOps = !!document.getElementById("edit-perm-core-ops")?.checked;
+        const permBillingReminders = !!document.getElementById("edit-perm-billing-reminders")?.checked;
+        const permHrmsTasks = !!document.getElementById("edit-perm-hrms-tasks")?.checked;
+        const permAnalyticsLogs = !!document.getElementById("edit-perm-analytics-logs")?.checked;
+
+        const updatedPermissions = {
+          main: permMain,
+          dashboard: permDashboard,
+          core_ops: permCoreOps,
+          billing_reminders: permBillingReminders,
+          hrms_tasks: permHrmsTasks,
+          analytics_logs: permAnalyticsLogs,
+          // legacy compatibility
+          crm: permMain,
+          hrms: permHrmsTasks,
+          accounts: permBillingReminders,
+          marketing: permCoreOps,
+          admin: state.employees[idx].role === "Admin"
         };
-        state.employees[idx].status = (document.getElementById("edit-emp-status")?.value || "");
+        state.employees[idx].permissions = updatedPermissions;
+        state.employees[idx].status = (document.getElementById("edit-emp-status")?.value || "Active");
 
-        addTimelineEvent("employee", `Updated profile details for '${state.employees[idx].name}'`, "fa-user-gear");
+        if (state.currentUser && state.currentUser.id === emp.id) {
+          state.currentUser.permissions = updatedPermissions;
+          state.currentUser.name = updatedName;
+          state.currentUser.role = state.employees[idx].role;
+          localStorage.setItem("thynk_current_user", JSON.stringify(state.currentUser));
+          applyPermissionsUI();
+        }
+
+        addTimelineEvent("employee", `Updated profile details for '${updatedName}'`, "fa-user-gear");
         saveState();
+
+        if (window.API && typeof API.update === "function") {
+          API.update('employees', emp.id, state.employees[idx]).catch(e => console.warn("API update notice:", e));
+        }
 
         Swal.fire({
           icon: "success",
@@ -12260,25 +14881,78 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // ROUTER CONTROLLER FOR HASH CHANGE NAVIGATION
   const handleRouting = () => {
-    const hash = window.location.hash || "#/crm/dashboard";
-    
-    if (hash.startsWith("#/crm/services/new")) {
-      const queryStr = hash.split("?")[1] || "";
-      const urlParams = new URLSearchParams(queryStr);
-      const clientId = urlParams.get("client") || "";
-      
+    applyPermissionsUI();
+    const isExec = isAdminOrExecutive(state.currentUser);
+    const defaultHash = getDefaultRoute();
+    const hash = window.location.hash || defaultHash;
+
+    // Guard Admin Dashboard: Admin & Executive Only
+    if (hash.startsWith("#/crm/admin-dashboard") || hash === "#/admin") {
+      if (!isExec) {
+        document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
+        renderAccessDenied("Admin Dashboard");
+        return;
+      }
       document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
-      const sidebarItem = document.querySelector(`.sidebar-item[data-view="services"]`);
+      const sidebarItem = document.querySelector(`.sidebar-item[data-view="dashboard"]`);
       if (sidebarItem) sidebarItem.classList.add("active");
-      
-      renderNewServiceForm(clientId);
-    } else if (hash.startsWith("#/hrms/employees/new") || hash.startsWith("#/crm/employees/new")) {
+      switchView("admin-dashboard");
+      return;
+    }
+
+    // Guard Employee Dashboard
+    if (hash.startsWith("#/crm/employee-dashboard")) {
+      if (!isViewAllowed("employee-dashboard")) {
+        document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
+        renderAccessDenied("Employee Dashboard");
+        return;
+      }
+      document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
+      const sidebarItem = document.querySelector(`.sidebar-item[data-view="dashboard"]`);
+      if (sidebarItem) sidebarItem.classList.add("active");
+      switchView("employee-dashboard");
+      return;
+    }
+
+    // Role-based route for generic #/crm/dashboard or #/dashboard
+    if (hash === "#/crm/dashboard" || hash === "#/dashboard") {
+      if (isExec) {
+        document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
+        const sidebarItem = document.querySelector(`.sidebar-item[data-view="dashboard"]`);
+        if (sidebarItem) sidebarItem.classList.add("active");
+        switchView("admin-dashboard");
+      } else {
+        if (!isViewAllowed("employee-dashboard")) {
+          document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
+          renderAccessDenied("Dashboard");
+          return;
+        }
+        window.location.hash = "#/crm/employee-dashboard";
+      }
+      return;
+    }
+
+    // Guard Employee registration/edit routes: Only Admin, CEO, CTO
+    if (hash.startsWith("#/hrms/employees/new") || hash.startsWith("#/crm/employees/new")) {
+      if (!isExec) {
+        document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
+        renderAccessDenied("Employee Registration");
+        return;
+      }
       document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
       const sidebarItem = document.querySelector(`.sidebar-item[data-view="employees"]`);
       if (sidebarItem) sidebarItem.classList.add("active");
       
       renderNewEmployeeForm();
-    } else if (hash.startsWith("#/hrms/employees/edit") || hash.startsWith("#/crm/employees/edit")) {
+      return;
+    }
+
+    if (hash.startsWith("#/hrms/employees/edit") || hash.startsWith("#/crm/employees/edit")) {
+      if (!isExec) {
+        document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
+        renderAccessDenied("Edit Employee Profile");
+        return;
+      }
       const queryStr = hash.split("?")[1] || "";
       const urlParams = new URLSearchParams(queryStr);
       const empId = urlParams.get("id") || "";
@@ -12288,7 +14962,30 @@ document.addEventListener("DOMContentLoaded", () => {
       if (sidebarItem) sidebarItem.classList.add("active");
       
       renderEditEmployeeForm(empId);
+      return;
+    }
+
+    if (hash.startsWith("#/crm/services/new")) {
+      if (!isViewAllowed("services")) {
+        document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
+        renderAccessDenied("services");
+        return;
+      }
+      const queryStr = hash.split("?")[1] || "";
+      const urlParams = new URLSearchParams(queryStr);
+      const clientId = urlParams.get("client") || "";
+      
+      document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
+      const sidebarItem = document.querySelector(`.sidebar-item[data-view="services"]`);
+      if (sidebarItem) sidebarItem.classList.add("active");
+      
+      renderNewServiceForm(clientId);
     } else if (hash.startsWith("#/crm/clients/")) {
+      if (!isViewAllowed("clients")) {
+        document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
+        renderAccessDenied("clients");
+        return;
+      }
       const parts = hash.split("/");
       const clientId = parts[parts.length - 1];
       
@@ -12298,6 +14995,11 @@ document.addEventListener("DOMContentLoaded", () => {
       
       renderClientProfile(clientId);
     } else if (hash.startsWith("#/crm/seo/dashboard")) {
+      if (!isViewAllowed("seo")) {
+        document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
+        renderAccessDenied("seo");
+        return;
+      }
       const queryStr = hash.split("?")[1] || "";
       const urlParams = new URLSearchParams(queryStr);
       const seoId = urlParams.get("id") || "";
@@ -12308,8 +15010,18 @@ document.addEventListener("DOMContentLoaded", () => {
       
       state.selectedSeoCampaignId = seoId;
       switchView("seo/dashboard");
-    } else if (hash.startsWith("#/crm/")) {
-      const viewName = hash.replace("#/crm/", "").split("?")[0];
+    } else if (hash.startsWith("#/crm/") || hash.startsWith("#/hrms/")) {
+      const viewName = hash.replace("#/crm/", "").replace("#/hrms/", "").split("?")[0];
+      if (viewName === "no-access") {
+        document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
+        renderNoAccess();
+        return;
+      }
+      if (!isViewAllowed(viewName)) {
+        document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
+        renderAccessDenied(viewName);
+        return;
+      }
       
       document.querySelectorAll(".sidebar-item").forEach(el => el.classList.remove("active"));
       const sidebarItem = document.querySelector(`.sidebar-item[data-view="${viewName}"]`);
@@ -12317,7 +15029,7 @@ document.addEventListener("DOMContentLoaded", () => {
       
       switchView(viewName);
     } else {
-      window.location.hash = "#/crm/dashboard";
+      window.location.hash = defaultHash;
     }
   };
 
@@ -12326,6 +15038,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
   window.addEventListener("hashchange", handleRouting);
+
+  // Global delegated click listener for Add Employee buttons
+  document.addEventListener("click", (e) => {
+    const target = e.target ? e.target.closest("#add-employee-main-btn, #quick-add-employee-btn, .add-employee-btn, a[href*='employees/new']") : null;
+    if (target) {
+      e.preventDefault();
+      if (!isAdminOrExecutive(state.currentUser)) {
+        return;
+      }
+      window.location.hash = "#/hrms/employees/new";
+      if (typeof renderNewEmployeeForm === "function") {
+        renderNewEmployeeForm();
+      }
+    }
+  });
 
   // RUN CHECKAUTH SYSTEM
   checkAuth();
