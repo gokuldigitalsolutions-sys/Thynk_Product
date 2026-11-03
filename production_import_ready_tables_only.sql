@@ -449,7 +449,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
 -- Seed Employees (All passwords hashed with bcrypt: 'admin123' for Admin/CEO/CTO, '123456' for Employees)
 INSERT INTO `employees` (`id`, `name`, `email`, `phone`, `username`, `password_hash`, `department`, `designation`, `role`, `joining_date`, `salary`, `manager_id`, `status`, `photo`, `permissions`)
 VALUES
-('E001', 'Ankit Kumar', 'admin@thynkdigital.in', '9876598765', 'admin', '$2y$10$CwxDbwNh5H2AhJ/Air2ArOISiY9zOH4wkddxZXBEMx2ZclBGIT2uq', 'Development', 'Lead Web Developer', 'Administrator', '2023-05-15', 75000.00, 'Admin', 'Active', 'https://randomuser.me/api/portraits/men/32.jpg', '{\"crm\":true,\"hrms\":true,\"accounts\":true,\"marketing\":true,\"admin\":true}'),
+('E001', 'Gokul R', 'admin@thynkdigital.in', '9876598765', 'admin', '$2y$10$CwxDbwNh5H2AhJ/Air2ArOISiY9zOH4wkddxZXBEMx2ZclBGIT2uq', 'Development', 'Lead Web Developer', 'Administrator', '2023-05-15', 75000.00, 'Admin', 'Active', 'https://randomuser.me/api/portraits/men/32.jpg', '{\"crm\":true,\"hrms\":true,\"accounts\":true,\"marketing\":true,\"admin\":true}'),
 ('E002', 'Neha Sharma', 'neha@thynkdigital.in', '9811223344', 'neha', '$2y$10$3SUI8p9zQwsmapk1nGx.5OGcEhAExbBf.12tYMfq38vRK5CO5PrLy', 'Digital Marketing', 'Meta Ads Specialist', 'Employee', '2024-02-01', 45000.00, 'Admin', 'Active', 'https://randomuser.me/api/portraits/women/44.jpg', '{\"crm\":true,\"hrms\":true,\"accounts\":false,\"marketing\":true,\"admin\":false}'),
 ('E003', 'Sneha Patel', 'sneha@thynkdigital.in', '9900991122', 'sneha', '$2y$10$3SUI8p9zQwsmapk1nGx.5OGcEhAExbBf.12tYMfq38vRK5CO5PrLy', 'Client Relations', 'Account Manager', 'Employee', '2024-09-10', 40000.00, 'Admin', 'Active', 'https://randomuser.me/api/portraits/women/68.jpg', '{\"crm\":true,\"hrms\":true,\"accounts\":true,\"marketing\":false,\"admin\":false}'),
 ('E004', 'Deepak Rawat', 'deepak@thynkdigital.in', '8877665544', 'deepak', '$2y$10$3SUI8p9zQwsmapk1nGx.5OGcEhAExbBf.12tYMfq38vRK5CO5PrLy', 'Digital Marketing', 'SEO Lead', 'Employee', '2024-01-20', 50000.00, 'Admin', 'Active', 'https://randomuser.me/api/portraits/men/85.jpg', '{\"crm\":false,\"hrms\":true,\"accounts\":false,\"marketing\":true,\"admin\":false}'),
@@ -694,14 +694,14 @@ VALUES
 ('2026-06-26 11:30:00', 'payment', 'fa-receipt', 'Recorded payment of ₹70,000 for Nutan Builders (Invoice #INV-2026-004)'),
 ('2026-06-26 10:15:00', 'client', 'fa-user-plus', 'Added client Zenith Tech Labs (Rahul Sen)'),
 ('2026-06-25 15:45:00', 'service', 'fa-cube', 'Created service Meta Ads Management for Zenith Tech Labs'),
-('2026-06-24 17:00:00', 'task', 'fa-check-double', 'Ankit Kumar completed task ''Set up Nutan builders database schema''');
+('2026-06-24 17:00:00', 'task', 'fa-check-double', 'Gokul R completed task ''Set up Nutan builders database schema''');
 
 -- Seed Notifications
 INSERT INTO `notifications` (`id`, `title`, `message`, `type`, `date`)
 VALUES
 ('N1', 'RIG Fabrication Expired', 'Hosting for RIG Fabrication expired on May 15, 2024.', 'danger', 'May 15'),
 ('N2', 'Payment Received', '₹3,800 received from Arun (Agtechnosolutions).', 'success', 'June 6'),
-('N3', 'Leave Request', 'Ankit Kumar requested 5 days leave starting July 15.', 'info', 'June 25')
+('N3', 'Leave Request', 'Gokul R requested 5 days leave starting July 15.', 'info', 'June 25')
 ON DUPLICATE KEY UPDATE `title`=VALUES(`title`);
 
 -- Seed Settings
